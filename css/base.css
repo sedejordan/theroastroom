@@ -1,0 +1,126 @@
+/*
+  Reset, typography, focus styles and the handful of shared component classes.
+  Everything sits in a Tailwind layer so utility classes always win.
+*/
+
+@layer base {
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+  }
+
+  html {
+    background-color: var(--colorBackground);
+    text-size-adjust: 100%;
+    scroll-behavior: smooth;
+  }
+
+  body {
+    margin: 0;
+    min-height: 100vh;
+    background-color: var(--colorBackground);
+    color: var(--colorText);
+    font-family: var(--fontBody);
+    font-size: var(--textBase);
+    line-height: var(--leadingNormal);
+    text-rendering: optimizeLegibility;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    margin: 0;
+    font-family: var(--fontDisplay);
+    font-weight: 400;
+    line-height: var(--leadingTight);
+    letter-spacing: var(--trackingTight);
+    text-transform: uppercase;
+  }
+
+  p,
+  ul,
+  ol,
+  figure,
+  blockquote {
+    margin: 0;
+  }
+
+  ul,
+  ol {
+    padding: 0;
+    list-style: none;
+  }
+
+  a {
+    color: var(--colorAccent);
+    text-decoration: underline;
+    text-underline-offset: 0.2em;
+  }
+
+  button {
+    font: inherit;
+    color: inherit;
+    cursor: pointer;
+  }
+
+  code,
+  kbd,
+  samp,
+  pre {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 0.95em;
+  }
+
+  /* Focus is always visible and never relies on colour alone */
+  :focus-visible {
+    outline: var(--borderWidth2) solid var(--colorAccent);
+    outline-offset: 2px;
+  }
+
+  ::selection {
+    background-color: var(--colorAccent);
+    color: var(--colorBackground);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 1ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 1ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+@layer components {
+  .skipLink {
+    position: absolute;
+    top: var(--space4);
+    left: -9999px;
+    z-index: var(--zToast);
+    padding: var(--space3) var(--space4);
+    background-color: var(--colorAccent);
+    color: var(--colorBackground);
+    font-weight: 600;
+    text-decoration: none;
+  }
+
+  .skipLink:focus {
+    left: var(--space4);
+  }
+
+  .tokenLabel {
+    font-family: var(--fontBody);
+    font-size: var(--textXs);
+    font-weight: 600;
+    letter-spacing: var(--trackingWider);
+    text-transform: uppercase;
+    color: var(--colorTextMuted);
+  }
+}

@@ -1,0 +1,612 @@
+{
+  "id": "manutd",
+  "name": "Manchester United",
+  "shortName": "Man United",
+  "status": "live",
+  "themeKey": "manutd",
+  "theme": {
+    "primary": "#DA291C",
+    "primaryContrast": "#FFFFFF",
+    "accent": "#FBE122",
+    "background": "#0A0A0A",
+    "surface": "#141414",
+    "surfaceRaised": "#1C1C1C",
+    "line": "#2A2A2A",
+    "text": "#F5F5F5",
+    "textMuted": "#A0A0A0"
+  },
+  "categories": [
+    {
+      "id": "trophyDroughts",
+      "displayLabel": "Trophy Droughts",
+      "description": "Seasons that ended without silverware and the waits that followed.",
+      "emoji": "🏆"
+    },
+    {
+      "id": "historicalDefeats",
+      "displayLabel": "Historical Defeats",
+      "description": "Scorelines from the past that supporters would rather forget.",
+      "emoji": "💥"
+    },
+    {
+      "id": "embarrassingRecords",
+      "displayLabel": "Embarrassing Records",
+      "description": "Records that read like a punchline rather than an achievement.",
+      "emoji": "🫠"
+    },
+    {
+      "id": "failedTransfers",
+      "displayLabel": "Failed Transfers",
+      "description": "Signings that promised plenty and delivered very little.",
+      "emoji": "💸"
+    },
+    {
+      "id": "painfulStats",
+      "displayLabel": "Painful Stats",
+      "description": "Numbers that are accurate, sourced and quietly painful.",
+      "emoji": "📊"
+    }
+  ],
+  "roasts": [
+    {
+      "id": "trophies_last_league_title",
+      "clubId": "manutd",
+      "category": "trophyDroughts",
+      "headline": "The last time United won the league, Ferguson was still picking the team.",
+      "explanation": "United's last league title came in 2012/13, Ferguson's final season and the 20th of their English record. Arsenal won the title in 2025/26, with United third.",
+      "evidence": [
+        {
+          "claim": "United won the 2012/13 Premier League, their 20th English league title, in Ferguson's final season as manager.",
+          "period": "2012/13",
+          "sourceName": "Goal",
+          "sourceUrl": "https://www.goal.com/en/news/when-did-manchester-united-last-win-premier-league/7ny81yxbinco1b4n77pxtq5eh",
+          "accessedOn": "2026/11/03"
+        },
+        {
+          "claim": "United finished 11 points clear of Manchester City and sealed the title with four matches to spare.",
+          "period": "2012/13",
+          "sourceName": "Manchester United official site",
+          "sourceUrl": "https://www.manutd.com/en/news/detail/the-story-of-the-2012-13-premier-league-title",
+          "accessedOn": "2026/11/03"
+        },
+        {
+          "claim": "Arsenal were the Premier League champions in 2025/26.",
+          "period": "2025/26",
+          "sourceName": "Thairath Online",
+          "sourceUrl": "https://en.thairath.co.th/sport/eurofootball/2953039",
+          "accessedOn": "2026/11/03"
+        },
+        {
+          "claim": "United finished third in the 2025/26 Premier League with 71 points.",
+          "period": "2025/26",
+          "sourceName": "United in Focus",
+          "sourceUrl": "https://www.unitedinfocus.com/news/man-utds-expected-2026-27-premier-league-points-total-after-hull-city-loss-including-top-four-prospects/",
+          "accessedOn": "2026/11/03"
+        }
+      ],
+      "verified": true,
+      "verifiedOn": "2026/11/03"
+    },
+    {
+      "id": "trophies_six_year_gap",
+      "clubId": "manutd",
+      "category": "trophyDroughts",
+      "headline": "United waited six years for their next trophy, and it was the League Cup.",
+      "explanation": "The 2017 Europa League was United's last silverware for years. When they won the 2023 League Cup it was reported as their first trophy since 2017.",
+      "evidence": [
+        {
+          "claim": "As of the 2021 Europa League final, United's last silverware was the 2017 Europa League.",
+          "period": "2021/05/26",
+          "sourceName": "AP via The Week",
+          "sourceUrl": "https://www.theweek.in/news/sports/2021/05/27/villarreal-beats-man-u-on-penalties-for-europa-league-title.amp.html",
+          "accessedOn": "2026/11/03"
+        },
+        {
+          "claim": "Reuters described the 2023 League Cup win as United's first trophy since 2017.",
+          "period": "2022/23",
+          "sourceName": "Reuters via TimesLIVE",
+          "sourceUrl": "https://www.timeslive.co.za/sport/soccer/2023-03-05-lethal-liverpool-smash-manchester-united-for-seven-in-record-win/",
+          "accessedOn": "2026/11/03"
+        }
+      ],
+      "verified": true,
+      "verifiedOn": "2026/11/03"
+    },
+    {
+      "id": "trophies_solskjaer_zero",
+      "clubId": "manutd",
+      "category": "trophyDroughts",
+      "headline": "Solskjaer got 168 games as United manager and won zero trophies.",
+      "explanation": "His spell ran from December 2018 to November 2021. A Reuters factbox lists 168 matches and no trophies won.",
+      "evidence": [
+        {
+          "claim": "Reuters lists Solskjaer's record as 168 matches, 91 wins, 37 draws and 40 defeats with no trophies, between December 2018 and 21 November 2021.",
+          "period": "2021/11/21",
+          "sourceName": "Reuters via The Star Malaysia",
+          "sourceUrl": "https://www.thestar.com.my/sport/football/2024/11/01/factbox-list-of-manchester-united-managers-since-alex-ferguson-retired",
+          "accessedOn": "2026/11/03"
+        },
+        {
+          "claim": "A manager by manager comparison lists no trophies for Solskjaer during his time in charge.",
+          "period": "2021/11/21",
+          "sourceName": "Hayters",
+          "sourceUrl": "https://hayters.com/how-does-erik-ten-hag-compare-to-man-utds-other-managers-since-alex-ferguson/",
+          "accessedOn": "2026/11/03"
+        }
+      ],
+      "verified": true,
+      "verifiedOn": "2026/11/03"
+    },
+    {
+      "id": "defeat_liverpool_7_0_2023",
+      "clubId": "manutd",
+      "category": "historicalDefeats",
+      "headline": "A week after lifting the League Cup, United lost 7 to 0 at Anfield.",
+      "explanation": "On 5 March 2023 Liverpool beat United 7 to 0 at Anfield, United's biggest Premier League defeat and joint worst loss in any competition. It was their heaviest since a 7 to 0 loss at Wolves in 1931.",
+      "evidence": [
+        {
+          "claim": "Liverpool beat United 7 to 0 at Anfield on 5 March 2023, United's biggest defeat in the Premier League and joint worst loss in all competitions.",
+          "period": "2023/03/05",
+          "sourceName": "AP via ClickOnDetroit",
+          "sourceUrl": "https://www.clickondetroit.com/sports/2023/03/05/liverpool-humiliates-manchester-united-with-7-0-rout-in-epl/",
+          "accessedOn": "2026/11/03"
+        },
+        {
+          "claim": "Reuters said it came a week after United won the League Cup.",
+          "period": "2023/03/05",
+          "sourceName": "Reuters via TimesLIVE",
+          "sourceUrl": "https://www.timeslive.co.za/sport/soccer/2023-03-05-lethal-liverpool-smash-manchester-united-for-seven-in-record-win/",
+          "accessedOn": "2026/11/03"
+        },
+        {
+          "claim": "Reuters said it was United's worst defeat since a 7 to 0 loss to Wolverhampton Wanderers in 1931.",
+          "period": "2023/03/05",
+          "sourceName": "Reuters via FBC News",
+          "sourceUrl": "https://www.fbcnews.com.fj/?p=519898",
+          "accessedOn": "2026/11/03"
+        }
+      ],
+      "verified": true,
+      "verifiedOn": "2026/11/03"
+    },
+    {
+      "id": "defeat_city_6_1_2011",
+      "clubId": "manutd",
+      "category": "historicalDefeats",
+      "headline": "The noisy neighbours came to Old Trafford and scored six.",
+      "explanation": "On 23 October 2011 Manchester City won 6 to 1 at Old Trafford, United's heaviest home defeat since a 5 to 0 loss, also to City, in 1955.",
+      "evidence": [
+        {
+          "claim": "City's 6 to 1 win on 23 October 2011 was United's worst defeat of the Premier League era at that time, and their heaviest home defeat since a 5 to 0 loss to City in February 1955.",
+          "period": "2011/10/23",
+          "sourceName": "Manchester City official site",
+          "sourceUrl": "https://live.mancity.com/news/mens/united-1-6-manchester-city-10-things-to-know-10-years-on-63770518",
+          "accessedOn": "2026/11/03"
+        },
+        {
+          "claim": "Sky Sports described it as the champions' heaviest home defeat since 1955.",
+          "period": "2011/10/23",
+          "sourceName": "Sky Sports",
+          "sourceUrl": "https://www.skysports.com/football/news/11661/10569247/watch-manchester-city-humiliate-manchester-united-in-2011-derby",
+          "accessedOn": "2026/11/03"
+        }
+      ],
+      "verified": true,
+      "verifiedOn": "2026/11/03"
+    },
+    {
+      "id": "defeat_spurs_6_1_2020",
+      "clubId": "manutd",
+      "category": "historicalDefeats",
+      "headline": "Ten man United lost 6 to 1 at home to Spurs and Solskjaer called it his worst day.",
+      "explanation": "On 4 October 2020 Tottenham won 6 to 1 at Old Trafford with United down to ten men. At the time it equalled United's heaviest Premier League defeat.",
+      "evidence": [
+        {
+          "claim": "Tottenham won 6 to 1 at Old Trafford on 4 October 2020 against ten man United.",
+          "period": "2020/10/04",
+          "sourceName": "Premier League",
+          "sourceUrl": "https://premierleague.com/news/1846355",
+          "accessedOn": "2026/11/03"
+        },
+        {
+          "claim": "Reuters called it United's joint worst loss of the Premier League era, level with the 6 to 1 defeat by City in 2011, and Solskjaer said it was his worst day at the club.",
+          "period": "2020/10/04",
+          "sourceName": "Reuters via Ahram Online",
+          "sourceUrl": "https://english.ahram.org.eg/News/386612.aspx",
+          "accessedOn": "2026/11/03"
+        }
+      ],
+      "verified": true,
+      "verifiedOn": "2026/11/03"
+    },
+    {
+      "id": "defeat_villarreal_final_2021",
+      "clubId": "manutd",
+      "category": "historicalDefeats",
+      "headline": "United lost a Europa League final shootout 11 to 10 when De Gea missed the 22nd kick.",
+      "explanation": "The 2021 Europa League final finished 1 to 1. Villarreal then won the shootout 11 to 10 when goalkeeper Geronimo Rulli saved David de Gea's penalty. It was Villarreal's first major trophy.",
+      "evidence": [
+        {
+          "claim": "AP reported that Rulli scored his own penalty and saved De Gea's to give Villarreal an 11 to 10 shootout win and its first major trophy.",
+          "period": "2021/05/26",
+          "sourceName": "AP via Ahram Online",
+          "sourceUrl": "https://english.ahram.org.eg/News/413005.aspx",
+          "accessedOn": "2026/11/03"
+        },
+        {
+          "claim": "The final in Gdansk finished 1 to 1, and Villarreal won 11 to 10 on penalties.",
+          "period": "2021/05/26",
+          "sourceName": "ESPN",
+          "sourceUrl": "https://www.espn.com/soccer/match/_/gameId/602343",
+          "accessedOn": "2026/11/03"
+        }
+      ],
+      "verified": true,
+      "verifiedOn": "2026/11/03"
+    },
+    {
+      "id": "defeat_grimsby_2025",
+      "clubId": "manutd",
+      "category": "historicalDefeats",
+      "headline": "A League Two side knocked United out of the League Cup, 12 to 11 on penalties.",
+      "explanation": "On 27 August 2025 Grimsby Town drew 2 to 2 with United and won the shootout 12 to 11. ESPN reported it as the first time United had been knocked out of a cup by a fourth tier club.",
+      "evidence": [
+        {
+          "claim": "Grimsby Town drew 2 to 2 with United in the League Cup second round and won 12 to 11 on penalties after Bryan Mbeumo missed.",
+          "period": "2025/08/27",
+          "sourceName": "Sky Sports",
+          "sourceUrl": "https://www.skysports.com/football/grimsby-town-vs-manchester-united/547756",
+          "accessedOn": "2026/11/03"
+        },
+        {
+          "claim": "ESPN reported it was the first time United had ever been eliminated from a cup competition by a team from England's fourth tier.",
+          "period": "2025/08/27",
+          "sourceName": "ESPN",
+          "sourceUrl": "https://www.espn.com/football/report/_/gameId/756229",
+          "accessedOn": "2026/11/03"
+        }
+      ],
+      "verified": true,
+      "verifiedOn": "2026/11/03"
+    },
+    {
+      "id": "defeat_spurs_europa_final_2025",
+      "clubId": "manutd",
+      "category": "historicalDefeats",
+      "headline": "United lost the 2025 Europa League final to a Tottenham side that finished 17th.",
+      "explanation": "Spurs won 1 to 0 in Bilbao on 21 May 2025 through Brennan Johnson. Tottenham ended the Premier League season in 17th place, with United in 15th.",
+      "evidence": [
+        {
+          "claim": "Tottenham beat United 1 to 0 in the Europa League final in Bilbao on 21 May 2025, with Brennan Johnson scoring in the 42nd minute.",
+          "period": "2025/05/21",
+          "sourceName": "TNT Sports",
+          "sourceUrl": "https://www.tntsports.co.uk/football/europa-league/2024-2025/live-tottenham-hotspur-manchester-united_mtc1524765/live-commentary.shtml",
+          "accessedOn": "2026/11/03"
+        },
+        {
+          "claim": "United finished the 2024/25 Premier League season 15th and Tottenham finished 17th.",
+          "period": "2024/25",
+          "sourceName": "Al Jazeera",
+          "sourceUrl": "https://www.aljazeera.com/sports/2025/5/25/man-united-end-season-ranked-15th-after-controversial-win-over-aston-villa",
+          "accessedOn": "2026/11/03"
+        }
+      ],
+      "verified": true,
+      "verifiedOn": "2026/11/03"
+    },
+    {
+      "id": "defeat_mk_dons_2014",
+      "clubId": "manutd",
+      "category": "historicalDefeats",
+      "headline": "Van Gaal's United once lost 4 to 0 at MK Dons. In the League Cup. In 2014.",
+      "explanation": "In the second round of the 2014/15 League Cup, United lost 4 to 0 away to League One side MK Dons, a result recalled again when Grimsby knocked them out in 2025.",
+      "evidence": [
+        {
+          "claim": "RTE reported that Louis van Gaal's United were beaten 4 to 0 at League One MK Dons in the 2014 League Cup second round.",
+          "period": "2014/15",
+          "sourceName": "RTE Sport",
+          "sourceUrl": "https://www.rte.ie/sport/soccer/2025/0827/1530443-carabao-cup-fourth-tier-grimsby-knock-out-man-united",
+          "accessedOn": "2026/11/03"
+        },
+        {
+          "claim": "ESPN also reported the 4 to 0 defeat at third tier MK Dons in the League Cup second round.",
+          "period": "2014/15",
+          "sourceName": "ESPN",
+          "sourceUrl": "https://www.espn.com/football/report/_/gameId/756229",
+          "accessedOn": "2026/11/03"
+        }
+      ],
+      "verified": true,
+      "verifiedOn": "2026/11/03"
+    },
+    {
+      "id": "record_worst_season_2024_25",
+      "clubId": "manutd",
+      "category": "embarrassingRecords",
+      "headline": "15th place, 42 points and 18 defeats: United's worst ever Premier League season.",
+      "explanation": "In 2024/25 United finished 15th, their lowest Premier League finish, on 42 points, their lowest Premier League total. The 18 defeats were their most since the 1973/74 relegation season.",
+      "evidence": [
+        {
+          "claim": "United finished the 2024/25 Premier League season in 15th place.",
+          "period": "2024/25",
+          "sourceName": "Premier League",
+          "sourceUrl": "https://www.premierleague.com/news/4321308",
+          "accessedOn": "2026/11/03"
+        },
+        {
+          "claim": "Their 42 points was the lowest total in their Premier League history, and their 18 league defeats were the most since 1973/74.",
+          "period": "2024/25",
+          "sourceName": "Sports Illustrated",
+          "sourceUrl": "https://www.si.com/soccer/stats-behind-man-utd-historically-bad-2024-25-season",
+          "accessedOn": "2026/11/03"
+        },
+        {
+          "claim": "The previous lowest Premier League points total for United was 58 in 2021/22.",
+          "period": "2021/22",
+          "sourceName": "beIN SPORTS",
+          "sourceUrl": "https://www.beinsports.com/en-us/soccer/premier-league/articles-video/the-disgusting-record-manchester-united-could-set-a-clear-sign-their-glory-days-are-over-2025-04-22",
+          "accessedOn": "2026/11/03"
+        }
+      ],
+      "verified": true,
+      "verifiedOn": "2026/11/03"
+    },
+    {
+      "id": "record_conceded_first_2024_25",
+      "clubId": "manutd",
+      "category": "embarrassingRecords",
+      "headline": "United fell behind first 31 times in 2024/25, more than any other Premier League club.",
+      "explanation": "Opta counted 31 games in which United conceded the opening goal in 2024/25, the most by any Premier League side across all competitions, as of the Europa League final in May 2025.",
+      "evidence": [
+        {
+          "claim": "Opta reported that the Europa League final was the 31st game of the season in which United conceded the opening goal, the most by any Premier League team across all competitions.",
+          "period": "2025/05/21",
+          "sourceName": "Opta via Stadium Astro",
+          "sourceUrl": "https://english.stadiumastro.com/football/tottenham-10-manchester-united-postecoglous-men-triumph-tetchy-europa-league-final-289065",
+          "accessedOn": "2026/11/03"
+        }
+      ],
+      "verified": true,
+      "verifiedOn": "2026/11/03"
+    },
+    {
+      "id": "record_champions_to_seventh_2014",
+      "clubId": "manutd",
+      "category": "embarrassingRecords",
+      "headline": "Champions in 2012/13, seventh and out of the Champions League a year later.",
+      "explanation": "David Moyes was sacked on 22 April 2014 after ten months. United were seventh and set to miss the Champions League for the first time since 1995, a year after winning the title.",
+      "evidence": [
+        {
+          "claim": "Moyes was sacked ten months after succeeding Ferguson, with United seventh and confirmed to miss the Champions League for the first time since 1995.",
+          "period": "2014/04/22",
+          "sourceName": "InDaily",
+          "sourceUrl": "https://www.indailysa.com.au/news/archive/2014/04/23/manchester-united-sack-manager-moyes",
+          "accessedOn": "2026/11/03"
+        },
+        {
+          "claim": "Reuters reported United were seventh a year after winning the league and had failed to qualify for the Champions League for the first time in 19 years.",
+          "period": "2013/14",
+          "sourceName": "Reuters via Neos Kosmos",
+          "sourceUrl": "https://neoskosmos.com/en/2014/04/23/sport/football/moyes-sacked-by-manchester-united/",
+          "accessedOn": "2026/11/03"
+        }
+      ],
+      "verified": true,
+      "verifiedOn": "2026/11/03"
+    },
+    {
+      "id": "transfer_sanchez",
+      "clubId": "manutd",
+      "category": "failedTransfers",
+      "headline": "Five goals in 45 games on a reported 350,000 pounds a week: the Alexis Sanchez experience.",
+      "explanation": "Alexis Sanchez joined in January 2018 and scored five goals in 45 appearances before a 2019 loan to Inter. ESPN reported his basic salary at 350,000 pounds a week.",
+      "evidence": [
+        {
+          "claim": "ESPN FC reported that Sanchez had scored five goals in 45 appearances since joining in January 2018, on a basic salary of 350,000 pounds a week.",
+          "period": "2018/19",
+          "sourceName": "ESPN",
+          "sourceUrl": "https://global.espn.com/football/story/_/id/37575762/man-utd-face-12m-sanchez-wages-bill",
+          "accessedOn": "2026/11/03"
+        },
+        {
+          "claim": "Sky Sports reported he scored five goals in 45 games for United, was loaned to Inter from August 2019 and then joined Inter permanently.",
+          "period": "2020/21",
+          "sourceName": "Sky Sports",
+          "sourceUrl": "https://www.skysports.com/football/news/11095/12043323/alexis-sanchez-joins-inter-milan-on-three-year-deal-from-manchester-united",
+          "accessedOn": "2026/11/03"
+        }
+      ],
+      "verified": true,
+      "verifiedOn": "2026/11/03"
+    },
+    {
+      "id": "transfer_antony",
+      "clubId": "manutd",
+      "category": "failedTransfers",
+      "headline": "A reported 95 million euros for Antony, 12 goals in 96 games, then sold for 22 million.",
+      "explanation": "Antony moved from Ajax in 2022 and scored 12 goals in 96 appearances. In September 2025 he joined Real Betis for a reported fixed fee of 22 million euros, plus up to 3 million in bonuses.",
+      "evidence": [
+        {
+          "claim": "ESPN reported Antony left after 96 appearances and 12 goals, having arrived from Ajax in a reported 95 million euro move.",
+          "period": "2025/09/01",
+          "sourceName": "ESPN",
+          "sourceUrl": "https://global.espn.com/football/story/_/id/46138214/antony-tears-man-united-real-betis-transfer-hard",
+          "accessedOn": "2026/11/03"
+        },
+        {
+          "claim": "ESPN's sources said Betis would pay a fixed fee of 22 million euros with another 3 million in potential bonuses, and United kept 50 percent of any future sale.",
+          "period": "2025/09/01",
+          "sourceName": "ESPN",
+          "sourceUrl": "https://global.espn.com/football/story/_/id/46138214/antony-tears-man-united-real-betis-transfer-hard",
+          "accessedOn": "2026/11/03"
+        },
+        {
+          "claim": "TNT Sports reported 12 goals and 5 assists in 96 appearances across all competitions.",
+          "period": "2025/09/01",
+          "sourceName": "TNT Sports",
+          "sourceUrl": "https://www.tntsports.co.uk/football/premier-league/2025-2026/antony-joins-real-betis-permanent-transfer-manchester-united_sto23214952/story.shtml",
+          "accessedOn": "2026/11/03"
+        }
+      ],
+      "verified": true,
+      "verifiedOn": "2026/11/03"
+    },
+    {
+      "id": "transfer_sancho",
+      "clubId": "manutd",
+      "category": "failedTransfers",
+      "headline": "Sancho cost a reported 73 million pounds and left for free after 12 goals in 83 games.",
+      "explanation": "Sancho joined from Dortmund in 2021 and left as a free agent when his contract ended in June 2026. Chelsea paid a reported 5 million pounds to avoid signing him permanently after his 2024/25 loan.",
+      "evidence": [
+        {
+          "claim": "ESPN reported United confirmed Sancho would leave as a free agent at the end of June, with 12 goals and six assists in 83 appearances.",
+          "period": "2025/26",
+          "sourceName": "ESPN",
+          "sourceUrl": "https://africa.espn.com/football/story/_/id/49017889/man-united-confirm-jadon-sancho-players-leaving-free-agents",
+          "accessedOn": "2026/11/03"
+        },
+        {
+          "claim": "PA reported his 73 million pound move from Borussia Dortmund in 2021 and that Chelsea paid 5 million pounds to avoid making his loan permanent for 25 million.",
+          "period": "2025/26",
+          "sourceName": "PA via The Anglo Celt",
+          "sourceUrl": "https://www.anglocelt.ie/?p=123534",
+          "accessedOn": "2026/11/03"
+        }
+      ],
+      "verified": true,
+      "verifiedOn": "2026/11/03"
+    },
+    {
+      "id": "transfer_hojlund_drought",
+      "clubId": "manutd",
+      "category": "failedTransfers",
+      "headline": "Rasmus Hojlund took 14 Premier League games to score his first goal for United.",
+      "explanation": "Signed for a reported 64 million pounds, rising to 72 million, Hojlund went his first 14 league games without a goal. He scored against Aston Villa on 26 December 2023 and later scored in six league games in a row.",
+      "evidence": [
+        {
+          "claim": "PA reported Hojlund had no goals or assists in his first 14 league appearances after arriving from Atalanta for an initial 64 million pounds, potentially rising to 72 million.",
+          "period": "2023/24",
+          "sourceName": "PA via Stadium Astro",
+          "sourceUrl": "https://english.stadiumastro.com/football/rasmus-hojlund-premier-league-goal-drought-continues-man-utd-striker-252937",
+          "accessedOn": "2026/11/03"
+        },
+        {
+          "claim": "AFP reported he scored his first Premier League goal in the 3 to 2 win over Aston Villa after 14 league games without one.",
+          "period": "2023/12/26",
+          "sourceName": "AFP via Malay Mail",
+          "sourceUrl": "https://www.malaymail.com/news/sports/2023/12/27/happiest-man-alive-hojlund-joy-after-ending-man-united-drought/109340",
+          "accessedOn": "2026/11/03"
+        },
+        {
+          "claim": "Sky Sports reported he later became the youngest player to score in six successive Premier League games.",
+          "period": "2023/24",
+          "sourceName": "Sky Sports",
+          "sourceUrl": "https://www.skysports.com/football/news/11065/13308448/rasmus-hojlund-why-is-manchester-uniteds-no-9-struggling-for-goals-this-season",
+          "accessedOn": "2026/11/03"
+        }
+      ],
+      "verified": true,
+      "verifiedOn": "2026/11/03"
+    },
+    {
+      "id": "transfer_pogba_free_twice",
+      "clubId": "manutd",
+      "category": "failedTransfers",
+      "headline": "United paid a world record 89 million pounds for Pogba and let him leave for free. Again.",
+      "explanation": "United signed Paul Pogba from Juventus in 2016 for a then world record 89 million pounds. His contract expired in 2022 and he rejoined Juventus on a free transfer, as he had also left United for Juventus for free in 2012.",
+      "evidence": [
+        {
+          "claim": "Sky Sports reported Pogba joined United in 2016 for a world record 89 million pounds and returned to Juventus on a free transfer in July 2022.",
+          "period": "2022/07/11",
+          "sourceName": "Sky Sports",
+          "sourceUrl": "https://www.skysports.com/football/news/11095/12638980/juventus-re-sign-pogba-on-free-transfer",
+          "accessedOn": "2026/11/03"
+        },
+        {
+          "claim": "Football365 noted that Pogba joined Juventus for free in 2012, joined United for 89 million pounds in 2016, and joined Juventus for free again in 2022.",
+          "period": "2012/13",
+          "sourceName": "Football365",
+          "sourceUrl": "https://www.football365.com/news/pogba-will-sign-contract-for-new-club-at-start-of-july-after-leaving-man-utd-on-free-transfer",
+          "accessedOn": "2026/11/03"
+        }
+      ],
+      "verified": true,
+      "verifiedOn": "2026/11/03"
+    },
+    {
+      "id": "stat_seven_permanent_managers",
+      "clubId": "manutd",
+      "category": "painfulStats",
+      "headline": "Seven permanent managers since Ferguson left, plus a conga line of interims.",
+      "explanation": "Michael Carrick became United's seventh permanent manager since Ferguson retired in 2013. ESPN counted ten managers, permanent and interim, in that span as of Amorim's exit in January 2026.",
+      "evidence": [
+        {
+          "claim": "AP reported Michael Carrick would become United's seventh permanent manager since Ferguson retired in 2013.",
+          "period": "2025/26",
+          "sourceName": "AP via Boston 25 News",
+          "sourceUrl": "https://www.boston25news.com/sports/manchester-united/PQMUBMWDREYSZAVMLEULRF2CQA/",
+          "accessedOn": "2026/11/03"
+        },
+        {
+          "claim": "ESPN counted ten managers, both short term and permanent, since Ferguson's departure, as of Ruben Amorim's sacking.",
+          "period": "2025/26",
+          "sourceName": "ESPN",
+          "sourceUrl": "https://www.espn.com/soccer/story/_/id/47512293/ruben-amorim-david-moyes-jose-mourinho-how-10-managers-alex-ferguson-fare-manchester-united",
+          "accessedOn": "2026/11/03"
+        }
+      ],
+      "verified": true,
+      "verifiedOn": "2026/11/03"
+    },
+    {
+      "id": "stat_no_europe_2025_26",
+      "clubId": "manutd",
+      "category": "painfulStats",
+      "headline": "In 2025/26 United had no European football for only the second time in 35 years.",
+      "explanation": "After finishing 15th in 2024/25 United did not qualify for any European competition. The Premier League said it was only the second time in 35 years.",
+      "evidence": [
+        {
+          "claim": "The Premier League reported that United would not play European football in 2025/26 for only the second time in 35 years.",
+          "period": "2024/25",
+          "sourceName": "Premier League",
+          "sourceUrl": "https://www.premierleague.com/news/4321308",
+          "accessedOn": "2026/11/03"
+        },
+        {
+          "claim": "The New Straits Times also reported no European football for United for only the second season in 35 years after the 15th place finish.",
+          "period": "2025/26",
+          "sourceName": "New Straits Times",
+          "sourceUrl": "https://www.nst.com.my/amp/sports/football/2025/08/1267278/optimism-evaporates-old-trafford-amorim-feels-heat",
+          "accessedOn": "2026/11/03"
+        }
+      ],
+      "verified": true,
+      "verifiedOn": "2026/11/03"
+    },
+    {
+      "id": "stat_liverpool_equal_20_titles",
+      "clubId": "manutd",
+      "category": "painfulStats",
+      "headline": "Liverpool caught United's record of 20 league titles in a season United finished 15th.",
+      "explanation": "Liverpool clinched their 20th English league title on 27 April 2025, equalling United's record. United ended that 2024/25 season in 15th place.",
+      "evidence": [
+        {
+          "claim": "AP reported Liverpool won the 2024/25 Premier League on 27 April 2025, a record equalling 20th English league title that matched United's.",
+          "period": "2025/04/27",
+          "sourceName": "AP via CFJC Today",
+          "sourceUrl": "https://cfjctoday.com/?p=1010358",
+          "accessedOn": "2026/11/03"
+        },
+        {
+          "claim": "United finished the 2024/25 Premier League season in 15th place.",
+          "period": "2024/25",
+          "sourceName": "Premier League",
+          "sourceUrl": "https://www.premierleague.com/news/4321308",
+          "accessedOn": "2026/11/03"
+        }
+      ],
+      "verified": true,
+      "verifiedOn": "2026/11/03"
+    }
+  ]
+}

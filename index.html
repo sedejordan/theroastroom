@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Token Preview | The Roast Room</title>
+    <meta
+      name="description"
+      content="Developer preview of the design tokens, club registry and theming system for The Roast Room."
+    />
+    <meta name="color-scheme" content="dark" />
+    <meta name="theme-color" content="#0A0A0A" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Anton&amp;family=Inter:wght@400;500;600;700&amp;display=swap"
+    />
+    <link rel="stylesheet" href="./dist/styles.css" />
+  </head>
+
+  <body class="min-h-screen bg-background text-text">
+    <a class="skipLink" href="#main">Skip to content</a>
+
+    <header class="border-b border-line bg-surface">
+      <div class="mx-auto max-w-5xl px-4 py-10">
+        <p class="tokenLabel">Developer preview</p>
+        <h1 class="mt-3 text-displayMd text-text">The Roast Room</h1>
+        <p class="mt-4 max-w-2xl text-lg text-textMuted">
+          Stage 1 foundations. This page exists to prove that the design tokens, the club
+          registry and the theming system work. There are no roasts on it yet and no real
+          content.
+        </p>
+        <p
+          class="mt-4 inline-block rounded-sharp border border-line bg-surfaceRaised px-3 py-2 text-sm text-accent"
+        >
+          Not a public page. It is a developer preview for the Fritt team.
+        </p>
+      </div>
+    </header>
+
+    <main id="main" class="mx-auto max-w-5xl px-4 py-10">
+      <section aria-labelledby="themeHeading" class="mb-12">
+        <h2 id="themeHeading" class="text-2xl text-text">Theme</h2>
+        <p class="mt-2 max-w-2xl text-sm text-textMuted">
+          The button writes CSS custom properties onto the document root. Every theme
+          property is cleared before the next theme is applied, so a coming soon club that
+          only defines primary and accent falls back to the defaults for every other token.
+        </p>
+        <div class="mt-4 rounded-sharp border border-line bg-surface p-5">
+          <div class="flex flex-wrap items-center gap-4">
+            <button
+              id="themeToggle"
+              type="button"
+              disabled
+              class="rounded-sharp border-2 border-primary bg-primary px-5 py-3 font-display text-lg uppercase tracking-wide text-primaryContrast transition-colors duration-fast ease-standard hover:bg-surface hover:text-accent disabled:opacity-60"
+            >
+              Cycle club theme
+            </button>
+            <p class="text-sm text-textMuted">
+              Current theme:
+              <span id="currentTheme" class="text-accent">Manchester United</span>
+            </p>
+          </div>
+          <p id="themeOverrides" class="mt-3 text-xs text-textMuted" aria-live="polite"></p>
+        </div>
+      </section>
+
+      <section aria-labelledby="colourHeading" class="mb-12">
+        <h2 id="colourHeading" class="text-2xl text-text">Club theme colours</h2>
+        <p class="mt-2 max-w-2xl text-sm text-textMuted">
+          Nine tokens, one CSS custom property each. The value shown under every swatch is
+          read live from the document root.
+        </p>
+
+        <ul class="mt-4 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          <li class="rounded-sharp border border-line bg-surface p-4">
+            <span
+              class="block h-12 w-full rounded-sharp border border-line"
+              style="background-color: var(--colorPrimary)"
+            ></span>
+            <span class="tokenLabel mt-3 block">Primary</span>
+            <code class="block text-sm text-text">--colorPrimary</code>
+            <span class="block text-xs text-textMuted" data-token="--colorPrimary">#DA291C</span>
+          </li>
+          <li class="rounded-sharp border border-line bg-surface p-4">
+            <span
+              class="block h-12 w-full rounded-sharp border border-line"
+              style="background-color: var(--colorPrimaryContrast)"
+            ></span>
+            <span class="tokenLabel mt-3 block">Primary contrast</span>
+            <code class="block text-sm text-text">--colorPrimaryContrast</code>
+            <span class="block text-xs text-textMuted" data-token="--colorPrimaryContrast">#FFFFFF</span>
+          </li>
+          <li class="rounded-sharp border border-line bg-surface p-4">
+            <span
+              class="block h-12 w-full rounded-sharp border border-line"
+              style="background-color: var(--colorAccent)"
+            ></span>
+            <span class="tokenLabel mt-3 block">Accent</span>
+            <code class="block text-sm text-text">--colorAccent</code>
+            <span class="block text-xs text-textMuted" data-token="--colorAccent">#FBE122</span>
+          </li>
+          <li class="rounded-sharp border border-line bg-surface p-4">
+            <span
+              class="block h-12 w-full rounded-sharp border border-line"
+              style="background-color: var(--colorBackground)"
+            ></span>
+            <span class="tokenLabel mt-3 block">Background</span>
+            <code class="block text-sm text-text">--colorBackground</code>
+            <span class="block text-xs text-textMuted" data-token="--colorBackground">#0A0A0A</span>
+          </li>
+          <li class="rounded-sharp border border-line bg-surface p-4">
+            <span
+              class="block h-12 w-full rounded-sharp border border-line"
+              style="background-color: var(--colorSurface)"
+            ></span>
+            <span class="tokenLabel mt-3 block">Surface</span>
+            <code class="block text-sm text-text">--colorSurface</code>
+            <span class="block text-xs text-textMuted" data-token="--colorSurface">#141414</span>
+          </li>
+          <li class="rounded-sharp border border-line bg-surface p-4">
+            <span
+              class="block h-12 w-full rounded-sharp border border-line"
+              style="background-color: var(--colorSurfaceRaised)"
+            ></span>
+            <span class="tokenLabel mt-3 block">Surface raised</span>
+            <code class="block text-sm text-text">--colorSurfaceRaised</code>
+            <span class="block text-xs text-textMuted" data-token="--colorSurfaceRaised">#1C1C1C</span>
+          </li>
+          <li class="rounded-sharp border border-line bg-surface p-4">
+            <span
+              class="block h-12 w-full rounded-sharp border border-line"
+              style="background-color: var(--colorLine)"
+            ></span>
+            <span class="tokenLabel mt-3 block">Line</span>
+            <code class="block text-sm text-text">--colorLine</code>
+            <span class="block text-xs text-textMuted" data-token="--colorLine">#2A2A2A</span>
+          </li>
+          <li class="rounded-sharp border border-line bg-surface p-4">
+            <span
+              class="block h-12 w-full rounded-sharp border border-line"
+              style="background-color: var(--colorText)"
+            ></span>
+            <span class="tokenLabel mt-3 block">Text</span>
+            <code class="block text-sm text-text">--colorText</code>
+            <span class="block text-xs text-textMuted" data-token="--colorText">#F5F5F5</span>
+          </li>
+          <li class="rounded-sharp border border-line bg-surface p-4">
+            <span
+              class="block h-12 w-full rounded-sharp border border-line"
+              style="background-color: var(--colorTextMuted)"
+            ></span>
+            <span class="tokenLabel mt-3 block">Text muted</span>
+            <code class="block text-sm text-text">--colorTextMuted</code>
+            <span class="block text-xs text-textMuted" data-token="--colorTextMuted">#A0A0A0</span>
+          </li>
+        </ul>
+      </section>
+
+      <section aria-labelledby="typeHeading" class="mb-12">
+        <h2 id="typeHeading" class="text-2xl text-text">Type scale</h2>
+        <p class="mt-2 max-w-2xl text-sm text-textMuted">
+          Anton carries the display voice, Inter carries the body voice. Every size is fluid
+          through a clamp token.
+        </p>
+
+        <ul class="mt-4 space-y-3">
+          <li class="rounded-sharp border border-line bg-surface p-4">
+            <span class="tokenLabel">displayLg</span>
+            <p class="font-display text-displayLg text-text">Roast Room</p>
+          </li>
+          <li class="rounded-sharp border border-line bg-surface p-4">
+            <span class="tokenLabel">displayMd</span>
+            <p class="font-display text-displayMd text-text">Roast Room</p>
+          </li>
+          <li class="rounded-sharp border border-line bg-surface p-4">
+            <span class="tokenLabel">displaySm</span>
+            <p class="font-display text-displaySm text-text">Roast Room</p>
+          </li>
+          <li class="rounded-sharp border border-line bg-surface p-4">
+            <span class="tokenLabel">2xl</span>
+            <p class="text-2xl text-text">Rivalry, but make it sourced.</p>
+          </li>
+          <li class="rounded-sharp border border-line bg-surface p-4">
+            <span class="tokenLabel">base</span>
+            <p class="text-base text-textMuted">
+              Body copy sits at the base size with a relaxed line height so long evidence
+              blocks stay readable on a phone.
+            </p>
+          </li>
+          <li class="rounded-sharp border border-line bg-surface p-4">
+            <span class="tokenLabel">xs</span>
+            <p class="text-xs text-textMuted">Small labels, metadata and source lines.</p>
+          </li>
+        </ul>
+      </section>
+
+      <section aria-labelledby="scaleHeading" class="mb-12">
+        <h2 id="scaleHeading" class="text-2xl text-text">Spacing and radius</h2>
+
+        <div class="mt-4 grid gap-6 md:grid-cols-2">
+          <div class="rounded-sharp border border-line bg-surface p-5">
+            <h3 class="tokenLabel">Spacing</h3>
+            <ul class="mt-4 space-y-3">
+              <li class="flex items-center gap-3">
+                <span class="w-16 text-xs text-textMuted">space1</span>
+                <span class="h-3 rounded-sharp bg-primary" style="width: var(--space1)"></span>
+                <span class="text-xs text-textMuted">0.25rem</span>
+              </li>
+              <li class="flex items-center gap-3">
+                <span class="w-16 text-xs text-textMuted">space2</span>
+                <span class="h-3 rounded-sharp bg-primary" style="width: var(--space2)"></span>
+                <span class="text-xs text-textMuted">0.5rem</span>
+              </li>
+              <li class="flex items-center gap-3">
+                <span class="w-16 text-xs text-textMuted">space4</span>
+                <span class="h-3 rounded-sharp bg-primary" style="width: var(--space4)"></span>
+                <span class="text-xs text-textMuted">1rem</span>
+              </li>
+              <li class="flex items-center gap-3">
+                <span class="w-16 text-xs text-textMuted">space6</span>
+                <span class="h-3 rounded-sharp bg-primary" style="width: var(--space6)"></span>
+                <span class="text-xs text-textMuted">1.5rem</span>
+              </li>
+              <li class="flex items-center gap-3">
+                <span class="w-16 text-xs text-textMuted">space8</span>
+                <span class="h-3 rounded-sharp bg-primary" style="width: var(--space8)"></span>
+                <span class="text-xs text-textMuted">2rem</span>
+              </li>
+              <li class="flex items-center gap-3">
+                <span class="w-16 text-xs text-textMuted">space12</span>
+                <span class="h-3 rounded-sharp bg-primary" style="width: var(--space12)"></span>
+                <span class="text-xs text-textMuted">3rem</span>
+              </li>
+            </ul>
+          </div>
+
+          <div class="rounded-sharp border border-line bg-surface p-5">
+            <h3 class="tokenLabel">Radius</h3>
+            <ul class="mt-4 space-y-3">
+              <li class="flex items-center gap-4">
+                <span class="tokenLabel w-16">sharp</span>
+                <span class="block h-12 w-full rounded-sharp border border-line bg-surfaceRaised"></span>
+                <span class="text-xs text-textMuted">2px</span>
+              </li>
+              <li class="flex items-center gap-4">
+                <span class="tokenLabel w-16">soft</span>
+                <span class="block h-12 w-full rounded-soft border border-line bg-surfaceRaised"></span>
+                <span class="text-xs text-textMuted">6px</span>
+              </li>
+              <li class="flex items-center gap-4">
+                <span class="tokenLabel w-16">pill</span>
+                <span class="block h-12 w-full rounded-pill border border-line bg-surfaceRaised"></span>
+                <span class="text-xs text-textMuted">999px</span>
+              </li>
+            </ul>
+
+            <h3 class="tokenLabel mt-6">Motion</h3>
+            <ul class="mt-3 space-y-1 text-xs text-textMuted">
+              <li>fast 120ms</li>
+              <li>normal 200ms</li>
+              <li>slow 320ms</li>
+              <li>Durations drop to 1ms when prefers reduced motion is set.</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <section aria-labelledby="clubsHeading" class="mb-12">
+        <h2 id="clubsHeading" class="text-2xl text-text">Clubs</h2>
+        <p class="mt-2 max-w-2xl text-sm text-textMuted">
+          Read from data/clubs.json through the real registry module. The registry is the
+          single source of truth for which clubs exist.
+        </p>
+        <p id="registryStatus" role="status" class="mt-3 text-sm text-accent">
+          Loading the club registry.
+        </p>
+
+        <div class="mt-4 grid gap-6 md:grid-cols-2">
+          <div>
+            <h3 class="tokenLabel">Live</h3>
+            <ul id="liveClubs" class="mt-3 space-y-3"></ul>
+          </div>
+          <div>
+            <h3 class="tokenLabel">Coming soon</h3>
+            <ul id="comingSoonClubs" class="mt-3 space-y-3"></ul>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="border-t border-line bg-surface">
+      <div class="mx-auto max-w-5xl px-4 py-10">
+        <p class="text-sm text-textMuted">
+          The Roast Room, stage 1 foundations. Built by Fritt. Every claim on the finished
+          site must be sourced, dated and verified before it can be published.
+        </p>
+      </div>
+    </footer>
+
+    <script type="module">
+      import { getComingSoonClubs, getLiveClubs, loadClub, loadRegistry } from './js/registry.js';
+      import { applyTheme } from './js/theme.js';
+
+      const registryStatus = document.getElementById('registryStatus');
+      const liveClubsList = document.getElementById('liveClubs');
+      const comingSoonClubsList = document.getElementById('comingSoonClubs');
+      const themeButton = document.getElementById('themeToggle');
+      const themeName = document.getElementById('currentTheme');
+      const overridesEl = document.getElementById('themeOverrides');
+      const tokenValues = Array.from(document.querySelectorAll('[data-token]'));
+
+      const themeCycle = [];
+      let themeIndex = 0;
+
+      /**
+       * Read the live value of every colour token and print it under the swatch.
+       * @returns {void}
+       */
+      function refreshTokenValues() {
+        const styles = getComputedStyle(document.documentElement);
+
+        for (const element of tokenValues) {
+          const variable = element.getAttribute('data-token');
+          const value = styles.getPropertyValue(variable).trim();
+          element.textContent = value || 'not set';
+        }
+      }
+
+      /**
+       * Print which tokens the currently applied theme overrides. Because
+       * applyTheme clears every property before applying a new theme, this list
+       * is exactly the set of keys in the active theme object.
+       * @returns {void}
+       */
+      function updateOverrideLine() {
+        if (!overridesEl) return;
+
+        if (themeCycle.length === 0) {
+          overridesEl.textContent = '';
+          return;
+        }
+
+        const current = themeCycle[themeIndex];
+        const keys = current.theme ? Object.keys(current.theme) : [];
+        const list = keys.length > 0 ? keys.join(', ') : 'none';
+        overridesEl.textContent = `Tokens currently overridden by ${current.label}: ${list}`;
+      }
+
+      /**
+       * Build one club card for the registry lists.
+       * @param {Record<string, unknown>} club
+       * @returns {HTMLLIElement}
+       */
+      function createClubItem(club) {
+        const item = document.createElement('li');
+        item.className = 'rounded-sharp border border-line bg-surface p-4';
+
+        const name = document.createElement('p');
+        name.className = 'font-display text-xl uppercase text-text';
+        name.textContent = String(club.name);
+
+        const meta = document.createElement('p');
+        meta.className = 'mt-2 text-sm text-textMuted';
+        meta.textContent = `id: ${club.id} | status: ${club.status} | themeKey: ${club.themeKey}`;
+
+        item.append(name, meta);
+
+        if (typeof club.dataFile === 'string') {
+          const file = document.createElement('p');
+          file.className = 'mt-1 text-xs text-textMuted';
+          file.textContent = `dataFile: ${club.dataFile}`;
+          item.append(file);
+        }
+
+        return item;
+      }
+
+      /**
+       * Replace the contents of a list with the given clubs.
+       * @param {HTMLUListElement} list
+       * @param {Array<Record<string, unknown>>} clubs
+       * @returns {void}
+       */
+      function renderClubList(list, clubs) {
+        list.textContent = '';
+        for (const club of clubs) {
+          list.append(createClubItem(club));
+        }
+      }
+
+      /**
+       * Load the registry and the live club, then wire up the theme button.
+       * The cycle is deliberately Manchester United, Arsenal, Manchester United.
+       * @returns {Promise<void>}
+       */
+      async function start() {
+        try {
+          const registry = await loadRegistry();
+          renderClubList(liveClubsList, getLiveClubs(registry));
+          renderClubList(comingSoonClubsList, getComingSoonClubs(registry));
+          registryStatus.textContent = `Registry version ${registry.version} loaded with ${registry.clubs.length} clubs.`;
+
+          const liveClub = await loadClub('manutd');
+          themeCycle.push({ label: liveClub.name, theme: liveClub.theme });
+
+          const comingSoonWithTheme = getComingSoonClubs(registry).filter((club) => club.theme);
+          for (const club of comingSoonWithTheme) {
+            themeCycle.push({ label: club.name, theme: club.theme });
+          }
+
+          themeButton.disabled = themeCycle.length < 2;
+        } catch (error) {
+          registryStatus.textContent =
+            'Could not load the club registry. Serve the site over http, for example with npx serve, then reload. ' +
+            String(error.message);
+        }
+
+        refreshTokenValues();
+        updateOverrideLine();
+      }
+
+      themeButton.addEventListener('click', () => {
+        if (themeCycle.length === 0) return;
+
+        themeIndex = (themeIndex + 1) % themeCycle.length;
+        const next = themeCycle[themeIndex];
+
+        applyTheme(next.theme);
+        themeName.textContent = next.label;
+        refreshTokenValues();
+        updateOverrideLine();
+      });
+
+      await start();
+    </script>
+  </body>
+</html>

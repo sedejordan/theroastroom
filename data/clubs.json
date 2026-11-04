@@ -1,0 +1,68 @@
+{
+  "version": 1,
+  "clubs": [
+    {
+      "id": "manutd",
+      "name": "Manchester United",
+      "shortName": "Man United",
+      "status": "live",
+      "dataFile": "data/clubs/manutd.json",
+      "themeKey": "manutd"
+    },
+    {
+      "id": "arsenal",
+      "name": "Arsenal",
+      "shortName": "Arsenal",
+      "status": "comingSoon",
+      "themeKey": "arsenal",
+      "theme": {
+        "primary": "#EF0107",
+        "accent": "#063672"
+      }
+    },
+    {
+      "id": "liverpool",
+      "name": "Liverpool",
+      "shortName": "Liverpool",
+      "status": "comingSoon",
+      "themeKey": "liverpool",
+      "theme": {
+        "primary": "#C8102E",
+        "accent": "#00B2A9"
+      }
+    },
+    {
+      "id": "mancity",
+      "name": "Manchester City",
+      "shortName": "Man City",
+      "status": "comingSoon",
+      "themeKey": "mancity",
+      "theme": {
+        "primary": "#6CABDD",
+        "accent": "#1C2C5B"
+      }
+    },
+    {
+      "id": "chelsea",
+      "name": "Chelsea",
+      "shortName": "Chelsea",
+      "status": "comingSoon",
+      "themeKey": "chelsea",
+      "theme": {
+        "primary": "#034694",
+        "accent": "#DBA111"
+      }
+    },
+    {
+      "id": "tottenham",
+      "name": "Tottenham Hotspur",
+      "shortName": "Spurs",
+      "status": "comingSoon",
+      "themeKey": "tottenham",
+      "theme": {
+        "primary": "#132257",
+        "accent": "#FFFFFF"
+      }
+    }
+  ]
+}
