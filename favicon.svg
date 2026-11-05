@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="The Roast Room">
+  <rect width="64" height="64" rx="14" fill="#DA291C"/>
+  <path d="M32 10 C30 18 20 22 20 34 C20 44 26 52 32 54 C38 52 44 44 44 34 C44 22 34 18 32 10 Z" fill="#FBE122"/>
+  <path d="M32 30 C30 36 26 38 26 44 C26 48 28 50 32 52 C36 50 38 48 38 44 C38 38 34 36 32 30 Z" fill="#DA291C"/>
+</svg>
