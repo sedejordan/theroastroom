@@ -1,0 +1,134 @@
+/*
+  Shared component styles for The Roast Room.
+  Imported by src/input.css after tokens.css and base.css so every rule here
+  reads the design tokens and the base reset.
+*/
+
+@layer components {
+  /* Visually hidden but available to screen readers */
+  .srOnly {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  /* Roast card, styled as a matchday ticket stub with notches on both sides */
+  .roastCard {
+    position: relative;
+    background-color: var(--colorSurface);
+    border: var(--borderWidth1) solid var(--colorLine);
+    border-radius: var(--radiusSharp);
+    padding: var(--space6);
+    margin: 0 var(--space4);
+  }
+
+  .ticketStub::before,
+  .ticketStub::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    width: var(--space6);
+    height: var(--space6);
+    background-color: var(--colorBackground);
+    border-radius: 50%;
+    transform: translateY(-50%);
+    pointer-events: none;
+  }
+
+  .ticketStub::before {
+    left: calc(var(--space6) / -2);
+  }
+
+  .ticketStub::after {
+    right: calc(var(--space6) / -2);
+  }
+
+  /* Reveal animation target for the facts and receipts */
+  .revealTarget {
+    opacity: 0;
+    transition: opacity var(--durationSlow) var(--easeOut);
+  }
+
+  .revealTarget.isVisible {
+    opacity: 1;
+  }
+
+  /* Category filter chips */
+  .categoryChip {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space2);
+    border-radius: var(--radiusPill);
+    border: var(--borderWidth1) solid var(--colorLine);
+    background-color: var(--colorSurface);
+    color: var(--colorText);
+    padding: var(--space2) var(--space4);
+    font-size: var(--textSm);
+    transition:
+      background-color var(--durationFast) var(--easeStandard),
+      color var(--durationFast) var(--easeStandard),
+      border-color var(--durationFast) var(--easeStandard);
+  }
+
+  .categoryChip:hover {
+    border-color: var(--colorPrimary);
+  }
+
+  .categoryChip[aria-pressed='true'] {
+    background-color: var(--colorPrimary);
+    border-color: var(--colorPrimary);
+    color: var(--colorPrimaryContrast);
+  }
+
+  .categoryChipCount {
+    color: var(--colorTextMuted);
+  }
+
+  .categoryChip[aria-pressed='true'] .categoryChipCount {
+    color: var(--colorPrimaryContrast);
+  }
+
+  /* Headline placeholder so the card does not collapse before the reel */
+  .roastHeadline {
+    min-height: 1.2em;
+  }
+
+  /* Ticker strip on the landing page */
+  .tickerTrack {
+    display: flex;
+    gap: var(--space8);
+    width: max-content;
+    animation: tickerScroll 40s linear infinite;
+    will-change: transform;
+  }
+
+  .tickerTrack:hover,
+  .tickerTrack:focus-within {
+    animation-play-state: paused;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .tickerTrack {
+      animation: none;
+      flex-wrap: wrap;
+      width: auto;
+      transform: none;
+      will-change: auto;
+    }
+  }
+}
+
+@keyframes tickerScroll {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
