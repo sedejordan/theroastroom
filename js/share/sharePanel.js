@@ -140,6 +140,7 @@ export function createSharePanel(options) {
   let currentFormatId = 'post';
   let visible = false;
   let lastKey = '';
+  let cachedBlob = null;
   let renderBusy = false;
   let renderPending = false;
 
@@ -210,6 +211,7 @@ export function createSharePanel(options) {
     }
 
     lastKey = key;
+    cachedBlob = null;
     setStatus('Preparing image');
 
     const result = await renderRoastCard({
@@ -237,8 +239,12 @@ export function createSharePanel(options) {
       `Roast card preview for ${String(roast.headline || '')} in ${format.label} format`
     );
 
-    if (result.truncated) {
-      setStatus('Preview ready. Some text was shortened.');
+    if (result.truncated) {const renderedKey = key;
+    canvasToBlob(previewCanvas).then((blobResult) => {
+      if (blobResult.ok && lastKey === renderedKey) {
+        cachedBlob = blobResult.blob;
+      }
+    });
     } else {
       setStatus('Preview ready');
     }
@@ -288,10 +294,8 @@ export function createSharePanel(options) {
   async function handleShare() {
     try {
       if (!currentRoast || !currentClub) return;
-
-      const blobResult = await canvasToBlob(previewCanvas);
-      if (!blobResult.ok) {
-        setStatus('Could not prepare the image. Try Download image instead.');
+      if (!cachedBlob) {
+        setStatus('The image is still being prepared. Try again in a second.');
         return;
       }
 
@@ -299,7 +303,7 @@ export function createSharePanel(options) {
       const url = currentUrl();
       const text = buildShareText(currentRoast, url);
       const result = await shareImage({
-        blob: blobResult.blob,
+        blob: cachedBlob,
         fileName,
         title: 'The Roast Room',
         text,
