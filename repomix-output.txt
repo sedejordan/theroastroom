@@ -1,0 +1,4785 @@
+This file is a merged representation of the entire codebase, combined into a single document by Repomix.
+The content has been processed where line numbers have been added.
+
+================================================================
+File Summary
+================================================================
+
+Purpose:
+--------
+This file contains a packed representation of the entire repository's contents.
+It is designed to be easily consumable by AI systems for analysis, code review,
+or other automated processes.
+
+File Format:
+------------
+The content is organized as follows:
+1. This summary section
+2. Repository information
+3. Directory structure
+4. Repository files (if enabled)
+5. Multiple file entries, each consisting of:
+  a. A separator line (================)
+  b. The file path (File: path/to/file)
+  c. Another separator line
+  d. The full contents of the file
+  e. A blank line
+
+Usage Guidelines:
+-----------------
+- This file should be treated as read-only. Any changes should be made to the
+  original repository files, not this packed version.
+- When processing this file, use the file path to distinguish
+  between different files in the repository.
+- Be aware that this file may contain sensitive information. Handle it with
+  the same level of security as you would the original repository.
+
+Notes:
+------
+- Some files may have been excluded based on .gitignore rules and Repomix's configuration
+- Binary files are not included in this packed representation. Please refer to the Repository Structure section for a complete list of file paths, including binary files
+- Files matching patterns in .gitignore are excluded
+- Files matching default ignore patterns are excluded
+- Line numbers have been added to the beginning of each line
+- Files are sorted by Git change count (files with more changes are at the bottom)
+
+
+================================================================
+Directory Structure
+================================================================
+css/
+  base.css
+  tokens.css
+data/
+  clubs/
+    manutd.json
+  clubs.json
+js/
+  pages/
+    landing.js
+    room.js
+    shuffleBag.test.mjs
+  ui/
+    categoryFilter.js
+    reveal.js
+    roastCard.js
+    shuffleBag.js
+  utils/
+    dom.js
+    links.js
+  config.js
+  registry.js
+  schema.js
+  theme.js
+scripts/
+  validate.mjs
+src/
+  input.css
+tests/
+  fixtures/
+    fakeData.mjs
+  schema.test.mjs
+.gitignore
+favicon.svg
+index.html
+package.json
+README.md
+room.html
+tailwind.config.js
+tokens.html
+
+================================================================
+Files
+================================================================
+
+================
+File: css/base.css
+================
+  1: /*
+  2:   Reset, typography, focus styles and the handful of shared component classes.
+  3:   Everything sits in a Tailwind layer so utility classes always win.
+  4: */
+  5: 
+  6: @layer base {
+  7:   *,
+  8:   *::before,
+  9:   *::after {
+ 10:     box-sizing: border-box;
+ 11:   }
+ 12: 
+ 13:   html {
+ 14:     background-color: var(--colorBackground);
+ 15:     text-size-adjust: 100%;
+ 16:     scroll-behavior: smooth;
+ 17:   }
+ 18: 
+ 19:   body {
+ 20:     margin: 0;
+ 21:     min-height: 100vh;
+ 22:     background-color: var(--colorBackground);
+ 23:     color: var(--colorText);
+ 24:     font-family: var(--fontBody);
+ 25:     font-size: var(--textBase);
+ 26:     line-height: var(--leadingNormal);
+ 27:     text-rendering: optimizeLegibility;
+ 28:   }
+ 29: 
+ 30:   h1,
+ 31:   h2,
+ 32:   h3,
+ 33:   h4,
+ 34:   h5,
+ 35:   h6 {
+ 36:     margin: 0;
+ 37:     font-family: var(--fontDisplay);
+ 38:     font-weight: 400;
+ 39:     line-height: var(--leadingTight);
+ 40:     letter-spacing: var(--trackingTight);
+ 41:     text-transform: uppercase;
+ 42:   }
+ 43: 
+ 44:   p,
+ 45:   ul,
+ 46:   ol,
+ 47:   figure,
+ 48:   blockquote {
+ 49:     margin: 0;
+ 50:   }
+ 51: 
+ 52:   ul,
+ 53:   ol {
+ 54:     padding: 0;
+ 55:     list-style: none;
+ 56:   }
+ 57: 
+ 58:   a {
+ 59:     color: var(--colorAccent);
+ 60:     text-decoration: underline;
+ 61:     text-underline-offset: 0.2em;
+ 62:   }
+ 63: 
+ 64:   button {
+ 65:     font: inherit;
+ 66:     color: inherit;
+ 67:     cursor: pointer;
+ 68:   }
+ 69: 
+ 70:   code,
+ 71:   kbd,
+ 72:   samp,
+ 73:   pre {
+ 74:     font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+ 75:     font-size: 0.95em;
+ 76:   }
+ 77: 
+ 78:   /* Focus is always visible and never relies on colour alone */
+ 79:   :focus-visible {
+ 80:     outline: var(--borderWidth2) solid var(--colorAccent);
+ 81:     outline-offset: 2px;
+ 82:   }
+ 83: 
+ 84:   ::selection {
+ 85:     background-color: var(--colorAccent);
+ 86:     color: var(--colorBackground);
+ 87:   }
+ 88: 
+ 89:   @media (prefers-reduced-motion: reduce) {
+ 90:     *,
+ 91:     *::before,
+ 92:     *::after {
+ 93:       animation-duration: 1ms !important;
+ 94:       animation-iteration-count: 1 !important;
+ 95:       transition-duration: 1ms !important;
+ 96:       scroll-behavior: auto !important;
+ 97:     }
+ 98:   }
+ 99: }
+100: 
+101: @layer components {
+102:   .skipLink {
+103:     position: absolute;
+104:     top: var(--space4);
+105:     left: -9999px;
+106:     z-index: var(--zToast);
+107:     padding: var(--space3) var(--space4);
+108:     background-color: var(--colorAccent);
+109:     color: var(--colorBackground);
+110:     font-weight: 600;
+111:     text-decoration: none;
+112:   }
+113: 
+114:   .skipLink:focus {
+115:     left: var(--space4);
+116:   }
+117: 
+118:   .tokenLabel {
+119:     font-family: var(--fontBody);
+120:     font-size: var(--textXs);
+121:     font-weight: 600;
+122:     letter-spacing: var(--trackingWider);
+123:     text-transform: uppercase;
+124:     color: var(--colorTextMuted);
+125:   }
+126: }
+
+================
+File: css/tokens.css
+================
+  1: /*
+  2:   The Roast Room design tokens.
+  3:   Every club colour is a CSS custom property on the document root, so a club
+  4:   theme is swapped at runtime by writing to document.documentElement. The values
+  5:   below are the Manchester United default.
+  6: */
+  7: 
+  8: :root {
+  9:   color-scheme: dark;
+ 10: 
+ 11:   /* Club theme tokens */
+ 12:   --colorPrimary: #DA291C;
+ 13:   --colorPrimaryContrast: #FFFFFF;
+ 14:   --colorAccent: #FBE122;
+ 15:   --colorBackground: #0A0A0A;
+ 16:   --colorSurface: #141414;
+ 17:   --colorSurfaceRaised: #1C1C1C;
+ 18:   --colorLine: #2A2A2A;
+ 19:   --colorText: #F5F5F5;
+ 20:   --colorTextMuted: #A0A0A0;
+ 21: 
+ 22:   /*
+ 23:     Contrast checks, measured against --colorBackground unless stated otherwise:
+ 24:     text on background 18.2 to 1
+ 25:     textMuted on background 7.6 to 1, so it clears WCAG AA for body copy
+ 26:     primary on background 4.1 to 1, used for large text, borders and fills only
+ 27:     primaryContrast on primary 4.9 to 1
+ 28:     accent on background 15.0 to 1
+ 29:   */
+ 30: 
+ 31:   /* Type families */
+ 32:   --fontDisplay: 'Anton', 'Arial Narrow', Impact, sans-serif;
+ 33:   --fontBody: 'Inter', 'Helvetica Neue', Arial, system-ui, sans-serif;
+ 34: 
+ 35:   /* Type scale, fluid between small phones and wide screens */
+ 36:   --textXs: clamp(0.75rem, 0.72rem + 0.12vw, 0.8125rem);
+ 37:   --textSm: clamp(0.875rem, 0.84rem + 0.16vw, 0.9375rem);
+ 38:   --textBase: clamp(1rem, 0.96rem + 0.2vw, 1.0625rem);
+ 39:   --textLg: clamp(1.125rem, 1.06rem + 0.32vw, 1.25rem);
+ 40:   --textXl: clamp(1.25rem, 1.14rem + 0.55vw, 1.5rem);
+ 41:   --text2xl: clamp(1.5rem, 1.32rem + 0.9vw, 1.875rem);
+ 42:   --text3xl: clamp(1.875rem, 1.6rem + 1.4vw, 2.5rem);
+ 43:   --textDisplaySm: clamp(2rem, 1.5rem + 2.5vw, 3rem);
+ 44:   --textDisplayMd: clamp(2.5rem, 1.7rem + 4vw, 4.5rem);
+ 45:   --textDisplayLg: clamp(3rem, 1.8rem + 6vw, 7rem);
+ 46: 
+ 47:   --leadingTight: 0.95;
+ 48:   --leadingSnug: 1.15;
+ 49:   --leadingNormal: 1.55;
+ 50:   --leadingRelaxed: 1.7;
+ 51: 
+ 52:   --trackingTight: -0.02em;
+ 53:   --trackingNormal: 0em;
+ 54:   --trackingWide: 0.08em;
+ 55:   --trackingWider: 0.16em;
+ 56: 
+ 57:   /* Spacing scale, one unit is a quarter rem */
+ 58:   --space1: 0.25rem;
+ 59:   --space2: 0.5rem;
+ 60:   --space3: 0.75rem;
+ 61:   --space4: 1rem;
+ 62:   --space5: 1.25rem;
+ 63:   --space6: 1.5rem;
+ 64:   --space8: 2rem;
+ 65:   --space10: 2.5rem;
+ 66:   --space12: 3rem;
+ 67:   --space16: 4rem;
+ 68:   --space20: 5rem;
+ 69:   --space24: 6rem;
+ 70: 
+ 71:   /* Radii, kept small for a scoreboard feel */
+ 72:   --radiusSharp: 2px;
+ 73:   --radiusSoft: 6px;
+ 74:   --radiusPill: 999px;
+ 75: 
+ 76:   /* Border widths */
+ 77:   --borderWidth1: 1px;
+ 78:   --borderWidth2: 2px;
+ 79:   --borderWidth3: 3px;
+ 80: 
+ 81:   /* Shadows, deliberately minimal */
+ 82:   --shadowFlat: 0 1px 0 0 rgb(0 0 0 / 0.6);
+ 83:   --shadowRaised: 0 12px 24px -12px rgb(0 0 0 / 0.8);
+ 84: 
+ 85:   /* Z index */
+ 86:   --zBase: 0;
+ 87:   --zRaised: 10;
+ 88:   --zOverlay: 100;
+ 89:   --zToast: 1000;
+ 90: 
+ 91:   /* Motion */
+ 92:   --durationFast: 120ms;
+ 93:   --durationNormal: 200ms;
+ 94:   --durationSlow: 320ms;
+ 95:   --easeStandard: cubic-bezier(0.2, 0, 0, 1);
+ 96:   --easeOut: cubic-bezier(0.16, 1, 0.3, 1);
+ 97: }
+ 98: 
+ 99: /*
+100:   Anyone who asks for reduced motion gets near zero durations. Every animation
+101:   and transition in the project reads these tokens.
+102: */
+103: @media (prefers-reduced-motion: reduce) {
+104:   :root {
+105:     --durationFast: 1ms;
+106:     --durationNormal: 1ms;
+107:     --durationSlow: 1ms;
+108:   }
+109: }
+
+================
+File: data/clubs/manutd.json
+================
+  1: {
+  2:   "id": "manutd",
+  3:   "name": "Manchester United",
+  4:   "shortName": "Man United",
+  5:   "status": "live",
+  6:   "themeKey": "manutd",
+  7:   "theme": {
+  8:     "primary": "#DA291C",
+  9:     "primaryContrast": "#FFFFFF",
+ 10:     "accent": "#FBE122",
+ 11:     "background": "#0A0A0A",
+ 12:     "surface": "#141414",
+ 13:     "surfaceRaised": "#1C1C1C",
+ 14:     "line": "#2A2A2A",
+ 15:     "text": "#F5F5F5",
+ 16:     "textMuted": "#A0A0A0"
+ 17:   },
+ 18:   "categories": [
+ 19:     {
+ 20:       "id": "trophyDroughts",
+ 21:       "displayLabel": "Trophy Droughts",
+ 22:       "description": "Seasons that ended without silverware and the waits that followed.",
+ 23:       "emoji": "🏆"
+ 24:     },
+ 25:     {
+ 26:       "id": "historicalDefeats",
+ 27:       "displayLabel": "Historical Defeats",
+ 28:       "description": "Scorelines from the past that supporters would rather forget.",
+ 29:       "emoji": "💥"
+ 30:     },
+ 31:     {
+ 32:       "id": "embarrassingRecords",
+ 33:       "displayLabel": "Embarrassing Records",
+ 34:       "description": "Records that read like a punchline rather than an achievement.",
+ 35:       "emoji": "🫠"
+ 36:     },
+ 37:     {
+ 38:       "id": "failedTransfers",
+ 39:       "displayLabel": "Failed Transfers",
+ 40:       "description": "Signings that promised plenty and delivered very little.",
+ 41:       "emoji": "💸"
+ 42:     },
+ 43:     {
+ 44:       "id": "painfulStats",
+ 45:       "displayLabel": "Painful Stats",
+ 46:       "description": "Numbers that are accurate, sourced and quietly painful.",
+ 47:       "emoji": "📊"
+ 48:     }
+ 49:   ],
+ 50:   "roasts": [
+ 51:     {
+ 52:       "id": "trophies_last_league_title",
+ 53:       "clubId": "manutd",
+ 54:       "category": "trophyDroughts",
+ 55:       "headline": "The last time United won the league, Ferguson was still picking the team.",
+ 56:       "explanation": "United's last league title came in 2012/13, Ferguson's final season and the 20th of their English record. Arsenal won the title in 2025/26, with United third.",
+ 57:       "evidence": [
+ 58:         {
+ 59:           "claim": "United won the 2012/13 Premier League, their 20th English league title, in Ferguson's final season as manager.",
+ 60:           "period": "2012/13",
+ 61:           "sourceName": "Goal",
+ 62:           "sourceUrl": "https://www.goal.com/en/news/when-did-manchester-united-last-win-premier-league/7ny81yxbinco1b4n77pxtq5eh",
+ 63:           "accessedOn": "2026/11/03"
+ 64:         },
+ 65:         {
+ 66:           "claim": "United finished 11 points clear of Manchester City and sealed the title with four matches to spare.",
+ 67:           "period": "2012/13",
+ 68:           "sourceName": "Manchester United official site",
+ 69:           "sourceUrl": "https://www.manutd.com/en/news/detail/the-story-of-the-2012-13-premier-league-title",
+ 70:           "accessedOn": "2026/11/03"
+ 71:         },
+ 72:         {
+ 73:           "claim": "Arsenal were the Premier League champions in 2025/26.",
+ 74:           "period": "2025/26",
+ 75:           "sourceName": "Thairath Online",
+ 76:           "sourceUrl": "https://en.thairath.co.th/sport/eurofootball/2953039",
+ 77:           "accessedOn": "2026/11/03"
+ 78:         },
+ 79:         {
+ 80:           "claim": "United finished third in the 2025/26 Premier League with 71 points.",
+ 81:           "period": "2025/26",
+ 82:           "sourceName": "United in Focus",
+ 83:           "sourceUrl": "https://www.unitedinfocus.com/news/man-utds-expected-2026-27-premier-league-points-total-after-hull-city-loss-including-top-four-prospects/",
+ 84:           "accessedOn": "2026/11/03"
+ 85:         }
+ 86:       ],
+ 87:       "verified": true,
+ 88:       "verifiedOn": "2026/11/03"
+ 89:     },
+ 90:     {
+ 91:       "id": "trophies_six_year_gap",
+ 92:       "clubId": "manutd",
+ 93:       "category": "trophyDroughts",
+ 94:       "headline": "United waited six years for their next trophy, and it was the League Cup.",
+ 95:       "explanation": "The 2017 Europa League was United's last silverware for years. When they won the 2023 League Cup it was reported as their first trophy since 2017.",
+ 96:       "evidence": [
+ 97:         {
+ 98:           "claim": "As of the 2021 Europa League final, United's last silverware was the 2017 Europa League.",
+ 99:           "period": "2021/05/26",
+100:           "sourceName": "AP via The Week",
+101:           "sourceUrl": "https://www.theweek.in/news/sports/2021/05/27/villarreal-beats-man-u-on-penalties-for-europa-league-title.amp.html",
+102:           "accessedOn": "2026/11/03"
+103:         },
+104:         {
+105:           "claim": "Reuters described the 2023 League Cup win as United's first trophy since 2017.",
+106:           "period": "2022/23",
+107:           "sourceName": "Reuters via TimesLIVE",
+108:           "sourceUrl": "https://www.timeslive.co.za/sport/soccer/2023-03-05-lethal-liverpool-smash-manchester-united-for-seven-in-record-win/",
+109:           "accessedOn": "2026/11/03"
+110:         }
+111:       ],
+112:       "verified": true,
+113:       "verifiedOn": "2026/11/03"
+114:     },
+115:     {
+116:       "id": "trophies_solskjaer_zero",
+117:       "clubId": "manutd",
+118:       "category": "trophyDroughts",
+119:       "headline": "Solskjaer got 168 games as United manager and won zero trophies.",
+120:       "explanation": "His spell ran from December 2018 to November 2021. A Reuters factbox lists 168 matches and no trophies won.",
+121:       "evidence": [
+122:         {
+123:           "claim": "Reuters lists Solskjaer's record as 168 matches, 91 wins, 37 draws and 40 defeats with no trophies, between December 2018 and 21 November 2021.",
+124:           "period": "2021/11/21",
+125:           "sourceName": "Reuters via The Star Malaysia",
+126:           "sourceUrl": "https://www.thestar.com.my/sport/football/2024/11/01/factbox-list-of-manchester-united-managers-since-alex-ferguson-retired",
+127:           "accessedOn": "2026/11/03"
+128:         },
+129:         {
+130:           "claim": "A manager by manager comparison lists no trophies for Solskjaer during his time in charge.",
+131:           "period": "2021/11/21",
+132:           "sourceName": "Hayters",
+133:           "sourceUrl": "https://hayters.com/how-does-erik-ten-hag-compare-to-man-utds-other-managers-since-alex-ferguson/",
+134:           "accessedOn": "2026/11/03"
+135:         }
+136:       ],
+137:       "verified": true,
+138:       "verifiedOn": "2026/11/03"
+139:     },
+140:     {
+141:       "id": "defeat_liverpool_7_0_2023",
+142:       "clubId": "manutd",
+143:       "category": "historicalDefeats",
+144:       "headline": "A week after lifting the League Cup, United lost 7 to 0 at Anfield.",
+145:       "explanation": "On 5 March 2023 Liverpool beat United 7 to 0 at Anfield, United's biggest Premier League defeat and joint worst loss in any competition. It was their heaviest since a 7 to 0 loss at Wolves in 1931.",
+146:       "evidence": [
+147:         {
+148:           "claim": "Liverpool beat United 7 to 0 at Anfield on 5 March 2023, United's biggest defeat in the Premier League and joint worst loss in all competitions.",
+149:           "period": "2023/03/05",
+150:           "sourceName": "AP via ClickOnDetroit",
+151:           "sourceUrl": "https://www.clickondetroit.com/sports/2023/03/05/liverpool-humiliates-manchester-united-with-7-0-rout-in-epl/",
+152:           "accessedOn": "2026/11/03"
+153:         },
+154:         {
+155:           "claim": "Reuters said it came a week after United won the League Cup.",
+156:           "period": "2023/03/05",
+157:           "sourceName": "Reuters via TimesLIVE",
+158:           "sourceUrl": "https://www.timeslive.co.za/sport/soccer/2023-03-05-lethal-liverpool-smash-manchester-united-for-seven-in-record-win/",
+159:           "accessedOn": "2026/11/03"
+160:         },
+161:         {
+162:           "claim": "Reuters said it was United's worst defeat since a 7 to 0 loss to Wolverhampton Wanderers in 1931.",
+163:           "period": "2023/03/05",
+164:           "sourceName": "Reuters via FBC News",
+165:           "sourceUrl": "https://www.fbcnews.com.fj/?p=519898",
+166:           "accessedOn": "2026/11/03"
+167:         }
+168:       ],
+169:       "verified": true,
+170:       "verifiedOn": "2026/11/03"
+171:     },
+172:     {
+173:       "id": "defeat_city_6_1_2011",
+174:       "clubId": "manutd",
+175:       "category": "historicalDefeats",
+176:       "headline": "The noisy neighbours came to Old Trafford and scored six.",
+177:       "explanation": "On 23 October 2011 Manchester City won 6 to 1 at Old Trafford, United's heaviest home defeat since a 5 to 0 loss, also to City, in 1955.",
+178:       "evidence": [
+179:         {
+180:           "claim": "City's 6 to 1 win on 23 October 2011 was United's worst defeat of the Premier League era at that time, and their heaviest home defeat since a 5 to 0 loss to City in February 1955.",
+181:           "period": "2011/10/23",
+182:           "sourceName": "Manchester City official site",
+183:           "sourceUrl": "https://live.mancity.com/news/mens/united-1-6-manchester-city-10-things-to-know-10-years-on-63770518",
+184:           "accessedOn": "2026/11/03"
+185:         },
+186:         {
+187:           "claim": "Sky Sports described it as the champions' heaviest home defeat since 1955.",
+188:           "period": "2011/10/23",
+189:           "sourceName": "Sky Sports",
+190:           "sourceUrl": "https://www.skysports.com/football/news/11661/10569247/watch-manchester-city-humiliate-manchester-united-in-2011-derby",
+191:           "accessedOn": "2026/11/03"
+192:         }
+193:       ],
+194:       "verified": true,
+195:       "verifiedOn": "2026/11/03"
+196:     },
+197:     {
+198:       "id": "defeat_spurs_6_1_2020",
+199:       "clubId": "manutd",
+200:       "category": "historicalDefeats",
+201:       "headline": "Ten man United lost 6 to 1 at home to Spurs and Solskjaer called it his worst day.",
+202:       "explanation": "On 4 October 2020 Tottenham won 6 to 1 at Old Trafford with United down to ten men. At the time it equalled United's heaviest Premier League defeat.",
+203:       "evidence": [
+204:         {
+205:           "claim": "Tottenham won 6 to 1 at Old Trafford on 4 October 2020 against ten man United.",
+206:           "period": "2020/10/04",
+207:           "sourceName": "Premier League",
+208:           "sourceUrl": "https://premierleague.com/news/1846355",
+209:           "accessedOn": "2026/11/03"
+210:         },
+211:         {
+212:           "claim": "Reuters called it United's joint worst loss of the Premier League era, level with the 6 to 1 defeat by City in 2011, and Solskjaer said it was his worst day at the club.",
+213:           "period": "2020/10/04",
+214:           "sourceName": "Reuters via Ahram Online",
+215:           "sourceUrl": "https://english.ahram.org.eg/News/386612.aspx",
+216:           "accessedOn": "2026/11/03"
+217:         }
+218:       ],
+219:       "verified": true,
+220:       "verifiedOn": "2026/11/03"
+221:     },
+222:     {
+223:       "id": "defeat_villarreal_final_2021",
+224:       "clubId": "manutd",
+225:       "category": "historicalDefeats",
+226:       "headline": "United lost a Europa League final shootout 11 to 10 when De Gea missed the 22nd kick.",
+227:       "explanation": "The 2021 Europa League final finished 1 to 1. Villarreal then won the shootout 11 to 10 when goalkeeper Geronimo Rulli saved David de Gea's penalty. It was Villarreal's first major trophy.",
+228:       "evidence": [
+229:         {
+230:           "claim": "AP reported that Rulli scored his own penalty and saved De Gea's to give Villarreal an 11 to 10 shootout win and its first major trophy.",
+231:           "period": "2021/05/26",
+232:           "sourceName": "AP via Ahram Online",
+233:           "sourceUrl": "https://english.ahram.org.eg/News/413005.aspx",
+234:           "accessedOn": "2026/11/03"
+235:         },
+236:         {
+237:           "claim": "The final in Gdansk finished 1 to 1, and Villarreal won 11 to 10 on penalties.",
+238:           "period": "2021/05/26",
+239:           "sourceName": "ESPN",
+240:           "sourceUrl": "https://www.espn.com/soccer/match/_/gameId/602343",
+241:           "accessedOn": "2026/11/03"
+242:         }
+243:       ],
+244:       "verified": true,
+245:       "verifiedOn": "2026/11/03"
+246:     },
+247:     {
+248:       "id": "defeat_grimsby_2025",
+249:       "clubId": "manutd",
+250:       "category": "historicalDefeats",
+251:       "headline": "A League Two side knocked United out of the League Cup, 12 to 11 on penalties.",
+252:       "explanation": "On 27 August 2025 Grimsby Town drew 2 to 2 with United and won the shootout 12 to 11. ESPN reported it as the first time United had been knocked out of a cup by a fourth tier club.",
+253:       "evidence": [
+254:         {
+255:           "claim": "Grimsby Town drew 2 to 2 with United in the League Cup second round and won 12 to 11 on penalties after Bryan Mbeumo missed.",
+256:           "period": "2025/08/27",
+257:           "sourceName": "Sky Sports",
+258:           "sourceUrl": "https://www.skysports.com/football/grimsby-town-vs-manchester-united/547756",
+259:           "accessedOn": "2026/11/03"
+260:         },
+261:         {
+262:           "claim": "ESPN reported it was the first time United had ever been eliminated from a cup competition by a team from England's fourth tier.",
+263:           "period": "2025/08/27",
+264:           "sourceName": "ESPN",
+265:           "sourceUrl": "https://www.espn.com/football/report/_/gameId/756229",
+266:           "accessedOn": "2026/11/03"
+267:         }
+268:       ],
+269:       "verified": true,
+270:       "verifiedOn": "2026/11/03"
+271:     },
+272:     {
+273:       "id": "defeat_spurs_europa_final_2025",
+274:       "clubId": "manutd",
+275:       "category": "historicalDefeats",
+276:       "headline": "United lost the 2025 Europa League final to a Tottenham side that finished 17th.",
+277:       "explanation": "Spurs won 1 to 0 in Bilbao on 21 May 2025 through Brennan Johnson. Tottenham ended the Premier League season in 17th place, with United in 15th.",
+278:       "evidence": [
+279:         {
+280:           "claim": "Tottenham beat United 1 to 0 in the Europa League final in Bilbao on 21 May 2025, with Brennan Johnson scoring in the 42nd minute.",
+281:           "period": "2025/05/21",
+282:           "sourceName": "TNT Sports",
+283:           "sourceUrl": "https://www.tntsports.co.uk/football/europa-league/2024-2025/live-tottenham-hotspur-manchester-united_mtc1524765/live-commentary.shtml",
+284:           "accessedOn": "2026/11/03"
+285:         },
+286:         {
+287:           "claim": "United finished the 2024/25 Premier League season 15th and Tottenham finished 17th.",
+288:           "period": "2024/25",
+289:           "sourceName": "Al Jazeera",
+290:           "sourceUrl": "https://www.aljazeera.com/sports/2025/5/25/man-united-end-season-ranked-15th-after-controversial-win-over-aston-villa",
+291:           "accessedOn": "2026/11/03"
+292:         }
+293:       ],
+294:       "verified": true,
+295:       "verifiedOn": "2026/11/03"
+296:     },
+297:     {
+298:       "id": "defeat_mk_dons_2014",
+299:       "clubId": "manutd",
+300:       "category": "historicalDefeats",
+301:       "headline": "Van Gaal's United once lost 4 to 0 at MK Dons. In the League Cup. In 2014.",
+302:       "explanation": "In the second round of the 2014/15 League Cup, United lost 4 to 0 away to League One side MK Dons, a result recalled again when Grimsby knocked them out in 2025.",
+303:       "evidence": [
+304:         {
+305:           "claim": "RTE reported that Louis van Gaal's United were beaten 4 to 0 at League One MK Dons in the 2014 League Cup second round.",
+306:           "period": "2014/15",
+307:           "sourceName": "RTE Sport",
+308:           "sourceUrl": "https://www.rte.ie/sport/soccer/2025/0827/1530443-carabao-cup-fourth-tier-grimsby-knock-out-man-united",
+309:           "accessedOn": "2026/11/03"
+310:         },
+311:         {
+312:           "claim": "ESPN also reported the 4 to 0 defeat at third tier MK Dons in the League Cup second round.",
+313:           "period": "2014/15",
+314:           "sourceName": "ESPN",
+315:           "sourceUrl": "https://www.espn.com/football/report/_/gameId/756229",
+316:           "accessedOn": "2026/11/03"
+317:         }
+318:       ],
+319:       "verified": true,
+320:       "verifiedOn": "2026/11/03"
+321:     },
+322:     {
+323:       "id": "record_worst_season_2024_25",
+324:       "clubId": "manutd",
+325:       "category": "embarrassingRecords",
+326:       "headline": "15th place, 42 points and 18 defeats: United's worst ever Premier League season.",
+327:       "explanation": "In 2024/25 United finished 15th, their lowest Premier League finish, on 42 points, their lowest Premier League total. The 18 defeats were their most since the 1973/74 relegation season.",
+328:       "evidence": [
+329:         {
+330:           "claim": "United finished the 2024/25 Premier League season in 15th place.",
+331:           "period": "2024/25",
+332:           "sourceName": "Premier League",
+333:           "sourceUrl": "https://www.premierleague.com/news/4321308",
+334:           "accessedOn": "2026/11/03"
+335:         },
+336:         {
+337:           "claim": "Their 42 points was the lowest total in their Premier League history, and their 18 league defeats were the most since 1973/74.",
+338:           "period": "2024/25",
+339:           "sourceName": "Sports Illustrated",
+340:           "sourceUrl": "https://www.si.com/soccer/stats-behind-man-utd-historically-bad-2024-25-season",
+341:           "accessedOn": "2026/11/03"
+342:         },
+343:         {
+344:           "claim": "The previous lowest Premier League points total for United was 58 in 2021/22.",
+345:           "period": "2021/22",
+346:           "sourceName": "beIN SPORTS",
+347:           "sourceUrl": "https://www.beinsports.com/en-us/soccer/premier-league/articles-video/the-disgusting-record-manchester-united-could-set-a-clear-sign-their-glory-days-are-over-2025-04-22",
+348:           "accessedOn": "2026/11/03"
+349:         }
+350:       ],
+351:       "verified": true,
+352:       "verifiedOn": "2026/11/03"
+353:     },
+354:     {
+355:       "id": "record_conceded_first_2024_25",
+356:       "clubId": "manutd",
+357:       "category": "embarrassingRecords",
+358:       "headline": "United fell behind first 31 times in 2024/25, more than any other Premier League club.",
+359:       "explanation": "Opta counted 31 games in which United conceded the opening goal in 2024/25, the most by any Premier League side across all competitions, as of the Europa League final in May 2025.",
+360:       "evidence": [
+361:         {
+362:           "claim": "Opta reported that the Europa League final was the 31st game of the season in which United conceded the opening goal, the most by any Premier League team across all competitions.",
+363:           "period": "2025/05/21",
+364:           "sourceName": "Opta via Stadium Astro",
+365:           "sourceUrl": "https://english.stadiumastro.com/football/tottenham-10-manchester-united-postecoglous-men-triumph-tetchy-europa-league-final-289065",
+366:           "accessedOn": "2026/11/03"
+367:         }
+368:       ],
+369:       "verified": true,
+370:       "verifiedOn": "2026/11/03"
+371:     },
+372:     {
+373:       "id": "record_champions_to_seventh_2014",
+374:       "clubId": "manutd",
+375:       "category": "embarrassingRecords",
+376:       "headline": "Champions in 2012/13, seventh and out of the Champions League a year later.",
+377:       "explanation": "David Moyes was sacked on 22 April 2014 after ten months. United were seventh and set to miss the Champions League for the first time since 1995, a year after winning the title.",
+378:       "evidence": [
+379:         {
+380:           "claim": "Moyes was sacked ten months after succeeding Ferguson, with United seventh and confirmed to miss the Champions League for the first time since 1995.",
+381:           "period": "2014/04/22",
+382:           "sourceName": "InDaily",
+383:           "sourceUrl": "https://www.indailysa.com.au/news/archive/2014/04/23/manchester-united-sack-manager-moyes",
+384:           "accessedOn": "2026/11/03"
+385:         },
+386:         {
+387:           "claim": "Reuters reported United were seventh a year after winning the league and had failed to qualify for the Champions League for the first time in 19 years.",
+388:           "period": "2013/14",
+389:           "sourceName": "Reuters via Neos Kosmos",
+390:           "sourceUrl": "https://neoskosmos.com/en/2014/04/23/sport/football/moyes-sacked-by-manchester-united/",
+391:           "accessedOn": "2026/11/03"
+392:         }
+393:       ],
+394:       "verified": true,
+395:       "verifiedOn": "2026/11/03"
+396:     },
+397:     {
+398:       "id": "transfer_sanchez",
+399:       "clubId": "manutd",
+400:       "category": "failedTransfers",
+401:       "headline": "Five goals in 45 games on a reported 350,000 pounds a week: the Alexis Sanchez experience.",
+402:       "explanation": "Alexis Sanchez joined in January 2018 and scored five goals in 45 appearances before a 2019 loan to Inter. ESPN reported his basic salary at 350,000 pounds a week.",
+403:       "evidence": [
+404:         {
+405:           "claim": "ESPN FC reported that Sanchez had scored five goals in 45 appearances since joining in January 2018, on a basic salary of 350,000 pounds a week.",
+406:           "period": "2018/19",
+407:           "sourceName": "ESPN",
+408:           "sourceUrl": "https://global.espn.com/football/story/_/id/37575762/man-utd-face-12m-sanchez-wages-bill",
+409:           "accessedOn": "2026/11/03"
+410:         },
+411:         {
+412:           "claim": "Sky Sports reported he scored five goals in 45 games for United, was loaned to Inter from August 2019 and then joined Inter permanently.",
+413:           "period": "2020/21",
+414:           "sourceName": "Sky Sports",
+415:           "sourceUrl": "https://www.skysports.com/football/news/11095/12043323/alexis-sanchez-joins-inter-milan-on-three-year-deal-from-manchester-united",
+416:           "accessedOn": "2026/11/03"
+417:         }
+418:       ],
+419:       "verified": true,
+420:       "verifiedOn": "2026/11/03"
+421:     },
+422:     {
+423:       "id": "transfer_antony",
+424:       "clubId": "manutd",
+425:       "category": "failedTransfers",
+426:       "headline": "A reported 95 million euros for Antony, 12 goals in 96 games, then sold for 22 million.",
+427:       "explanation": "Antony moved from Ajax in 2022 and scored 12 goals in 96 appearances. In September 2025 he joined Real Betis for a reported fixed fee of 22 million euros, plus up to 3 million in bonuses.",
+428:       "evidence": [
+429:         {
+430:           "claim": "ESPN reported Antony left after 96 appearances and 12 goals, having arrived from Ajax in a reported 95 million euro move.",
+431:           "period": "2025/09/01",
+432:           "sourceName": "ESPN",
+433:           "sourceUrl": "https://global.espn.com/football/story/_/id/46138214/antony-tears-man-united-real-betis-transfer-hard",
+434:           "accessedOn": "2026/11/03"
+435:         },
+436:         {
+437:           "claim": "ESPN's sources said Betis would pay a fixed fee of 22 million euros with another 3 million in potential bonuses, and United kept 50 percent of any future sale.",
+438:           "period": "2025/09/01",
+439:           "sourceName": "ESPN",
+440:           "sourceUrl": "https://global.espn.com/football/story/_/id/46138214/antony-tears-man-united-real-betis-transfer-hard",
+441:           "accessedOn": "2026/11/03"
+442:         },
+443:         {
+444:           "claim": "TNT Sports reported 12 goals and 5 assists in 96 appearances across all competitions.",
+445:           "period": "2025/09/01",
+446:           "sourceName": "TNT Sports",
+447:           "sourceUrl": "https://www.tntsports.co.uk/football/premier-league/2025-2026/antony-joins-real-betis-permanent-transfer-manchester-united_sto23214952/story.shtml",
+448:           "accessedOn": "2026/11/03"
+449:         }
+450:       ],
+451:       "verified": true,
+452:       "verifiedOn": "2026/11/03"
+453:     },
+454:     {
+455:       "id": "transfer_sancho",
+456:       "clubId": "manutd",
+457:       "category": "failedTransfers",
+458:       "headline": "Sancho cost a reported 73 million pounds and left for free after 12 goals in 83 games.",
+459:       "explanation": "Sancho joined from Dortmund in 2021 and left as a free agent when his contract ended in June 2026. Chelsea paid a reported 5 million pounds to avoid signing him permanently after his 2024/25 loan.",
+460:       "evidence": [
+461:         {
+462:           "claim": "ESPN reported United confirmed Sancho would leave as a free agent at the end of June, with 12 goals and six assists in 83 appearances.",
+463:           "period": "2025/26",
+464:           "sourceName": "ESPN",
+465:           "sourceUrl": "https://africa.espn.com/football/story/_/id/49017889/man-united-confirm-jadon-sancho-players-leaving-free-agents",
+466:           "accessedOn": "2026/11/03"
+467:         },
+468:         {
+469:           "claim": "PA reported his 73 million pound move from Borussia Dortmund in 2021 and that Chelsea paid 5 million pounds to avoid making his loan permanent for 25 million.",
+470:           "period": "2025/26",
+471:           "sourceName": "PA via The Anglo Celt",
+472:           "sourceUrl": "https://www.anglocelt.ie/?p=123534",
+473:           "accessedOn": "2026/11/03"
+474:         }
+475:       ],
+476:       "verified": true,
+477:       "verifiedOn": "2026/11/03"
+478:     },
+479:     {
+480:       "id": "transfer_hojlund_drought",
+481:       "clubId": "manutd",
+482:       "category": "failedTransfers",
+483:       "headline": "Rasmus Hojlund took 14 Premier League games to score his first goal for United.",
+484:       "explanation": "Signed for a reported 64 million pounds, rising to 72 million, Hojlund went his first 14 league games without a goal. He scored against Aston Villa on 26 December 2023 and later scored in six league games in a row.",
+485:       "evidence": [
+486:         {
+487:           "claim": "PA reported Hojlund had no goals or assists in his first 14 league appearances after arriving from Atalanta for an initial 64 million pounds, potentially rising to 72 million.",
+488:           "period": "2023/24",
+489:           "sourceName": "PA via Stadium Astro",
+490:           "sourceUrl": "https://english.stadiumastro.com/football/rasmus-hojlund-premier-league-goal-drought-continues-man-utd-striker-252937",
+491:           "accessedOn": "2026/11/03"
+492:         },
+493:         {
+494:           "claim": "AFP reported he scored his first Premier League goal in the 3 to 2 win over Aston Villa after 14 league games without one.",
+495:           "period": "2023/12/26",
+496:           "sourceName": "AFP via Malay Mail",
+497:           "sourceUrl": "https://www.malaymail.com/news/sports/2023/12/27/happiest-man-alive-hojlund-joy-after-ending-man-united-drought/109340",
+498:           "accessedOn": "2026/11/03"
+499:         },
+500:         {
+501:           "claim": "Sky Sports reported he later became the youngest player to score in six successive Premier League games.",
+502:           "period": "2023/24",
+503:           "sourceName": "Sky Sports",
+504:           "sourceUrl": "https://www.skysports.com/football/news/11065/13308448/rasmus-hojlund-why-is-manchester-uniteds-no-9-struggling-for-goals-this-season",
+505:           "accessedOn": "2026/11/03"
+506:         }
+507:       ],
+508:       "verified": true,
+509:       "verifiedOn": "2026/11/03"
+510:     },
+511:     {
+512:       "id": "transfer_pogba_free_twice",
+513:       "clubId": "manutd",
+514:       "category": "failedTransfers",
+515:       "headline": "United paid a world record 89 million pounds for Pogba and let him leave for free. Again.",
+516:       "explanation": "United signed Paul Pogba from Juventus in 2016 for a then world record 89 million pounds. His contract expired in 2022 and he rejoined Juventus on a free transfer, as he had also left United for Juventus for free in 2012.",
+517:       "evidence": [
+518:         {
+519:           "claim": "Sky Sports reported Pogba joined United in 2016 for a world record 89 million pounds and returned to Juventus on a free transfer in July 2022.",
+520:           "period": "2022/07/11",
+521:           "sourceName": "Sky Sports",
+522:           "sourceUrl": "https://www.skysports.com/football/news/11095/12638980/juventus-re-sign-pogba-on-free-transfer",
+523:           "accessedOn": "2026/11/03"
+524:         },
+525:         {
+526:           "claim": "Football365 noted that Pogba joined Juventus for free in 2012, joined United for 89 million pounds in 2016, and joined Juventus for free again in 2022.",
+527:           "period": "2012/13",
+528:           "sourceName": "Football365",
+529:           "sourceUrl": "https://www.football365.com/news/pogba-will-sign-contract-for-new-club-at-start-of-july-after-leaving-man-utd-on-free-transfer",
+530:           "accessedOn": "2026/11/03"
+531:         }
+532:       ],
+533:       "verified": true,
+534:       "verifiedOn": "2026/11/03"
+535:     },
+536:     {
+537:       "id": "stat_seven_permanent_managers",
+538:       "clubId": "manutd",
+539:       "category": "painfulStats",
+540:       "headline": "Seven permanent managers since Ferguson left, plus a conga line of interims.",
+541:       "explanation": "Michael Carrick became United's seventh permanent manager since Ferguson retired in 2013. ESPN counted ten managers, permanent and interim, in that span as of Amorim's exit in January 2026.",
+542:       "evidence": [
+543:         {
+544:           "claim": "AP reported Michael Carrick would become United's seventh permanent manager since Ferguson retired in 2013.",
+545:           "period": "2025/26",
+546:           "sourceName": "AP via Boston 25 News",
+547:           "sourceUrl": "https://www.boston25news.com/sports/manchester-united/PQMUBMWDREYSZAVMLEULRF2CQA/",
+548:           "accessedOn": "2026/11/03"
+549:         },
+550:         {
+551:           "claim": "ESPN counted ten managers, both short term and permanent, since Ferguson's departure, as of Ruben Amorim's sacking.",
+552:           "period": "2025/26",
+553:           "sourceName": "ESPN",
+554:           "sourceUrl": "https://www.espn.com/soccer/story/_/id/47512293/ruben-amorim-david-moyes-jose-mourinho-how-10-managers-alex-ferguson-fare-manchester-united",
+555:           "accessedOn": "2026/11/03"
+556:         }
+557:       ],
+558:       "verified": true,
+559:       "verifiedOn": "2026/11/03"
+560:     },
+561:     {
+562:       "id": "stat_no_europe_2025_26",
+563:       "clubId": "manutd",
+564:       "category": "painfulStats",
+565:       "headline": "In 2025/26 United had no European football for only the second time in 35 years.",
+566:       "explanation": "After finishing 15th in 2024/25 United did not qualify for any European competition. The Premier League said it was only the second time in 35 years.",
+567:       "evidence": [
+568:         {
+569:           "claim": "The Premier League reported that United would not play European football in 2025/26 for only the second time in 35 years.",
+570:           "period": "2024/25",
+571:           "sourceName": "Premier League",
+572:           "sourceUrl": "https://www.premierleague.com/news/4321308",
+573:           "accessedOn": "2026/11/03"
+574:         },
+575:         {
+576:           "claim": "The New Straits Times also reported no European football for United for only the second season in 35 years after the 15th place finish.",
+577:           "period": "2025/26",
+578:           "sourceName": "New Straits Times",
+579:           "sourceUrl": "https://www.nst.com.my/amp/sports/football/2025/08/1267278/optimism-evaporates-old-trafford-amorim-feels-heat",
+580:           "accessedOn": "2026/11/03"
+581:         }
+582:       ],
+583:       "verified": true,
+584:       "verifiedOn": "2026/11/03"
+585:     },
+586:     {
+587:       "id": "stat_liverpool_equal_20_titles",
+588:       "clubId": "manutd",
+589:       "category": "painfulStats",
+590:       "headline": "Liverpool caught United's record of 20 league titles in a season United finished 15th.",
+591:       "explanation": "Liverpool clinched their 20th English league title on 27 April 2025, equalling United's record. United ended that 2024/25 season in 15th place.",
+592:       "evidence": [
+593:         {
+594:           "claim": "AP reported Liverpool won the 2024/25 Premier League on 27 April 2025, a record equalling 20th English league title that matched United's.",
+595:           "period": "2025/04/27",
+596:           "sourceName": "AP via CFJC Today",
+597:           "sourceUrl": "https://cfjctoday.com/?p=1010358",
+598:           "accessedOn": "2026/11/03"
+599:         },
+600:         {
+601:           "claim": "United finished the 2024/25 Premier League season in 15th place.",
+602:           "period": "2024/25",
+603:           "sourceName": "Premier League",
+604:           "sourceUrl": "https://www.premierleague.com/news/4321308",
+605:           "accessedOn": "2026/11/03"
+606:         }
+607:       ],
+608:       "verified": true,
+609:       "verifiedOn": "2026/11/03"
+610:     }
+611:   ]
+612: }
+
+================
+File: data/clubs.json
+================
+ 1: {
+ 2:   "version": 1,
+ 3:   "clubs": [
+ 4:     {
+ 5:       "id": "manutd",
+ 6:       "name": "Manchester United",
+ 7:       "shortName": "Man United",
+ 8:       "status": "live",
+ 9:       "dataFile": "data/clubs/manutd.json",
+10:       "themeKey": "manutd"
+11:     },
+12:     {
+13:       "id": "arsenal",
+14:       "name": "Arsenal",
+15:       "shortName": "Arsenal",
+16:       "status": "comingSoon",
+17:       "themeKey": "arsenal",
+18:       "theme": {
+19:         "primary": "#EF0107",
+20:         "accent": "#063672"
+21:       }
+22:     },
+23:     {
+24:       "id": "liverpool",
+25:       "name": "Liverpool",
+26:       "shortName": "Liverpool",
+27:       "status": "comingSoon",
+28:       "themeKey": "liverpool",
+29:       "theme": {
+30:         "primary": "#C8102E",
+31:         "accent": "#00B2A9"
+32:       }
+33:     },
+34:     {
+35:       "id": "mancity",
+36:       "name": "Manchester City",
+37:       "shortName": "Man City",
+38:       "status": "comingSoon",
+39:       "themeKey": "mancity",
+40:       "theme": {
+41:         "primary": "#6CABDD",
+42:         "accent": "#1C2C5B"
+43:       }
+44:     },
+45:     {
+46:       "id": "chelsea",
+47:       "name": "Chelsea",
+48:       "shortName": "Chelsea",
+49:       "status": "comingSoon",
+50:       "themeKey": "chelsea",
+51:       "theme": {
+52:         "primary": "#034694",
+53:         "accent": "#DBA111"
+54:       }
+55:     },
+56:     {
+57:       "id": "tottenham",
+58:       "name": "Tottenham Hotspur",
+59:       "shortName": "Spurs",
+60:       "status": "comingSoon",
+61:       "themeKey": "tottenham",
+62:       "theme": {
+63:         "primary": "#132257",
+64:         "accent": "#FFFFFF"
+65:       }
+66:     }
+67:   ]
+68: }
+
+================
+File: js/pages/landing.js
+================
+  1: /**
+  2:  * Landing page logic.
+  3:  * Renders the club picker from the registry, the recent roast ticker and the
+  4:  * hero call to action target, all from data files at runtime.
+  5:  */
+  6: 
+  7: import { DEFAULT_CLUB_ID } from '../config.js';
+  8: import { getComingSoonClubs, getLiveClubs, loadClub, loadRegistry } from '../registry.js';
+  9: import { clear, createElement } from '../utils/dom.js';
+ 10: 
+ 11: const liveContainer = document.getElementById('liveClubs');
+ 12: const comingSoonContainer = document.getElementById('comingSoonClubs');
+ 13: const tickerSection = document.getElementById('tickerSection');
+ 14: const tickerTrack = document.getElementById('tickerTrack');
+ 15: 
+ 16: /**
+ 17:  * Point every CTA at the default club from config.
+ 18:  * @returns {void}
+ 19:  */
+ 20: function setCallToActions() {
+ 21:   const links = document.querySelectorAll('[data-cta-club]');
+ 22:   for (const link of links) {
+ 23:     if (link instanceof HTMLAnchorElement) {
+ 24:       link.href = `./room.html?club=${encodeURIComponent(DEFAULT_CLUB_ID)}`;
+ 25:     }
+ 26:   }
+ 27: }
+ 28: 
+ 29: /**
+ 30:  * Build one live club card linking to its roast room.
+ 31:  * @param {{ id: string, name: string }} entry Registry entry.
+ 32:  * @param {number} roastCount Number of publishable roasts in the club.
+ 33:  * @returns {HTMLAnchorElement}
+ 34:  */
+ 35: function renderLiveClub(entry, roastCount) {
+ 36:   const link = createElement('a', {
+ 37:     className:
+ 38:       'block rounded-sharp border border-line bg-surface p-6 no-underline transition-colors duration-fast ease-standard hover:border-primary',
+ 39:     attrs: { href: `./room.html?club=${encodeURIComponent(entry.id)}` },
+ 40:   });
+ 41: 
+ 42:   link.append(
+ 43:     createElement('p', {
+ 44:       className: 'font-display text-2xl uppercase text-text',
+ 45:       text: entry.name,
+ 46:     })
+ 47:   );
+ 48: 
+ 49:   link.append(
+ 50:     createElement('p', {
+ 51:       className: 'mt-2 text-sm text-textMuted',
+ 52:       text: roastCount === 1 ? '1 roast ready' : `${roastCount} roasts ready`,
+ 53:     })
+ 54:   );
+ 55: 
+ 56:   return link;
+ 57: }
+ 58: 
+ 59: /**
+ 60:  * Build one coming soon card. Not a link and marked disabled for assistive tech.
+ 61:  * @param {{ name: string }} entry Registry entry.
+ 62:  * @returns {HTMLElement}
+ 63:  */
+ 64: function renderComingSoonClub(entry) {
+ 65:   const wrap = createElement('div', {
+ 66:     className: 'rounded-sharp border border-line bg-surface p-4',
+ 67:     attrs: { 'aria-disabled': 'true' },
+ 68:     children: [
+ 69:       createElement('p', {
+ 70:         className: 'font-display text-lg uppercase text-textMuted',
+ 71:         text: entry.name,
+ 72:       }),
+ 73:       createElement('p', {
+ 74:         className: 'mt-1 tokenLabel',
+ 75:         text: 'Coming soon',
+ 76:       }),
+ 77:     ],
+ 78:   });
+ 79:   return wrap;
+ 80: }
+ 81: 
+ 82: /**
+ 83:  * Render the ticker with the first six headlines.
+ 84:  * Duplicates the items once so the CSS translate loop is seamless; only the
+ 85:  * first copy is exposed to screen readers.
+ 86:  * @param {Array<{ headline: string, clubShortName: string }>} roasts
+ 87:  * @returns {void}
+ 88:  */
+ 89: function renderTicker(roasts) {
+ 90:   if (!tickerTrack || !tickerSection) return;
+ 91: 
+ 92:   clear(tickerTrack);
+ 93: 
+ 94:   if (!Array.isArray(roasts) || roasts.length === 0) {
+ 95:     tickerSection.classList.add('hidden');
+ 96:     return;
+ 97:   }
+ 98: 
+ 99:   const items = roasts.slice(0, 6);
+100: 
+101:   for (const roast of items) {
+102:     tickerTrack.append(
+103:       createElement('span', {
+104:         className: 'whitespace-nowrap text-sm text-textMuted',
+105:         text: `${roast.clubShortName}: ${roast.headline}`,
+106:       })
+107:     );
+108:   }
+109: 
+110:   for (const roast of items) {
+111:     tickerTrack.append(
+112:       createElement('span', {
+113:         className: 'whitespace-nowrap text-sm text-textMuted',
+114:         text: `${roast.clubShortName}: ${roast.headline}`,
+115:         attrs: { 'aria-hidden': 'true' },
+116:       })
+117:     );
+118:   }
+119: 
+120:   tickerSection.classList.remove('hidden');
+121: }
+122: 
+123: /**
+124:  * Show a friendly error inside the picker when the registry cannot load.
+125:  * @param {string} message
+126:  * @returns {void}
+127:  */
+128: function showPickerError(message) {
+129:   if (!liveContainer) return;
+130:   clear(liveContainer);
+131:   liveContainer.append(
+132:     createElement('p', {
+133:       className: 'text-textMuted',
+134:       text: message,
+135:     })
+136:   );
+137: }
+138: 
+139: /**
+140:  * Load the registry and render every section of the page.
+141:  * @returns {Promise<void>}
+142:  */
+143: async function init() {
+144:   setCallToActions();
+145: 
+146:   try {
+147:     const registry = await loadRegistry();
+148:     const live = getLiveClubs(registry);
+149:     const comingSoon = getComingSoonClubs(registry);
+150: 
+151:     /** @type {Array<{ headline: string, clubShortName: string }>} */
+152:     const roastPool = [];
+153: 
+154:     for (const entry of live) {
+155:       try {
+156:         const club = await loadClub(entry.id);
+157:         if (liveContainer) {
+158:           liveContainer.append(renderLiveClub(entry, Array.isArray(club.roasts) ? club.roasts.length : 0));
+159:         }
+160:         if (Array.isArray(club.roasts)) {
+161:           for (const roast of club.roasts) {
+162:             roastPool.push({ headline: roast.headline, clubShortName: String(entry.shortName) });
+163:           }
+164:         }
+165:       } catch (error) {
+166:         console.warn('[roastRoom] could not load live club', entry.id, error);
+167:       }
+168:     }
+169: 
+170:     if (comingSoonContainer) {
+171:       for (const entry of comingSoon) {
+172:         comingSoonContainer.append(renderComingSoonClub(entry));
+173:       }
+174:     }
+175: 
+176:     renderTicker(roastPool);
+177:   } catch (error) {
+178:     console.warn('[roastRoom] could not load the registry', error);
+179:     showPickerError('Could not load the club list. Serve the site over http and reload.');
+180:   }
+181: }
+182: 
+183: init();
+
+================
+File: js/pages/room.js
+================
+  1: /**
+  2:  * Roast room logic.
+  3:  * Reads the club id from the query string, loads the club, wires the category
+  4:  * filter and the shuffle bag, and shows roasts on demand with a short reel.
+  5:  */
+  6: 
+  7: import { CLUB_STATUS, DEFAULT_CLUB_ID } from '../config.js';
+  8: import { loadClub, loadRegistry } from '../registry.js';
+  9: import { applyTheme } from '../theme.js';
+ 10: import { buildCategoryFilter } from '../ui/categoryFilter.js';
+ 11: import { createRoastCard } from '../ui/roastCard.js';
+ 12: import { createShuffleBag } from '../ui/shuffleBag.js';
+ 13: import { revealRoast } from '../ui/reveal.js';
+ 14: import { clear, prefersReducedMotion } from '../utils/dom.js';
+ 15: import { parseRoastHash } from '../utils/links.js';
+ 16: 
+ 17: const params = new URLSearchParams(window.location.search);
+ 18: const clubIdParam = params.get('club') || DEFAULT_CLUB_ID;
+ 19: 
+ 20: const loadingEl = document.getElementById('loadingState');
+ 21: const errorEl = document.getElementById('errorState');
+ 22: const errorMessageEl = document.getElementById('errorMessage');
+ 23: const roomEl = document.getElementById('roomState');
+ 24: const filterContainer = document.getElementById('categoryFilter');
+ 25: const roastButton = document.getElementById('roastButton');
+ 26: const progressEl = document.getElementById('progress');
+ 27: const roastContainer = document.getElementById('roastContainer');
+ 28: const clubBadge = document.getElementById('clubBadge');
+ 29: const emptyEl = document.getElementById('emptyState');
+ 30: const liveRegion = document.getElementById('roastLiveRegion');
+ 31: const pageHeading = document.getElementById('pageHeading');
+ 32: 
+ 33: /** @type {Record<string, unknown> | null} */
+ 34: let club = null;
+ 35: let selectedCategory = 'all';
+ 36: /** @type {ReturnType<typeof createShuffleBag> | null} */
+ 37: let bag = null;
+ 38: /** @type {Record<string, unknown> | null} */
+ 39: let currentRoast = null;
+ 40: let busy = false;
+ 41: 
+ 42: function showLoading() {
+ 43:   if (loadingEl) loadingEl.classList.remove('hidden');
+ 44:   if (errorEl) errorEl.classList.add('hidden');
+ 45:   if (roomEl) roomEl.classList.add('hidden');
+ 46: }
+ 47: 
+ 48: /**
+ 49:  * Show the error state with a friendly message.
+ 50:  * @param {string} message
+ 51:  * @returns {void}
+ 52:  */
+ 53: function showError(message) {
+ 54:   if (loadingEl) loadingEl.classList.add('hidden');
+ 55:   if (roomEl) roomEl.classList.add('hidden');
+ 56:   if (errorEl) errorEl.classList.remove('hidden');
+ 57:   if (errorMessageEl) errorMessageEl.textContent = message;
+ 58:   if (clubBadge) clubBadge.textContent = 'Club unavailable';
+ 59: }
+ 60: 
+ 61: function showRoom() {
+ 62:   if (loadingEl) loadingEl.classList.add('hidden');
+ 63:   if (errorEl) errorEl.classList.add('hidden');
+ 64:   if (roomEl) roomEl.classList.remove('hidden');
+ 65: }
+ 66: 
+ 67: /**
+ 68:  * Roasts in the current filter.
+ 69:  * @returns {Array<Record<string, unknown>>}
+ 70:  */
+ 71: function getFilteredRoasts() {
+ 72:   if (!club) return [];
+ 73:   const roasts = Array.isArray(club.roasts) ? club.roasts : [];
+ 74:   if (selectedCategory === 'all') return roasts;
+ 75:   return roasts.filter((roast) => roast.category === selectedCategory);
+ 76: }
+ 77: 
+ 78: /**
+ 79:  * Update the "Roast N of M" line. Nothing is shown before the first serve or
+ 80:  * when the current cycle has already served everything once.
+ 81:  * @returns {void}
+ 82:  */
+ 83: function updateProgress() {
+ 84:   if (!progressEl) return;
+ 85:   if (!bag || !currentRoast || bag.size() === 0) {
+ 86:     progressEl.textContent = '';
+ 87:     return;
+ 88:   }
+ 89:   const size = bag.size();
+ 90:   const remaining = bag.remaining();
+ 91:   const n = size - remaining;
+ 92:   if (n <= 0) {
+ 93:     progressEl.textContent = '';
+ 94:     return;
+ 95:   }
+ 96:   progressEl.textContent = `Roast ${n} of ${size}`;
+ 97: }
+ 98: 
+ 99: /**
+100:  * Look up the category metadata for a roast.
+101:  * @param {string} id
+102:  * @returns {Record<string, unknown> | null}
+103:  */
+104: function findCategory(id) {
+105:   if (!club || !Array.isArray(club.categories)) return null;
+106:   return club.categories.find((category) => category && category.id === id) || null;
+107: }
+108: 
+109: /**
+110:  * Show a roast in the card area, reveal it, announce it and update the URL hash.
+111:  * @param {Record<string, unknown>} roast
+112:  * @param {{ animate?: boolean }} [options]
+113:  * @returns {Promise<void>}
+114:  */
+115: async function showRoast(roast, options = {}) {
+116:   if (!roast || !roastContainer) return;
+117: 
+118:   const shouldAnimate = options.animate !== false;
+119:   currentRoast = roast;
+120: 
+121:   const category = findCategory(String(roast.category));
+122:   const built = createRoastCard(roast, category);
+123: 
+124:   clear(roastContainer);
+125:   roastContainer.append(built.element);
+126: 
+127:   const base = window.location.pathname + window.location.search;
+128:   try {
+129:     window.history.replaceState(null, '', `${base}#${encodeURIComponent(String(roast.id))}`);
+130:   } catch {
+131:     // Ignore history errors, the page still works.
+132:   }
+133: 
+134:   const animate = shouldAnimate && !prefersReducedMotion();
+135: 
+136:   if (animate) {
+137:     const pool = (Array.isArray(club?.roasts) ? club.roasts : [])
+138:       .map((entry) => String(entry.headline))
+139:       .filter((headline) => headline.length > 0);
+140:     await revealRoast({
+141:       headlineElement: built.headlineElement,
+142:       finalHeadline: String(roast.headline),
+143:       reelPool: pool,
+144:       hiddenElements: built.hiddenElements,
+145:     });
+146:   } else {
+147:     built.headlineElement.textContent = String(roast.headline);
+148:     for (const el of built.hiddenElements) {
+149:       el.classList.add('isVisible');
+150:     }
+151:   }
+152: 
+153:   if (liveRegion) {
+154:     liveRegion.textContent = String(roast.headline);
+155:   }
+156: 
+157:   updateProgress();
+158: }
+159: 
+160: /**
+161:  * Rebuild the bag and the filter chips for the current selection.
+162:  * @returns {void}
+163:  */
+164: function rebuildBagAndFilter() {
+165:   if (!club) return;
+166: 
+167:   const filtered = getFilteredRoasts();
+168: 
+169:   if (bag) {
+170:     bag.reset(filtered);
+171:   } else {
+172:     bag = createShuffleBag(filtered);
+173:   }
+174: 
+175:   if (filterContainer) {
+176:     buildCategoryFilter({
+177:       container: filterContainer,
+178:       categories: Array.isArray(club.categories) ? club.categories : [],
+179:       roasts: Array.isArray(club.roasts) ? club.roasts : [],
+180:       selectedId: selectedCategory,
+181:       onChange: handleFilterChange,
+182:     });
+183:   }
+184: 
+185:   const isEmpty = filtered.length === 0;
+186:   if (roastButton) roastButton.disabled = isEmpty;
+187:   if (emptyEl) emptyEl.classList.toggle('hidden', !isEmpty);
+188: 
+189:   if (isEmpty) {
+190:     clear(roastContainer);
+191:     currentRoast = null;
+192:     if (progressEl) progressEl.textContent = '';
+193:   }
+194: }
+195: 
+196: /**
+197:  * Handle a filter chip click. Resets the current roast and the bag.
+198:  * @param {string} newId
+199:  * @returns {void}
+200:  */
+201: function handleFilterChange(newId) {
+202:   if (busy) return;
+203:   selectedCategory = newId;
+204:   currentRoast = null;
+205:   if (roastContainer) clear(roastContainer);
+206:   if (liveRegion) liveRegion.textContent = '';
+207:   rebuildBagAndFilter();
+208: }
+209: 
+210: /**
+211:  * Handle the Roast them button click.
+212:  * @returns {Promise<void>}
+213:  */
+214: async function handleRoastClick() {
+215:   if (busy || !bag) return;
+216:   const items = getFilteredRoasts();
+217:   if (items.length === 0) return;
+218: 
+219:   busy = true;
+220:   if (roastButton) roastButton.disabled = true;
+221: 
+222:   try {
+223:     const roast = bag.next();
+224:     if (roast) {
+225:       await showRoast(roast, { animate: true });
+226:     }
+227:   } finally {
+228:     busy = false;
+229:     if (roastButton) {
+230:       roastButton.disabled = getFilteredRoasts().length === 0;
+231:     }
+232:   }
+233: }
+234: 
+235: /**
+236:  * Boot the page. Reads the club id, loads the club, wires everything up.
+237:  * @returns {Promise<void>}
+238:  */
+239: async function init() {
+240:   showLoading();
+241: 
+242:   try {
+243:     const registry = await loadRegistry();
+244:     const clubs = Array.isArray(registry.clubs) ? registry.clubs : [];
+245:     const entry = clubs.find((candidate) => candidate && candidate.id === clubIdParam);
+246: 
+247:     if (!entry) {
+248:       showError(`That club isn't in the registry. Pick one from the picker instead.`);
+249:       return;
+250:     }
+251: 
+252:     if (entry.status !== CLUB_STATUS.LIVE) {
+253:       showError(`${entry.name} is coming soon. There isn't a roast room for it yet.`);
+254:       return;
+255:     }
+256: 
+257:     club = await loadClub(clubIdParam);
+258:     applyTheme(club.theme || {});
+259: 
+260:     if (clubBadge) clubBadge.textContent = String(club.name || 'Roast Room');
+261:     if (pageHeading) pageHeading.textContent = `${club.name || 'Roast Room'} Roast Room`;
+262:     document.title = `${club.shortName || club.name || 'Roast Room'} Roast Room | The Roast Room`;
+263: 
+264:     const hash = parseRoastHash(window.location.hash);
+265:     const deepRoast =
+266:       hash && Array.isArray(club.roasts)
+267:         ? club.roasts.find((roast) => roast && roast.id === hash) || null
+268:         : null;
+269: 
+270:     selectedCategory = 'all';
+271:     rebuildBagAndFilter();
+272:     showRoom();
+273: 
+274:     if (deepRoast) {
+275:       await showRoast(deepRoast, { animate: false });
+276:     }
+277: 
+278:     if (roastButton) {
+279:       roastButton.addEventListener('click', handleRoastClick);
+280:     }
+281:   } catch (error) {
+282:     console.warn('[roastRoom] could not open the roast room', error);
+283:     showError('We could not load this club. Please try again in a moment.');
+284:   }
+285: }
+286: 
+287: init();
+
+================
+File: js/pages/shuffleBag.test.mjs
+================
+  1: /**
+  2:  * Tests for the shuffle bag. Node test runner only, no extra dependencies.
+  3:  */
+  4: 
+  5: import test from 'node:test';
+  6: import assert from 'node:assert/strict';
+  7: 
+  8: import { createShuffleBag } from '../js/ui/shuffleBag.js';
+  9: 
+ 10: /**
+ 11:  * Deterministic linear congruential generator used for the boundary tests.
+ 12:  * @param {number} seed
+ 13:  * @returns {() => number}
+ 14:  */
+ 15: function seededRng(seed) {
+ 16:   let state = seed;
+ 17:   return function next() {
+ 18:     state = (state * 1664525 + 1013904223) % 4294967296;
+ 19:     return state / 4294967296;
+ 20:   };
+ 21: }
+ 22: 
+ 23: test('empty list returns null', () => {
+ 24:   const bag = createShuffleBag([]);
+ 25:   assert.equal(bag.next(), null);
+ 26:   assert.equal(bag.next(), null);
+ 27:   assert.equal(bag.size(), 0);
+ 28:   assert.equal(bag.remaining(), 0);
+ 29: });
+ 30: 
+ 31: test('single item returns that item every time', () => {
+ 32:   const bag = createShuffleBag(['only']);
+ 33:   assert.equal(bag.next(), 'only');
+ 34:   assert.equal(bag.next(), 'only');
+ 35:   assert.equal(bag.next(), 'only');
+ 36:   assert.equal(bag.size(), 1);
+ 37: });
+ 38: 
+ 39: test('every item is served exactly once per cycle', () => {
+ 40:   const items = ['a', 'b', 'c', 'd', 'e'];
+ 41:   const bag = createShuffleBag(items);
+ 42: 
+ 43:   const served = [];
+ 44:   for (let i = 0; i < items.length; i += 1) {
+ 45:     served.push(bag.next());
+ 46:   }
+ 47: 
+ 48:   assert.equal(served.length, items.length);
+ 49:   const unique = new Set(served);
+ 50:   assert.equal(unique.size, items.length);
+ 51:   for (const item of items) {
+ 52:     assert.ok(served.includes(item), `item ${item} was not served in the cycle`);
+ 53:   }
+ 54: });
+ 55: 
+ 56: test('remaining counts down and starts over on the next cycle', () => {
+ 57:   const items = ['a', 'b', 'c'];
+ 58:   const bag = createShuffleBag(items);
+ 59: 
+ 60:   assert.equal(bag.remaining(), 3);
+ 61:   bag.next();
+ 62:   assert.equal(bag.remaining(), 2);
+ 63:   bag.next();
+ 64:   assert.equal(bag.remaining(), 1);
+ 65:   bag.next();
+ 66:   assert.equal(bag.remaining(), 0);
+ 67:   bag.next();
+ 68:   assert.equal(bag.remaining(), 2);
+ 69: });
+ 70: 
+ 71: test('a new cycle does not start with the last item served', () => {
+ 72:   const items = ['a', 'b'];
+ 73: 
+ 74:   for (let seed = 1; seed < 100; seed += 1) {
+ 75:     const bag = createShuffleBag(items, seededRng(seed));
+ 76: 
+ 77:     const first = bag.next();
+ 78:     const second = bag.next();
+ 79:     const firstOfSecondCycle = bag.next();
+ 80: 
+ 81:     assert.notEqual(
+ 82:       firstOfSecondCycle,
+ 83:       second,
+ 84:       `seed ${seed}: new cycle started with the last served item`
+ 85:     );
+ 86:     assert.equal(bag.size(), 2);
+ 87:     assert.equal(typeof first, 'string');
+ 88:   }
+ 89: });
+ 90: 
+ 91: test('a new cycle does not start with the last item served even when the bag contains duplicates by value', () => {
+ 92:   const items = ['a', 'b', 'c'];
+ 93:   for (let seed = 1; seed < 50; seed += 1) {
+ 94:     const bag = createShuffleBag(items, seededRng(seed));
+ 95:     const firstCycle = [bag.next(), bag.next(), bag.next()];
+ 96:     const firstOfSecondCycle = bag.next();
+ 97:     assert.notEqual(
+ 98:       firstOfSecondCycle,
+ 99:       firstCycle[firstCycle.length - 1],
+100:       `seed ${seed}: new cycle started with the last served item`
+101:     );
+102:   }
+103: });
+104: 
+105: test('reset swaps the items and starts a fresh cycle', () => {
+106:   const bag = createShuffleBag(['a', 'b']);
+107:   bag.next();
+108:   bag.next();
+109: 
+110:   bag.reset(['x', 'y', 'z']);
+111:   assert.equal(bag.size(), 3);
+112:   assert.equal(bag.remaining(), 3);
+113: 
+114:   const served = [bag.next(), bag.next(), bag.next()];
+115:   const unique = new Set(served);
+116:   assert.equal(unique.size, 3);
+117: });
+118: 
+119: test('reset to an empty list turns next into null', () => {
+120:   const bag = createShuffleBag(['a']);
+121:   bag.next();
+122:   bag.reset([]);
+123:   assert.equal(bag.size(), 0);
+124:   assert.equal(bag.next(), null);
+125: });
+126: 
+127: test('rng is injectable and is called during the shuffle', () => {
+128:   let calls = 0;
+129:   const rng = () => {
+130:     calls += 1;
+131:     return 0.5;
+132:   };
+133:   const bag = createShuffleBag(['a', 'b', 'c', 'd'], rng);
+134:   bag.next();
+135:   assert.ok(calls > 0, 'rng should be called during the shuffle');
+136: });
+137: 
+138: test('serving many times across many cycles still serves every item once per cycle', () => {
+139:   const items = ['a', 'b', 'c', 'd'];
+140:   const bag = createShuffleBag(items);
+141: 
+142:   for (let cycle = 0; cycle < 5; cycle += 1) {
+143:     const served = [];
+144:     for (let i = 0; i < items.length; i += 1) {
+145:       served.push(bag.next());
+146:     }
+147:     const unique = new Set(served);
+148:     assert.equal(unique.size, items.length, `cycle ${cycle} did not serve every item once`);
+149:   }
+150: });
+
+================
+File: js/ui/categoryFilter.js
+================
+  1: /**
+  2:  * Builds the category filter chips and reports selection changes.
+  3:  * Chips whose category has zero roasts are hidden so the user only sees
+  4:  * categories that will actually produce a roast.
+  5:  */
+  6: 
+  7: import { clear, createElement } from '../utils/dom.js';
+  8: 
+  9: /**
+ 10:  * Build the filter into a container.
+ 11:  *
+ 12:  * @param {{
+ 13:  *   container: HTMLElement,
+ 14:  *   categories: Array<{ id: string, displayLabel: string, emoji: string }>,
+ 15:  *   roasts: Array<{ category: string }>,
+ 16:  *   selectedId: string,
+ 17:  *   onChange: (id: string) => void
+ 18:  * }} options
+ 19:  * @returns {void}
+ 20:  */
+ 21: export function buildCategoryFilter(options) {
+ 22:   const { container, categories, roasts, selectedId, onChange } = options;
+ 23: 
+ 24:   if (!container) return;
+ 25: 
+ 26:   clear(container);
+ 27: 
+ 28:   const list = Array.isArray(roasts) ? roasts : [];
+ 29: 
+ 30:   /** @type {Map<string, number>} */
+ 31:   const counts = new Map();
+ 32:   for (const roast of list) {
+ 33:     const key = String(roast.category);
+ 34:     counts.set(key, (counts.get(key) || 0) + 1);
+ 35:   }
+ 36: 
+ 37:   const group = createElement('div', {
+ 38:     className: 'flex flex-wrap gap-2',
+ 39:     attrs: {
+ 40:       role: 'group',
+ 41:       'aria-label': 'Roast category filter',
+ 42:     },
+ 43:   });
+ 44: 
+ 45:   if (list.length > 0) {
+ 46:     group.append(
+ 47:       createChip({
+ 48:         id: 'all',
+ 49:         label: 'All',
+ 50:         count: list.length,
+ 51:         selected: selectedId === 'all',
+ 52:         onClick: () => onChange('all'),
+ 53:       })
+ 54:     );
+ 55:   }
+ 56: 
+ 57:   if (Array.isArray(categories)) {
+ 58:     for (const category of categories) {
+ 59:       const count = counts.get(category.id) || 0;
+ 60:       if (count === 0) continue;
+ 61:       group.append(
+ 62:         createChip({
+ 63:           id: category.id,
+ 64:           label: category.displayLabel,
+ 65:           emoji: category.emoji,
+ 66:           count,
+ 67:           selected: selectedId === category.id,
+ 68:           onClick: () => onChange(category.id),
+ 69:         })
+ 70:       );
+ 71:     }
+ 72:   }
+ 73: 
+ 74:   container.append(group);
+ 75: }
+ 76: 
+ 77: /**
+ 78:  * Build a single filter chip.
+ 79:  *
+ 80:  * @param {{
+ 81:  *   id: string,
+ 82:  *   label: string,
+ 83:  *   emoji?: string,
+ 84:  *   count: number,
+ 85:  *   selected: boolean,
+ 86:  *   onClick: () => void
+ 87:  * }} options
+ 88:  * @returns {HTMLButtonElement}
+ 89:  */
+ 90: function createChip(options) {
+ 91:   const { id, label, emoji, count, selected, onClick } = options;
+ 92: 
+ 93:   const button = createElement('button', {
+ 94:     className: 'categoryChip',
+ 95:     attrs: {
+ 96:       type: 'button',
+ 97:       'aria-pressed': selected ? 'true' : 'false',
+ 98:       'data-category-id': id,
+ 99:     },
+100:   });
+101: 
+102:   if (emoji) {
+103:     button.append(
+104:       createElement('span', {
+105:         className: 'mr-1',
+106:         text: emoji,
+107:         attrs: { 'aria-hidden': 'true' },
+108:       })
+109:     );
+110:   }
+111: 
+112:   button.append(createElement('span', { text: label }));
+113:   button.append(
+114:     createElement('span', {
+115:       className: 'categoryChipCount',
+116:       text: `(${count})`,
+117:     })
+118:   );
+119: 
+120:   button.addEventListener('click', onClick);
+121: 
+122:   return button;
+123: }
+
+================
+File: js/ui/reveal.js
+================
+ 1: /**
+ 2:  * Reveal animation for a roast card.
+ 3:  * Runs a short slot machine style reel on the headline, then fades the facts,
+ 4:  * receipts and verified line in. Under prefers reduced motion everything is
+ 5:  * skipped and the roast appears immediately.
+ 6:  */
+ 7: 
+ 8: import { prefersReducedMotion } from '../utils/dom.js';
+ 9: 
+10: const REEL_DURATION_MS = 600;
+11: const REEL_INTERVAL_MS = 80;
+12: 
+13: /**
+14:  * Reveal a roast inside an already mounted card.
+15:  *
+16:  * The headline cycles through random entries from the pool for about 600 ms
+17:  * with aria hidden set so screen readers do not narrate the churn. When the
+18:  * reel settles, the final headline is written, aria hidden is removed, and the
+19:  * hidden elements are shown by adding the isVisible class.
+20:  *
+21:  * @param {{
+22:  *   headlineElement: HTMLElement,
+23:  *   finalHeadline: string,
+24:  *   reelPool: string[],
+25:  *   hiddenElements: HTMLElement[]
+26:  * }} options
+27:  * @returns {Promise<void>}
+28:  */
+29: export async function revealRoast(options) {
+30:   const { headlineElement, finalHeadline, reelPool, hiddenElements } = options;
+31: 
+32:   if (!headlineElement) return;
+33: 
+34:   const hidden = Array.isArray(hiddenElements) ? hiddenElements.filter(Boolean) : [];
+35:   const pool = Array.isArray(reelPool) ? reelPool : [];
+36: 
+37:   const finish = () => {
+38:     headlineElement.textContent = finalHeadline;
+39:     for (const el of hidden) {
+40:       el.classList.add('isVisible');
+41:     }
+42:   };
+43: 
+44:   if (prefersReducedMotion() || pool.length < 2) {
+45:     finish();
+46:     return;
+47:   }
+48: 
+49:   headlineElement.setAttribute('aria-hidden', 'true');
+50:   headlineElement.textContent = pool[Math.floor(Math.random() * pool.length)];
+51: 
+52:   const start = Date.now();
+53: 
+54:   await new Promise((resolve) => {
+55:     const tick = () => {
+56:       const elapsed = Date.now() - start;
+57:       if (elapsed >= REEL_DURATION_MS) {
+58:         resolve();
+59:         return;
+60:       }
+61:       const pick = pool[Math.floor(Math.random() * pool.length)];
+62:       headlineElement.textContent = pick;
+63:       window.setTimeout(tick, REEL_INTERVAL_MS);
+64:     };
+65:     tick();
+66:   });
+67: 
+68:   headlineElement.removeAttribute('aria-hidden');
+69:   finish();
+70: }
+
+================
+File: js/ui/roastCard.js
+================
+  1: /**
+  2:  * Builds the DOM for one roast card. Never uses innerHTML with data, so every
+  3:  * piece of evidence is inserted as text or as a safe attribute value.
+  4:  */
+  5: 
+  6: import { createElement } from '../utils/dom.js';
+  7: 
+  8: /**
+  9:  * Build a roast card element.
+ 10:  *
+ 11:  * The headline is left empty on purpose. The caller decides whether to run the
+ 12:  * reel and set the final headline, or to set it immediately for a deep link.
+ 13:  * The facts block, the receipts block and the verified line start hidden and
+ 14:  * are revealed by the reveal helper.
+ 15:  *
+ 16:  * @param {import('../schema.js').Roast} roast Roast data.
+ 17:  * @param {import('../schema.js').ClubCategory | null} category Category the roast belongs to.
+ 18:  * @returns {{
+ 19:  *   element: HTMLElement,
+ 20:  *   headlineElement: HTMLElement,
+ 21:  *   hiddenElements: HTMLElement[]
+ 22:  * }}
+ 23:  */
+ 24: export function createRoastCard(roast, category) {
+ 25:   const card = createElement('article', {
+ 26:     className: 'roastCard ticketStub',
+ 27:     attrs: {
+ 28:       'data-roast-id': roast.id,
+ 29:       'aria-label': 'Roast',
+ 30:     },
+ 31:   });
+ 32: 
+ 33:   const categoryLine = createElement('p', {
+ 34:     className: 'tokenLabel',
+ 35:     text: category
+ 36:       ? `${category.emoji}  ${category.displayLabel}`
+ 37:       : 'Roast',
+ 38:   });
+ 39: 
+ 40:   const jokeLabel = createElement('p', {
+ 41:     className: 'tokenLabel mt-4',
+ 42:     text: 'The joke',
+ 43:   });
+ 44: 
+ 45:   const headlineElement = createElement('h2', {
+ 46:     className: 'roastHeadline mt-2 text-displaySm text-text',
+ 47:   });
+ 48: 
+ 49:   const factsGroup = createElement('div', {
+ 50:     className: 'revealTarget mt-6',
+ 51:     attrs: { 'data-reveal-group': 'facts' },
+ 52:   });
+ 53:   const factsLabel = createElement('p', { className: 'tokenLabel', text: 'The facts' });
+ 54:   const factsText = createElement('p', {
+ 55:     className: 'mt-2 text-base text-text',
+ 56:     text: roast.explanation,
+ 57:   });
+ 58:   factsGroup.append(factsLabel, factsText);
+ 59: 
+ 60:   const receiptsGroup = createElement('div', {
+ 61:     className: 'revealTarget mt-6',
+ 62:     attrs: { 'data-reveal-group': 'receipts' },
+ 63:   });
+ 64:   const receiptsLabel = createElement('p', { className: 'tokenLabel', text: 'The receipts' });
+ 65:   const receiptsList = createElement('ul', { className: 'mt-3 space-y-3' });
+ 66: 
+ 67:   for (const evidence of roast.evidence) {
+ 68:     const item = createElement('li', {
+ 69:       className: 'rounded-sharp border border-line bg-surfaceRaised p-3',
+ 70:     });
+ 71: 
+ 72:     const claimEl = createElement('p', {
+ 73:       className: 'text-sm text-text',
+ 74:       text: evidence.claim,
+ 75:     });
+ 76: 
+ 77:     const metaEl = createElement('p', {
+ 78:       className: 'mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-textMuted',
+ 79:     });
+ 80: 
+ 81:     const periodSpan = createElement('span', { text: `Period ${evidence.period}` });
+ 82: 
+ 83:     const sourceLink = createElement('a', {
+ 84:       className: 'text-accent',
+ 85:       text: evidence.sourceName,
+ 86:       attrs: {
+ 87:         href: evidence.sourceUrl,
+ 88:         target: '_blank',
+ 89:         rel: 'noopener noreferrer',
+ 90:       },
+ 91:     });
+ 92: 
+ 93:     const accessedSpan = createElement('span', {
+ 94:       text: `Accessed ${evidence.accessedOn}`,
+ 95:     });
+ 96: 
+ 97:     metaEl.append(periodSpan, sourceLink, accessedSpan);
+ 98:     item.append(claimEl, metaEl);
+ 99:     receiptsList.append(item);
+100:   }
+101: 
+102:   receiptsGroup.append(receiptsLabel, receiptsList);
+103: 
+104:   const verifiedEl = createElement('p', {
+105:     className: 'revealTarget mt-4 text-xs text-textMuted',
+106:     text: `Checked on ${roast.verifiedOn}`,
+107:   });
+108: 
+109:   card.append(categoryLine, jokeLabel, headlineElement, factsGroup, receiptsGroup, verifiedEl);
+110: 
+111:   return {
+112:     element: card,
+113:     headlineElement,
+114:     hiddenElements: [factsGroup, receiptsGroup, verifiedEl],
+115:   };
+116: }
+
+================
+File: js/ui/shuffleBag.js
+================
+  1: /**
+  2:  * Shuffle bag used by the roast room.
+  3:  * Pure logic, no DOM. rng is injectable so tests stay deterministic.
+  4:  *
+  5:  * Rules:
+  6:  * 1. Every item is served exactly once per cycle before any repeat.
+  7:  * 2. When a new cycle starts, the first item differs from the last item
+  8:  *    served, whenever the bag holds more than one item.
+  9:  * 3. An empty list returns null.
+ 10:  * 4. A single item returns that item every time.
+ 11:  */
+ 12: 
+ 13: /**
+ 14:  * @typedef {Object} ShuffleBag
+ 15:  * @property {() => (T | null)} next Return the next item or null when empty.
+ 16:  * @property {() => number} remaining Items left before the cycle resets.
+ 17:  * @property {() => number} size Total items in the bag.
+ 18:  * @property {(items: T[]) => void} reset Replace the items and reset the cycle.
+ 19:  * @template T
+ 20:  */
+ 21: 
+ 22: /**
+ 23:  * Create a shuffle bag.
+ 24:  * @template T
+ 25:  * @param {T[]} items Items to serve.
+ 26:  * @param {() => number} [rng] Random function returning a number in [0, 1).
+ 27:  * @returns {ShuffleBag<T>}
+ 28:  */
+ 29: export function createShuffleBag(items, rng = Math.random) {
+ 30:   const random = typeof rng === 'function' ? rng : Math.random;
+ 31: 
+ 32:   /** @type {T[]} */
+ 33:   let allItems = [];
+ 34:   /** @type {T[]} */
+ 35:   let pool = [];
+ 36:   /** @type {T | null} */
+ 37:   let lastServed = null;
+ 38:   let sizeValue = 0;
+ 39:   let remainingValue = 0;
+ 40: 
+ 41:   /**
+ 42:    * Fisher-Yates shuffle that leaves the input untouched.
+ 43:    * @param {T[]} list
+ 44:    * @returns {T[]}
+ 45:    */
+ 46:   function shuffle(list) {
+ 47:     const copy = list.slice();
+ 48:     for (let i = copy.length - 1; i > 0; i -= 1) {
+ 49:       const j = Math.floor(random() * (i + 1));
+ 50:       const temp = copy[i];
+ 51:       copy[i] = copy[j];
+ 52:       copy[j] = temp;
+ 53:     }
+ 54:     return copy;
+ 55:   }
+ 56: 
+ 57:   /**
+ 58:    * Refill the pool from the current items, avoiding a repeat of the last
+ 59:    * served item when there is more than one item.
+ 60:    * @returns {void}
+ 61:    */
+ 62:   function refill() {
+ 63:     if (sizeValue === 0) {
+ 64:       pool = [];
+ 65:       remainingValue = 0;
+ 66:       return;
+ 67:     }
+ 68: 
+ 69:     const shuffled = shuffle(allItems);
+ 70: 
+ 71:     if (sizeValue > 1 && lastServed !== null && shuffled[0] === lastServed) {
+ 72:       for (let i = 1; i < shuffled.length; i += 1) {
+ 73:         if (shuffled[i] !== lastServed) {
+ 74:           const temp = shuffled[0];
+ 75:           shuffled[0] = shuffled[i];
+ 76:           shuffled[i] = temp;
+ 77:           break;
+ 78:         }
+ 79:       }
+ 80:     }
+ 81: 
+ 82:     pool = shuffled;
+ 83:     remainingValue = pool.length;
+ 84:   }
+ 85: 
+ 86:   /**
+ 87:    * Replace the items and start a fresh cycle.
+ 88:    * @param {T[]} newItems
+ 89:    * @returns {void}
+ 90:    */
+ 91:   function reset(newItems) {
+ 92:     allItems = Array.isArray(newItems) ? newItems.slice() : [];
+ 93:     sizeValue = allItems.length;
+ 94:     pool = [];
+ 95:     lastServed = null;
+ 96:     remainingValue = sizeValue;
+ 97:   }
+ 98: 
+ 99:   /**
+100:    * Serve the next item.
+101:    * @returns {T | null}
+102:    */
+103:   function next() {
+104:     if (sizeValue === 0) return null;
+105: 
+106:     if (pool.length === 0) {
+107:       refill();
+108:     }
+109: 
+110:     const item = pool.shift();
+111:     remainingValue = pool.length;
+112:     lastServed = item === undefined ? null : item;
+113:     return item === undefined ? null : item;
+114:   }
+115: 
+116:   /**
+117:    * How many items are left in the current cycle.
+118:    * @returns {number}
+119:    */
+120:   function remaining() {
+121:     return remainingValue;
+122:   }
+123: 
+124:   /**
+125:    * Total number of items in the bag.
+126:    * @returns {number}
+127:    */
+128:   function size() {
+129:     return sizeValue;
+130:   }
+131: 
+132:   reset(items);
+133: 
+134:   return { next, remaining, size, reset };
+135: }
+
+================
+File: js/utils/dom.js
+================
+ 1: /**
+ 2:  * Small DOM helpers used across the pages.
+ 3:  * Never touches innerHTML with data, so nothing user visible can inject markup.
+ 4:  */
+ 5: 
+ 6: /**
+ 7:  * True when the user has asked the operating system to reduce motion.
+ 8:  * Returns false in environments without a window, so it is safe to call from
+ 9:  * any browser entry point without guarding.
+10:  * @returns {boolean}
+11:  */
+12: export function prefersReducedMotion() {
+13:   if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') {
+14:     return false;
+15:   }
+16:   return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+17: }
+18: 
+19: /**
+20:  * Create an element with a class name, text content, attributes and children,
+21:  * all set through safe DOM APIs.
+22:  * @param {string} tag HTML tag name.
+23:  * @param {{
+24:  *   className?: string,
+25:  *   text?: string | number,
+26:  *   attrs?: Record<string, string | number | undefined | null>,
+27:  *   children?: Array<Node | string | null | undefined>
+28:  * }} [options]
+29:  * @returns {HTMLElement}
+30:  */
+31: export function createElement(tag, options = {}) {
+32:   const element = document.createElement(tag);
+33: 
+34:   if (typeof options.className === 'string' && options.className.length > 0) {
+35:     element.className = options.className;
+36:   }
+37: 
+38:   if (options.text !== undefined && options.text !== null) {
+39:     element.textContent = String(options.text);
+40:   }
+41: 
+42:   if (options.attrs && typeof options.attrs === 'object') {
+43:     for (const [key, value] of Object.entries(options.attrs)) {
+44:       if (value === undefined || value === null) continue;
+45:       element.setAttribute(key, String(value));
+46:     }
+47:   }
+48: 
+49:   if (Array.isArray(options.children)) {
+50:     for (const child of options.children) {
+51:       if (child === undefined || child === null) continue;
+52:       if (child instanceof Node) {
+53:         element.append(child);
+54:       } else {
+55:         element.append(document.createTextNode(String(child)));
+56:       }
+57:     }
+58:   }
+59: 
+60:   return element;
+61: }
+62: 
+63: /**
+64:  * Set the text content of an element, safely coerced to a string.
+65:  * @param {Element | null | undefined} element
+66:  * @param {string | number | null | undefined} text
+67:  * @returns {void}
+68:  */
+69: export function setText(element, text) {
+70:   if (!element) return;
+71:   element.textContent = text === undefined || text === null ? '' : String(text);
+72: }
+73: 
+74: /**
+75:  * Remove every child of an element.
+76:  * @param {Element | null | undefined} element
+77:  * @returns {void}
+78:  */
+79: export function clear(element) {
+80:   if (!element) return;
+81:   while (element.firstChild) {
+82:     element.removeChild(element.firstChild);
+83:   }
+84: }
+
+================
+File: js/utils/links.js
+================
+ 1: /**
+ 2:  * URL helpers for deep links between pages.
+ 3:  */
+ 4: 
+ 5: /**
+ 6:  * Build a stable shareable URL for one roast inside one club.
+ 7:  * @param {string} clubId Club identifier from the registry.
+ 8:  * @param {string} roastId Roast identifier, unique inside the club.
+ 9:  * @returns {string} Relative URL with the club query string and the roast hash.
+10:  */
+11: export function roastUrl(clubId, roastId) {
+12:   const safeClub = encodeURIComponent(String(clubId));
+13:   const safeRoast = encodeURIComponent(String(roastId));
+14:   return `room.html?club=${safeClub}#${safeRoast}`;
+15: }
+16: 
+17: /**
+18:  * Read the roast id from a location hash, ignoring a leading #.
+19:  * Returns an empty string when the hash is missing or empty.
+20:  * @param {string} hash Value such as "#trophies_last_league_title" or "trophies_last_league_title".
+21:  * @returns {string} The decoded roast id, or an empty string.
+22:  */
+23: export function parseRoastHash(hash) {
+24:   if (typeof hash !== 'string') return '';
+25:   const raw = hash.startsWith('#') ? hash.slice(1) : hash;
+26:   if (raw.length === 0) return '';
+27:   try {
+28:     return decodeURIComponent(raw);
+29:   } catch {
+30:     return raw;
+31:   }
+32: }
+
+================
+File: js/config.js
+================
+  1: /**
+  2:  * Shared constants for The Roast Room.
+  3:  * This module has no side effects and no browser only globals, so it runs
+  4:  * unchanged in the browser, in Node scripts and in the test runner.
+  5:  */
+  6: 
+  7: /**
+  8:  * @typedef {'live' | 'comingSoon'} ClubStatus
+  9:  */
+ 10: 
+ 11: /**
+ 12:  * Every value a club status may take.
+ 13:  * @type {{ LIVE: ClubStatus, COMING_SOON: ClubStatus }}
+ 14:  */
+ 15: export const CLUB_STATUS = Object.freeze({
+ 16:   LIVE: 'live',
+ 17:   COMING_SOON: 'comingSoon',
+ 18: });
+ 19: 
+ 20: /**
+ 21:  * Path of the club registry, relative to the site root.
+ 22:  * @type {string}
+ 23:  */
+ 24: export const REGISTRY_PATH = 'data/clubs.json';
+ 25: 
+ 26: /**
+ 27:  * Folder that holds one data file per club.
+ 28:  * @type {string}
+ 29:  */
+ 30: export const CLUBS_DIRECTORY = 'data/clubs';
+ 31: 
+ 32: /**
+ 33:  * The club that is live for the first release.
+ 34:  * @type {string}
+ 35:  */
+ 36: export const DEFAULT_CLUB_ID = 'manutd';
+ 37: 
+ 38: /**
+ 39:  * Shape version of data/clubs.json that this build understands.
+ 40:  * @type {number}
+ 41:  */
+ 42: export const REGISTRY_VERSION = 1;
+ 43: 
+ 44: /**
+ 45:  * Categories a roast may use. A club data file must pick from this list.
+ 46:  * @type {readonly string[]}
+ 47:  */
+ 48: export const CATEGORY_IDS = Object.freeze([
+ 49:   'trophyDroughts',
+ 50:   'historicalDefeats',
+ 51:   'embarrassingRecords',
+ 52:   'failedTransfers',
+ 53:   'painfulStats',
+ 54: ]);
+ 55: 
+ 56: /**
+ 57:  * Hard limits enforced by the validators.
+ 58:  * @type {Readonly<Record<string, number>>}
+ 59:  */
+ 60: export const LIMITS = Object.freeze({
+ 61:   headlineMaxLength: 90,
+ 62:   explanationMaxLength: 280,
+ 63:   roastIdMinLength: 3,
+ 64:   roastIdMaxLength: 64,
+ 65:   evidenceMinItems: 1,
+ 66:   tagMaxLength: 32,
+ 67:   clubIdMaxLength: 40,
+ 68: });
+ 69: 
+ 70: /**
+ 71:  * Theme keys, in the order they appear in css/tokens.css.
+ 72:  * @type {readonly string[]}
+ 73:  */
+ 74: export const THEME_KEYS = Object.freeze([
+ 75:   'primary',
+ 76:   'primaryContrast',
+ 77:   'accent',
+ 78:   'background',
+ 79:   'surface',
+ 80:   'surfaceRaised',
+ 81:   'line',
+ 82:   'text',
+ 83:   'textMuted',
+ 84: ]);
+ 85: 
+ 86: /**
+ 87:  * Maps a theme key to the CSS custom property that carries it.
+ 88:  * @type {Readonly<Record<string, string>>}
+ 89:  */
+ 90: export const THEME_VARIABLES = Object.freeze({
+ 91:   primary: '--colorPrimary',
+ 92:   primaryContrast: '--colorPrimaryContrast',
+ 93:   accent: '--colorAccent',
+ 94:   background: '--colorBackground',
+ 95:   surface: '--colorSurface',
+ 96:   surfaceRaised: '--colorSurfaceRaised',
+ 97:   line: '--colorLine',
+ 98:   text: '--colorText',
+ 99:   textMuted: '--colorTextMuted',
+100: });
+101: 
+102: /**
+103:  * Pattern a roast id must match.
+104:  * @type {RegExp}
+105:  */
+106: export const ROAST_ID_PATTERN = /^[a-z0-9_]+$/;
+
+================
+File: js/registry.js
+================
+  1: /**
+  2:  * Loads and caches the club registry and club data files.
+  3:  * Fetch based loading is for the browser. Node scripts read the same files with
+  4:  * fs instead, so the schema and loaders stay browser oriented while the build
+  5:  * gate validates files directly.
+  6:  */
+  7: 
+  8: import { CLUB_STATUS, REGISTRY_PATH } from './config.js';
+  9: import { validateClub, validateRegistry, validateRoast } from './schema.js';
+ 10: 
+ 11: /**
+ 12:  * Error raised when a data file cannot be fetched, parsed or validated.
+ 13:  */
+ 14: export class DataLoadError extends Error {
+ 15:   /**
+ 16:    * @param {string} message Human readable summary.
+ 17:    * @param {{ code?: string, path?: string, errors?: string[] }} [details]
+ 18:    */
+ 19:   constructor(message, details = {}) {
+ 20:     super(message);
+ 21:     this.name = 'DataLoadError';
+ 22:     this.code = details.code || 'dataLoadFailed';
+ 23:     this.path = details.path || '';
+ 24:     this.errors = Array.isArray(details.errors) ? details.errors : [];
+ 25:   }
+ 26: }
+ 27: 
+ 28: const registryCache = new Map();
+ 29: const clubCache = new Map();
+ 30: 
+ 31: /**
+ 32:  * Resolve a site relative path against the site root. js/ sits one level below
+ 33:  * the root, so ../<path> from this module lands on the path at the root, which
+ 34:  * means the request no longer depends on the URL of the page that loaded it.
+ 35:  * @param {string} sitePath Path relative to the site root, such as data/clubs.json.
+ 36:  * @returns {string} Absolute URL string for fetch.
+ 37:  */
+ 38: function resolveSitePath(sitePath) {
+ 39:   return new URL(`../${sitePath}`, import.meta.url).href;
+ 40: }
+ 41: 
+ 42: /**
+ 43:  * Fetch a json document and translate every failure into a DataLoadError.
+ 44:  * @param {string} url Absolute URL to fetch.
+ 45:  * @param {string} sitePath Logical path used in error messages.
+ 46:  * @returns {Promise<unknown>}
+ 47:  */
+ 48: async function fetchJson(url, sitePath) {
+ 49:   let response;
+ 50: 
+ 51:   try {
+ 52:     response = await fetch(url, { headers: { Accept: 'application/json' } });
+ 53:   } catch (error) {
+ 54:     throw new DataLoadError(`Could not reach ${sitePath}`, {
+ 55:       code: 'networkError',
+ 56:       path: sitePath,
+ 57:       errors: [describe(error)],
+ 58:     });
+ 59:   }
+ 60: 
+ 61:   if (!response.ok) {
+ 62:     throw new DataLoadError(`Request for ${sitePath} failed with status ${response.status}`, {
+ 63:       code: 'httpError',
+ 64:       path: sitePath,
+ 65:       errors: [`status ${response.status}`],
+ 66:     });
+ 67:   }
+ 68: 
+ 69:   try {
+ 70:     return await response.json();
+ 71:   } catch (error) {
+ 72:     throw new DataLoadError(`${sitePath} is not valid JSON`, {
+ 73:       code: 'parseError',
+ 74:       path: sitePath,
+ 75:       errors: [describe(error)],
+ 76:     });
+ 77:   }
+ 78: }
+ 79: 
+ 80: /**
+ 81:  * Turn an unknown thrown value into a readable string.
+ 82:  * @param {unknown} error
+ 83:  * @returns {string}
+ 84:  */
+ 85: function describe(error) {
+ 86:   if (error instanceof Error) return error.message;
+ 87:   return String(error);
+ 88: }
+ 89: 
+ 90: /**
+ 91:  * Warn about roasts that were dropped by the loader.
+ 92:  * @param {Array<{ id: string, reasons: string[] }>} dropped
+ 93:  * @returns {void}
+ 94:  */
+ 95: function warnAboutDroppedRoasts(dropped) {
+ 96:   if (dropped.length === 0) return;
+ 97:   if (typeof console === 'undefined' || typeof console.warn !== 'function') return;
+ 98: 
+ 99:   dropped.forEach((entry) => {
+100:     console.warn(`[roastRoom] dropped roast "${entry.id}": ${entry.reasons.join('; ')}`);
+101:   });
+102: }
+103: 
+104: /**
+105:  * Load and cache the club registry.
+106:  * @param {{ path?: string, reload?: boolean }} [options]
+107:  * @returns {Promise<{ version: number, clubs: Array<Record<string, unknown>> }>}
+108:  * @throws {DataLoadError} When the registry cannot be fetched, parsed or validated.
+109:  */
+110: export async function loadRegistry(options = {}) {
+111:   const path = options.path || REGISTRY_PATH;
+112: 
+113:   if (options.reload !== true && registryCache.has(path)) {
+114:     return registryCache.get(path);
+115:   }
+116: 
+117:   const data = await fetchJson(resolveSitePath(path), path);
+118:   const result = validateRegistry(data);
+119: 
+120:   if (!result.valid) {
+121:     throw new DataLoadError(`The club registry at ${path} is not valid`, {
+122:       code: 'invalidRegistry',
+123:       path,
+124:       errors: result.errors,
+125:     });
+126:   }
+127: 
+128:   registryCache.set(path, data);
+129:   return data;
+130: }
+131: 
+132: /**
+133:  * Load and cache one club data file. Roasts that fail validation, or that are
+134:  * not verified, are dropped with a console warning instead of failing the page.
+135:  * @param {string} clubId Club identifier from the registry.
+136:  * @param {{ path?: string, reload?: boolean }} [options]
+137:  * @returns {Promise<Record<string, unknown>>} The club data with only publishable roasts.
+138:  * @throws {DataLoadError} When the club is unknown, not live, or its data file is broken.
+139:  */
+140: export async function loadClub(clubId, options = {}) {
+141:   const registry = await loadRegistry(options);
+142:   const entry = registry.clubs.find((club) => club && club.id === clubId);
+143: 
+144:   if (!entry) {
+145:     throw new DataLoadError(`Club "${clubId}" is not in the registry`, {
+146:       code: 'unknownClub',
+147:       errors: [`unknown club id "${clubId}"`],
+148:     });
+149:   }
+150: 
+151:   if (entry.status !== CLUB_STATUS.LIVE) {
+152:     throw new DataLoadError(`Club "${clubId}" is not live yet`, {
+153:       code: 'clubNotLive',
+154:       errors: [`status is ${entry.status}`],
+155:     });
+156:   }
+157: 
+158:   if (typeof entry.dataFile !== 'string' || entry.dataFile.length === 0) {
+159:     throw new DataLoadError(`Club "${clubId}" has no data file`, {
+160:       code: 'missingDataFile',
+161:       errors: ['dataFile is missing from the registry entry'],
+162:     });
+163:   }
+164: 
+165:   if (options.reload !== true && clubCache.has(entry.id)) {
+166:     return clubCache.get(entry.id);
+167:   }
+168: 
+169:   const data = await fetchJson(resolveSitePath(entry.dataFile), entry.dataFile);
+170: 
+171:   // Validate the club shell first. Roasts are checked one by one below so that
+172:   // a single bad roast cannot take the whole club offline.
+173:   const shell = typeof data === 'object' && data !== null ? { ...data, roasts: [] } : data;
+174:   const shellResult = validateClub(shell, {
+175:     path: entry.dataFile,
+176:     mode: 'data',
+177:     clubId: entry.id,
+178:   });
+179: 
+180:   if (!shellResult.valid) {
+181:     throw new DataLoadError(`${entry.dataFile} is not a valid club data file`, {
+182:       code: 'invalidClubData',
+183:       path: entry.dataFile,
+184:       errors: shellResult.errors,
+185:     });
+186:   }
+187: 
+188:   const categoryIds = Array.isArray(data.categories) ? data.categories.map((category) => category.id) : [];
+189:   const roasts = Array.isArray(data.roasts) ? data.roasts : [];
+190:   const published = [];
+191:   const dropped = [];
+192:   const seenIds = [];
+193: 
+194:   roasts.forEach((roast, index) => {
+195:     const roastResult = validateRoast(roast, {
+196:       path: `roasts[${index}]`,
+197:       clubId: data.id,
+198:       categoryIds,
+199:       seenIds,
+200:     });
+201: 
+202:     const roastId =
+203:       roast && typeof roast === 'object' && typeof roast.id === 'string'
+204:         ? roast.id
+205:         : `roasts[${index}]`;
+206: 
+207:     if (roastResult.valid) {
+208:       published.push(roast);
+209:     } else {
+210:       dropped.push({ id: roastId, reasons: roastResult.errors });
+211:     }
+212: 
+213:     if (roast && typeof roast === 'object' && typeof roast.id === 'string') {
+214:       seenIds.push(roast.id);
+215:     }
+216:   });
+217: 
+218:   warnAboutDroppedRoasts(dropped);
+219: 
+220:   const club = { ...data, roasts: published };
+221:   clubCache.set(entry.id, club);
+222:   return club;
+223: }
+224: 
+225: /**
+226:  * Filter a registry down to the clubs that are live.
+227:  * @param {{ clubs?: Array<Record<string, unknown>> }} registry
+228:  * @returns {Array<Record<string, unknown>>}
+229:  */
+230: export function getLiveClubs(registry) {
+231:   return getClubsByStatus(registry, CLUB_STATUS.LIVE);
+232: }
+233: 
+234: /**
+235:  * Filter a registry down to the clubs that are coming soon.
+236:  * @param {{ clubs?: Array<Record<string, unknown>> }} registry
+237:  * @returns {Array<Record<string, unknown>>}
+238:  */
+239: export function getComingSoonClubs(registry) {
+240:   return getClubsByStatus(registry, CLUB_STATUS.COMING_SOON).sort((a, b) =>
+241:     String(a.name).localeCompare(String(b.name))
+242:   );
+243: }
+244: 
+245: /**
+246:  * Shared status filter used by the two exported helpers.
+247:  * @param {{ clubs?: Array<Record<string, unknown>> }} registry
+248:  * @param {string} status
+249:  * @returns {Array<Record<string, unknown>>}
+250:  */
+251: function getClubsByStatus(registry, status) {
+252:   if (!registry || !Array.isArray(registry.clubs)) return [];
+253:   return registry.clubs.filter((club) => club && club.status === status);
+254: }
+
+================
+File: js/schema.js
+================
+  1: /**
+  2:  * Validation for The Roast Room data files.
+  3:  * Every exported validator returns { valid, errors } and never throws.
+  4:  */
+  5: 
+  6: import {
+  7:   CATEGORY_IDS,
+  8:   CLUB_STATUS,
+  9:   LIMITS,
+ 10:   REGISTRY_VERSION,
+ 11:   ROAST_ID_PATTERN,
+ 12:   THEME_KEYS,
+ 13: } from './config.js';
+ 14: 
+ 15: /**
+ 16:  * @typedef {Object} ValidationResult
+ 17:  * @property {boolean} valid True when no problems were found.
+ 18:  * @property {string[]} errors Human readable problem descriptions.
+ 19:  */
+ 20: 
+ 21: /**
+ 22:  * @typedef {Object} Theme
+ 23:  * @property {string} primary Hex colour used for club identity and primary fills.
+ 24:  * @property {string} primaryContrast Hex colour that reads well on top of primary.
+ 25:  * @property {string} accent Hex colour used for highlights.
+ 26:  * @property {string} background Page background colour.
+ 27:  * @property {string} surface Card background colour.
+ 28:  * @property {string} surfaceRaised Raised panel background colour.
+ 29:  * @property {string} line Border and divider colour.
+ 30:  * @property {string} text Default text colour.
+ 31:  * @property {string} textMuted Secondary text colour.
+ 32:  */
+ 33: 
+ 34: /**
+ 35:  * @typedef {Object} Evidence
+ 36:  * @property {string} claim Precise factual statement.
+ 37:  * @property {string} period Season or date the claim refers to, such as 2013/14 or 2021/09/11.
+ 38:  * @property {string} sourceName Name of the publication or record.
+ 39:  * @property {string} sourceUrl Absolute URL starting with https.
+ 40:  * @property {string} accessedOn Date the source was read, formatted YYYY/MM/DD.
+ 41:  */
+ 42: 
+ 43: /**
+ 44:  * @typedef {Object} Roast
+ 45:  * @property {string} id Lowercase identifier, unique inside the club.
+ 46:  * @property {string} clubId Club the roast belongs to.
+ 47:  * @property {string} category Category id taken from the club categories.
+ 48:  * @property {string} headline The joke, 90 characters or fewer.
+ 49:  * @property {string} explanation Factual context, 280 characters or fewer.
+ 50:  * @property {Evidence[]} evidence One or more sourced facts.
+ 51:  * @property {boolean} verified True when a human has checked every claim.
+ 52:  * @property {string} [verifiedOn] Date of verification, formatted YYYY/MM/DD.
+ 53:  * @property {string[]} [tags] Optional labels.
+ 54:  */
+ 55: 
+ 56: /**
+ 57:  * @typedef {Object} ClubCategory
+ 58:  * @property {string} id Category id from the canonical list.
+ 59:  * @property {string} displayLabel Label shown in the interface.
+ 60:  * @property {string} description Short neutral description.
+ 61:  * @property {string} emoji Single emoji used by the picker.
+ 62:  */
+ 63: 
+ 64: /**
+ 65:  * @typedef {Object} Club
+ 66:  * @property {string} id Club identifier.
+ 67:  * @property {string} name Full club name.
+ 68:  * @property {string} shortName Short club name.
+ 69:  * @property {'live' | 'comingSoon'} status Publication status.
+ 70:  * @property {string} themeKey Key used to tie the club to a theme.
+ 71:  * @property {string} [dataFile] Path to the club data file, required when live.
+ 72:  * @property {Theme} [theme] Theme overrides, full in a data file, partial in the registry.
+ 73:  * @property {ClubCategory[]} [categories] Categories available to the club.
+ 74:  * @property {Roast[]} [roasts] Roasts belonging to the club.
+ 75:  */
+ 76: 
+ 77: const DATE_PATTERN = /^(\d{4})\/(\d{2})\/(\d{2})$/;
+ 78: const SEASON_PATTERN = /^\d{4}\/\d{2}$/;
+ 79: const HEX_COLOR_PATTERN = /^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/;
+ 80: 
+ 81: /**
+ 82:  * True for a value that is a plain object and not an array.
+ 83:  * @param {unknown} value
+ 84:  * @returns {boolean}
+ 85:  */
+ 86: function isPlainObject(value) {
+ 87:   return typeof value === 'object' && value !== null && !Array.isArray(value);
+ 88: }
+ 89: 
+ 90: /**
+ 91:  * True for a string that contains something other than whitespace.
+ 92:  * @param {unknown} value
+ 93:  * @returns {boolean}
+ 94:  */
+ 95: function isFilledString(value) {
+ 96:   return typeof value === 'string' && value.trim().length > 0;
+ 97: }
+ 98: 
+ 99: /**
+100:  * True for a calendar date written as YYYY/MM/DD. The date must actually exist,
+101:  * so 2024/02/31 and 2023/02/29 are rejected while 2024/02/29 is accepted. The
+102:  * check builds a UTC date and confirms the year, month and day round trip
+103:  * unchanged.
+104:  * @param {unknown} value
+105:  * @returns {boolean}
+106:  */
+107: function isDateString(value) {
+108:   if (typeof value !== 'string') return false;
+109:   const match = DATE_PATTERN.exec(value);
+110:   if (!match) return false;
+111:   const year = Number(match[1]);
+112:   const month = Number(match[2]);
+113:   const day = Number(match[3]);
+114:   const date = new Date(Date.UTC(year, month - 1, day));
+115:   return (
+116:     date.getUTCFullYear() === year &&
+117:     date.getUTCMonth() === month - 1 &&
+118:     date.getUTCDate() === day
+119:   );
+120: }
+121: 
+122: /**
+123:  * True for a season string such as 2013/14 or a full date.
+124:  * @param {unknown} value
+125:  * @returns {boolean}
+126:  */
+127: function isPeriodString(value) {
+128:   if (typeof value !== 'string') return false;
+129:   if (SEASON_PATTERN.test(value)) return true;
+130:   return isDateString(value);
+131: }
+132: 
+133: /**
+134:  * True for an absolute URL that uses the https scheme.
+135:  * @param {unknown} value
+136:  * @returns {boolean}
+137:  */
+138: function isHttpsUrl(value) {
+139:   if (typeof value !== 'string' || !value.startsWith('https://')) return false;
+140:   try {
+141:     const url = new URL(value);
+142:     return url.protocol === 'https:';
+143:   } catch {
+144:     return false;
+145:   }
+146: }
+147: 
+148: /**
+149:  * Validate a theme object. Unknown keys and non hex colours are reported.
+150:  * @param {unknown} theme
+151:  * @param {{ path?: string, requireAll?: boolean }} [options]
+152:  * @returns {ValidationResult}
+153:  */
+154: function validateTheme(theme, options = {}) {
+155:   const path = options.path || 'theme';
+156:   const errors = [];
+157: 
+158:   if (!isPlainObject(theme)) {
+159:     return { valid: false, errors: [`${path} must be an object`] };
+160:   }
+161: 
+162:   Object.keys(theme).forEach((key) => {
+163:     if (!THEME_KEYS.includes(key)) {
+164:       errors.push(`${path}.${key} is not a known theme token`);
+165:       return;
+166:     }
+167:     if (!HEX_COLOR_PATTERN.test(String(theme[key]))) {
+168:       errors.push(`${path}.${key} must be a hex colour such as #1C1C1C`);
+169:     }
+170:   });
+171: 
+172:   if (options.requireAll === true) {
+173:     THEME_KEYS.forEach((key) => {
+174:       if (theme[key] === undefined) {
+175:         errors.push(`${path}.${key} is required`);
+176:       }
+177:     });
+178:   }
+179: 
+180:   return { valid: errors.length === 0, errors };
+181: }
+182: 
+183: /**
+184:  * Validate the evidence array attached to a roast.
+185:  * @param {unknown} evidence
+186:  * @param {{ path?: string }} [options]
+187:  * @returns {ValidationResult}
+188:  */
+189: export function validateEvidence(evidence, options = {}) {
+190:   const path = options.path || 'evidence';
+191:   const errors = [];
+192: 
+193:   try {
+194:     if (!Array.isArray(evidence)) {
+195:       return { valid: false, errors: [`${path} must be an array`] };
+196:     }
+197: 
+198:     if (evidence.length < LIMITS.evidenceMinItems) {
+199:       errors.push(`${path} must contain at least ${LIMITS.evidenceMinItems} item`);
+200:     }
+201: 
+202:     evidence.forEach((item, index) => {
+203:       const itemPath = `${path}[${index}]`;
+204: 
+205:       if (!isPlainObject(item)) {
+206:         errors.push(`${itemPath} must be an object`);
+207:         return;
+208:       }
+209:       if (!isFilledString(item.claim)) {
+210:         errors.push(`${itemPath}.claim must be a non empty string`);
+211:       }
+212:       if (!isPeriodString(item.period)) {
+213:         errors.push(`${itemPath}.period must be a season such as 2013/14 or a date such as 2021/09/11`);
+214:       }
+215:       if (!isFilledString(item.sourceName)) {
+216:         errors.push(`${itemPath}.sourceName must be a non empty string`);
+217:       }
+218:       if (!isHttpsUrl(item.sourceUrl)) {
+219:         errors.push(`${itemPath}.sourceUrl must be an absolute URL starting with https`);
+220:       }
+221:       if (!isDateString(item.accessedOn)) {
+222:         errors.push(`${itemPath}.accessedOn must use the format YYYY/MM/DD and be a real calendar date`);
+223:       }
+224:     });
+225:   } catch {
+226:     errors.push(`${path} could not be validated`);
+227:   }
+228: 
+229:   return { valid: errors.length === 0, errors };
+230: }
+231: 
+232: /**
+233:  * Validate a single roast. A roast that is unverified is reported as invalid
+234:  * on purpose, because an unverified roast must never reach the page.
+235:  * @param {unknown} roast
+236:  * @param {Object} [options]
+237:  * @param {string} [options.path] Prefix used in error messages.
+238:  * @param {string} [options.clubId] Club the roast is expected to belong to.
+239:  * @param {string[]} [options.categoryIds] Categories the club exposes.
+240:  * @param {string[]} [options.seenIds] Roast ids already used inside the club.
+241:  * @returns {ValidationResult}
+242:  */
+243: export function validateRoast(roast, options = {}) {
+244:   const path = options.path || 'roast';
+245:   const errors = [];
+246: 
+247:   try {
+248:     if (!isPlainObject(roast)) {
+249:       return { valid: false, errors: [`${path} must be an object`] };
+250:     }
+251: 
+252:     if (typeof roast.id !== 'string' || !ROAST_ID_PATTERN.test(roast.id)) {
+253:       errors.push(`${path}.id must use lowercase letters, digits and underscores only`);
+254:     } else if (roast.id.length < LIMITS.roastIdMinLength || roast.id.length > LIMITS.roastIdMaxLength) {
+255:       errors.push(`${path}.id must be between ${LIMITS.roastIdMinLength} and ${LIMITS.roastIdMaxLength} characters`);
+256:     } else if (Array.isArray(options.seenIds) && options.seenIds.includes(roast.id)) {
+257:       errors.push(`${path}.id "${roast.id}" is already used in this club`);
+258:     }
+259: 
+260:     if (!isFilledString(roast.clubId)) {
+261:       errors.push(`${path}.clubId must be a non empty string`);
+262:     } else if (isFilledString(options.clubId) && roast.clubId !== options.clubId) {
+263:       errors.push(`${path}.clubId must match the club "${options.clubId}"`);
+264:     }
+265: 
+266:     if (!isFilledString(roast.category)) {
+267:       errors.push(`${path}.category must be a non empty string`);
+268:     } else if (Array.isArray(options.categoryIds) && !options.categoryIds.includes(roast.category)) {
+269:       errors.push(`${path}.category "${roast.category}" is not one of the club categories`);
+270:     }
+271: 
+272:     if (!isFilledString(roast.headline)) {
+273:       errors.push(`${path}.headline must be a non empty string`);
+274:     } else if (roast.headline.trim().length > LIMITS.headlineMaxLength) {
+275:       errors.push(`${path}.headline must be ${LIMITS.headlineMaxLength} characters or fewer`);
+276:     }
+277: 
+278:     if (!isFilledString(roast.explanation)) {
+279:       errors.push(`${path}.explanation must be a non empty string`);
+280:     } else if (roast.explanation.trim().length > LIMITS.explanationMaxLength) {
+281:       errors.push(`${path}.explanation must be ${LIMITS.explanationMaxLength} characters or fewer`);
+282:     }
+283: 
+284:     const evidenceResult = validateEvidence(roast.evidence, { path: `${path}.evidence` });
+285:     errors.push(...evidenceResult.errors);
+286: 
+287:     if (roast.verified !== true) {
+288:       errors.push(`${path}.verified must be true before a roast can be published`);
+289:     } else if (!isDateString(roast.verifiedOn)) {
+290:       errors.push(`${path}.verifiedOn must use the format YYYY/MM/DD when verified is true`);
+291:     }
+292: 
+293:     if (roast.tags !== undefined) {
+294:       if (!Array.isArray(roast.tags)) {
+295:         errors.push(`${path}.tags must be an array when present`);
+296:       } else {
+297:         roast.tags.forEach((tag, index) => {
+298:           if (!isFilledString(tag)) {
+299:             errors.push(`${path}.tags[${index}] must be a non empty string`);
+300:           } else if (tag.length > LIMITS.tagMaxLength) {
+301:             errors.push(`${path}.tags[${index}] must be ${LIMITS.tagMaxLength} characters or fewer`);
+302:           }
+303:         });
+304:       }
+305:     }
+306:   } catch {
+307:     errors.push(`${path} could not be validated`);
+308:   }
+309: 
+310:   return { valid: errors.length === 0, errors };
+311: }
+312: 
+313: /**
+314:  * Validate a club record. The same function covers two shapes:
+315:  * a registry entry, which must carry a dataFile when live, and a club data
+316:  * file, which must carry theme, categories and roasts.
+317:  * @param {unknown} club
+318:  * @param {Object} [options]
+319:  * @param {string} [options.path] Prefix used in error messages.
+320:  * @param {'auto' | 'registry' | 'data'} [options.mode] Shape to expect.
+321:  * @param {string} [options.clubId] Club id the record must match.
+322:  * @returns {ValidationResult}
+323:  */
+324: export function validateClub(club, options = {}) {
+325:   const path = options.path || 'club';
+326:   const mode = options.mode || 'auto';
+327:   const errors = [];
+328: 
+329:   try {
+330:     if (!isPlainObject(club)) {
+331:       return { valid: false, errors: [`${path} must be an object`] };
+332:     }
+333: 
+334:     const looksLikeDataFile =
+335:       isPlainObject(club.theme) || Array.isArray(club.categories) || Array.isArray(club.roasts);
+336:     const isDataFile = mode === 'data' || (mode === 'auto' && looksLikeDataFile);
+337: 
+338:     if (!isFilledString(club.id)) {
+339:       errors.push(`${path}.id must be a non empty string`);
+340:     } else if (club.id.length > LIMITS.clubIdMaxLength) {
+341:       errors.push(`${path}.id must be ${LIMITS.clubIdMaxLength} characters or fewer`);
+342:     } else if (isFilledString(options.clubId) && club.id !== options.clubId) {
+343:       errors.push(`${path}.id must match the registry club "${options.clubId}"`);
+344:     }
+345: 
+346:     if (!isFilledString(club.name)) {
+347:       errors.push(`${path}.name must be a non empty string`);
+348:     }
+349:     if (!isFilledString(club.shortName)) {
+350:       errors.push(`${path}.shortName must be a non empty string`);
+351:     }
+352:     if (!isFilledString(club.themeKey)) {
+353:       errors.push(`${path}.themeKey must be a non empty string`);
+354:     }
+355: 
+356:     if (club.status !== CLUB_STATUS.LIVE && club.status !== CLUB_STATUS.COMING_SOON) {
+357:       errors.push(`${path}.status must be "live" or "comingSoon"`);
+358:     }
+359: 
+360:     if (mode !== 'data' && club.status === CLUB_STATUS.LIVE) {
+361:       if (!isFilledString(club.dataFile)) {
+362:         errors.push(`${path}.dataFile is required when status is live`);
+363:       } else if (!club.dataFile.endsWith('.json')) {
+364:         errors.push(`${path}.dataFile must point at a json file`);
+365:       }
+366:     }
+367: 
+368:     if (isPlainObject(club.theme)) {
+369:       const themeResult = validateTheme(club.theme, {
+370:         path: `${path}.theme`,
+371:         requireAll: isDataFile,
+372:       });
+373:       errors.push(...themeResult.errors);
+374:     } else if (isDataFile) {
+375:       errors.push(`${path}.theme is required in a club data file`);
+376:     }
+377: 
+378:     if (isDataFile) {
+379:       const categoryIds = [];
+380: 
+381:       if (!Array.isArray(club.categories)) {
+382:         errors.push(`${path}.categories must be an array`);
+383:       } else if (club.categories.length === 0) {
+384:         errors.push(`${path}.categories must contain at least one category`);
+385:       } else {
+386:         club.categories.forEach((category, index) => {
+387:           const categoryPath = `${path}.categories[${index}]`;
+388: 
+389:           if (!isPlainObject(category)) {
+390:             errors.push(`${categoryPath} must be an object`);
+391:             return;
+392:           }
+393:           if (!isFilledString(category.id)) {
+394:             errors.push(`${categoryPath}.id must be a non empty string`);
+395:           } else if (!CATEGORY_IDS.includes(category.id)) {
+396:             errors.push(`${categoryPath}.id "${category.id}" is not a known category`);
+397:           } else if (categoryIds.includes(category.id)) {
+398:             errors.push(`${categoryPath}.id "${category.id}" is a duplicate category`);
+399:           } else {
+400:             categoryIds.push(category.id);
+401:           }
+402:           if (!isFilledString(category.displayLabel)) {
+403:             errors.push(`${categoryPath}.displayLabel must be a non empty string`);
+404:           }
+405:           if (!isFilledString(category.description)) {
+406:             errors.push(`${categoryPath}.description must be a non empty string`);
+407:           }
+408:           if (!isFilledString(category.emoji)) {
+409:             errors.push(`${categoryPath}.emoji must be a non empty string`);
+410:           }
+411:         });
+412:       }
+413: 
+414:       if (!Array.isArray(club.roasts)) {
+415:         errors.push(`${path}.roasts must be an array`);
+416:       } else {
+417:         const seenIds = [];
+418:         club.roasts.forEach((roast, index) => {
+419:           const roastResult = validateRoast(roast, {
+420:             path: `${path}.roasts[${index}]`,
+421:             clubId: club.id,
+422:             categoryIds,
+423:             seenIds,
+424:           });
+425:           errors.push(...roastResult.errors);
+426:           if (isPlainObject(roast) && typeof roast.id === 'string') {
+427:             seenIds.push(roast.id);
+428:           }
+429:         });
+430:       }
+431:     }
+432:   } catch {
+433:     errors.push(`${path} could not be validated`);
+434:   }
+435: 
+436:   return { valid: errors.length === 0, errors };
+437: }
+438: 
+439: /**
+440:  * Validate the whole club registry.
+441:  * @param {unknown} registry
+442:  * @returns {ValidationResult}
+443:  */
+444: export function validateRegistry(registry) {
+445:   const errors = [];
+446: 
+447:   try {
+448:     if (!isPlainObject(registry)) {
+449:       return { valid: false, errors: ['registry must be an object'] };
+450:     }
+451: 
+452:     if (registry.version !== REGISTRY_VERSION) {
+453:       errors.push(`registry.version must be ${REGISTRY_VERSION}`);
+454:     }
+455: 
+456:     if (!Array.isArray(registry.clubs)) {
+457:       return { valid: false, errors: [...errors, 'registry.clubs must be an array'] };
+458:     }
+459: 
+460:     if (registry.clubs.length === 0) {
+461:       errors.push('registry.clubs must contain at least one club');
+462:     }
+463: 
+464:     const seenIds = [];
+465:     let liveCount = 0;
+466: 
+467:     registry.clubs.forEach((club, index) => {
+468:       const clubResult = validateClub(club, {
+469:         path: `registry.clubs[${index}]`,
+470:         mode: 'registry',
+471:       });
+472:       errors.push(...clubResult.errors);
+473: 
+474:       if (!isPlainObject(club)) return;
+475: 
+476:       if (club.status === CLUB_STATUS.LIVE) {
+477:         liveCount += 1;
+478:       }
+479:       if (typeof club.id === 'string') {
+480:         if (seenIds.includes(club.id)) {
+481:           errors.push(`registry.clubs[${index}].id "${club.id}" is a duplicate club id`);
+482:         }
+483:         seenIds.push(club.id);
+484:       }
+485:     });
+486: 
+487:     if (liveCount === 0) {
+488:       errors.push('registry.clubs must contain at least one live club');
+489:     }
+490:   } catch {
+491:     errors.push('registry could not be validated');
+492:   }
+493: 
+494:   return { valid: errors.length === 0, errors };
+495: }
+
+================
+File: js/theme.js
+================
+ 1: /**
+ 2:  * Applies a club theme to the document by writing CSS custom properties on the
+ 3:  * root element. Every colour in tailwind.config.js reads these variables, so a
+ 4:  * single call reskins the whole page.
+ 5:  */
+ 6: 
+ 7: import { THEME_VARIABLES } from './config.js';
+ 8: 
+ 9: /**
+10:  * Find the browser theme colour meta tag and set it.
+11:  * @param {string} [value] Colour to apply. Falls back to the background token.
+12:  * @returns {void}
+13:  */
+14: function updateMetaThemeColor(value) {
+15:   if (typeof document === 'undefined') return;
+16:   const meta = document.querySelector('meta[name="theme-color"]');
+17:   if (!meta) return;
+18: 
+19:   let next = typeof value === 'string' ? value.trim() : '';
+20:   if (next.length === 0) {
+21:     next = getComputedStyle(document.documentElement).getPropertyValue('--colorBackground').trim();
+22:   }
+23:   if (next.length > 0) {
+24:     meta.setAttribute('content', next);
+25:   }
+26: }
+27: 
+28: /**
+29:  * Remove every theme custom property from the root element so the defaults in
+30:  * css/tokens.css apply again.
+31:  * @returns {void}
+32:  */
+33: function resetThemeProperties() {
+34:   if (typeof document === 'undefined') return;
+35:   const root = document.documentElement;
+36:   Object.values(THEME_VARIABLES).forEach((variable) => {
+37:     root.style.removeProperty(variable);
+38:   });
+39: }
+40: 
+41: /**
+42:  * Apply a theme. Every theme custom property is cleared from the root first, so
+43:  * a partial theme falls back to the defaults in css/tokens.css for the keys it
+44:  * does not set. The provided keys are then applied and the theme colour meta
+45:  * tag is updated to match the resulting background.
+46:  * @param {Partial<Record<string, string>>} theme Theme keys to apply.
+47:  * @returns {void}
+48:  */
+49: export function applyTheme(theme) {
+50:   if (typeof document === 'undefined') return;
+51:   if (!theme || typeof theme !== 'object') return;
+52: 
+53:   const root = document.documentElement;
+54: 
+55:   resetThemeProperties();
+56: 
+57:   Object.entries(THEME_VARIABLES).forEach(([key, variable]) => {
+58:     const value = theme[key];
+59:     if (typeof value === 'string' && value.trim().length > 0) {
+60:       root.style.setProperty(variable, value.trim());
+61:     }
+62:   });
+63: 
+64:   updateMetaThemeColor(theme.background);
+65: }
+66: 
+67: /**
+68:  * Remove every inline theme property so the defaults in css/tokens.css apply
+69:  * again, and restore the theme colour meta tag.
+70:  * @returns {void}
+71:  */
+72: export function clearTheme() {
+73:   if (typeof document === 'undefined') return;
+74: 
+75:   resetThemeProperties();
+76:   updateMetaThemeColor();
+77: }
+
+================
+File: scripts/validate.mjs
+================
+  1: /**
+  2:  * Data gate for The Roast Room.
+  3:  * Validates the registry and every club data file, then exits with code 1 when
+  4:  * anything is wrong. Run it before every deploy.
+  5:  */
+  6: 
+  7: import { readFile, readdir } from 'node:fs/promises';
+  8: import { join, resolve } from 'node:path';
+  9: import { fileURLToPath } from 'node:url';
+ 10: 
+ 11: import { CLUB_STATUS, CLUBS_DIRECTORY, REGISTRY_PATH } from '../js/config.js';
+ 12: import { validateClub, validateRegistry } from '../js/schema.js';
+ 13: 
+ 14: const rootDirectory = resolve(fileURLToPath(new URL('..', import.meta.url)));
+ 15: 
+ 16: /**
+ 17:  * Turn an unknown thrown value into a readable string.
+ 18:  * @param {unknown} error
+ 19:  * @returns {string}
+ 20:  */
+ 21: function describeError(error) {
+ 22:   if (error instanceof Error) return error.message;
+ 23:   return String(error);
+ 24: }
+ 25: 
+ 26: /**
+ 27:  * Read and parse a json file relative to the project root.
+ 28:  * @param {string} relativePath
+ 29:  * @returns {Promise<unknown>}
+ 30:  */
+ 31: async function readJsonFile(relativePath) {
+ 32:   const absolutePath = join(rootDirectory, relativePath);
+ 33:   const text = await readFile(absolutePath, 'utf8');
+ 34:   return JSON.parse(text);
+ 35: }
+ 36: 
+ 37: /**
+ 38:  * Run every check and collect problems. The process exit code is set by the caller.
+ 39:  * @returns {Promise<number>} Number of problems found.
+ 40:  */
+ 41: async function main() {
+ 42:   const problems = [];
+ 43: 
+ 44:   let registry;
+ 45:   try {
+ 46:     registry = await readJsonFile(REGISTRY_PATH);
+ 47:   } catch (error) {
+ 48:     console.error(`Could not read ${REGISTRY_PATH}: ${describeError(error)}`);
+ 49:     return 1;
+ 50:   }
+ 51: 
+ 52:   const registryResult = validateRegistry(registry);
+ 53:   problems.push(...registryResult.errors);
+ 54: 
+ 55:   const clubs = registry && Array.isArray(registry.clubs) ? registry.clubs : [];
+ 56:   const referencedFiles = new Set();
+ 57: 
+ 58:   // Collect every data file that ANY registry club references, whatever its
+ 59:   // status. A live club must have a readable, valid file. A coming soon club
+ 60:   // may declare a file that does not exist yet, but the file is validated in
+ 61:   // exactly the same way as a live club file when it does exist.
+ 62:   for (const club of clubs) {
+ 63:     if (!club) continue;
+ 64:     if (typeof club.dataFile !== 'string' || club.dataFile.length === 0) continue;
+ 65: 
+ 66:     referencedFiles.add(club.dataFile);
+ 67: 
+ 68:     let data;
+ 69:     try {
+ 70:       data = await readJsonFile(club.dataFile);
+ 71:     } catch (error) {
+ 72:         const fileIsMissing = error && error.code === 'ENOENT';
+ 73:         if (club.status === CLUB_STATUS.LIVE || !fileIsMissing) {
+ 74:           problems.push(`${club.dataFile} could not be read: ${describeError(error)}`);
+ 75:         }
+ 76:         continue;
+ 77:       }
+ 78: 
+ 79:     const clubResult = validateClub(data, {
+ 80:       path: club.dataFile,
+ 81:       mode: 'data',
+ 82:       clubId: club.id,
+ 83:     });
+ 84:     problems.push(...clubResult.errors);
+ 85: 
+ 86:     if (data && typeof data === 'object' && data.themeKey !== club.themeKey) {
+ 87:       problems.push(`${club.dataFile}.themeKey must match the registry themeKey "${club.themeKey}"`);
+ 88:     }
+ 89:   }
+ 90: 
+ 91:   let files = [];
+ 92:   try {
+ 93:     files = await readdir(join(rootDirectory, CLUBS_DIRECTORY));
+ 94:   } catch (error) {
+ 95:     problems.push(`${CLUBS_DIRECTORY} could not be read: ${describeError(error)}`);
+ 96:   }
+ 97: 
+ 98:   // Orphan check. Every file in the clubs folder must be referenced by at
+ 99:   // least one registry entry, whatever the status of that entry.
+100:   for (const file of files) {
+101:     if (!file.endsWith('.json')) continue;
+102:     const relativePath = `${CLUBS_DIRECTORY}/${file}`;
+103:     if (!referencedFiles.has(relativePath)) {
+104:       problems.push(`${relativePath} is not referenced by any club in the registry`);
+105:     }
+106:   }
+107: 
+108:   if (problems.length > 0) {
+109:     console.error(`Data validation failed with ${problems.length} problem(s):`);
+110:     for (const problem of problems) {
+111:       console.error(`  ${problem}`);
+112:     }
+113:     return problems.length;
+114:   }
+115: 
+116:   console.log(
+117:     `Data validation passed. ${clubs.length} club(s) and ${referencedFiles.size} data file reference(s) checked.`
+118:   );
+119:   return 0;
+120: }
+121: 
+122: const problemCount = await main();
+123: 
+124: if (problemCount > 0) {
+125:   process.exitCode = 1;
+126: }
+
+================
+File: tests/fixtures/fakeData.mjs
+================
+ 1: /**
+ 2:  * FAKE sample data. Used only by tests/schema.test.mjs.
+ 3:  * Nothing here is loaded by the site and nothing here is a real football fact.
+ 4:  * The club, the claim, the source name and the URL are all placeholders.
+ 5:  */
+ 6: 
+ 7: export const fakeTheme = {
+ 8:   primary: '#FF00FF',
+ 9:   primaryContrast: '#FFFFFF',
+10:   accent: '#00FFFF',
+11:   background: '#000000',
+12:   surface: '#111111',
+13:   surfaceRaised: '#222222',
+14:   line: '#333333',
+15:   text: '#EEEEEE',
+16:   textMuted: '#BBBBBB',
+17: };
+18: 
+19: export const fakeCategories = [
+20:   {
+21:     id: 'trophyDroughts',
+22:     displayLabel: 'FAKE Trophy Droughts',
+23:     description: 'FAKE category used only by the test suite.',
+24:     emoji: '🏆',
+25:   },
+26:   {
+27:     id: 'painfulStats',
+28:     displayLabel: 'FAKE Painful Stats',
+29:     description: 'FAKE category used only by the test suite.',
+30:     emoji: '📊',
+31:   },
+32: ];
+33: 
+34: export const fakeEvidence = {
+35:   claim: 'FAKE claim that exists only to exercise the validator.',
+36:   period: '2013/14',
+37:   sourceName: 'FAKE Source Name',
+38:   sourceUrl: 'https://example.com/fakeSource',
+39:   accessedOn: '2024/01/15',
+40: };
+41: 
+42: export const fakeRoast = {
+43:   id: 'fake_roast_one',
+44:   clubId: 'fakeclub',
+45:   category: 'trophyDroughts',
+46:   headline: 'FAKE headline used only by the test suite.',
+47:   explanation: 'FAKE explanation used only by the test suite.',
+48:   evidence: [{ ...fakeEvidence }],
+49:   verified: true,
+50:   verifiedOn: '2024/01/16',
+51:   tags: ['fake'],
+52: };
+53: 
+54: export const fakeClubEntry = {
+55:   id: 'fakeclub',
+56:   name: 'FAKE Club',
+57:   shortName: 'FAKE',
+58:   status: 'live',
+59:   dataFile: 'tests/fixtures/fakeclub.json',
+60:   themeKey: 'fakeclub',
+61: };
+62: 
+63: export const fakeClubData = {
+64:   id: 'fakeclub',
+65:   name: 'FAKE Club',
+66:   shortName: 'FAKE',
+67:   status: 'live',
+68:   themeKey: 'fakeclub',
+69:   theme: { ...fakeTheme },
+70:   categories: fakeCategories.map((category) => ({ ...category })),
+71:   roasts: [{ ...fakeRoast, evidence: [{ ...fakeEvidence }], tags: ['fake'] }],
+72: };
+73: 
+74: export const fakeRegistry = {
+75:   version: 1,
+76:   clubs: [{ ...fakeClubEntry }],
+77: };
+
+================
+File: tests/schema.test.mjs
+================
+  1: /**
+  2:  * Schema tests for The Roast Room. Run with node --test.
+  3:  * Every fixture used here is FAKE and lives in tests/fixtures.
+  4:  */
+  5: 
+  6: import test from 'node:test';
+  7: import assert from 'node:assert/strict';
+  8: 
+  9: import { validateClub, validateEvidence, validateRegistry, validateRoast } from '../js/schema.js';
+ 10: import { fakeClubData, fakeRegistry, fakeRoast } from './fixtures/fakeData.mjs';
+ 11: 
+ 12: /**
+ 13:  * Deep clone a fixture and apply a patch, so no test mutates shared data.
+ 14:  * @param {Record<string, unknown>} patch
+ 15:  * @returns {Record<string, unknown>}
+ 16:  */
+ 17: function roastWith(patch) {
+ 18:   return { ...structuredClone(fakeRoast), ...patch };
+ 19: }
+ 20: 
+ 21: test('a valid roast passes validation', () => {
+ 22:   const result = validateRoast(structuredClone(fakeRoast));
+ 23:   assert.equal(result.valid, true, result.errors.join(', '));
+ 24:   assert.deepEqual(result.errors, []);
+ 25: });
+ 26: 
+ 27: test('a valid evidence array passes validation', () => {
+ 28:   const result = validateEvidence(structuredClone(fakeRoast).evidence);
+ 29:   assert.equal(result.valid, true);
+ 30: });
+ 31: 
+ 32: test('a roast without an id fails', () => {
+ 33:   const roast = structuredClone(fakeRoast);
+ 34:   delete roast.id;
+ 35:   const result = validateRoast(roast);
+ 36:   assert.equal(result.valid, false);
+ 37:   assert.ok(result.errors.some((error) => error.includes('id')));
+ 38: });
+ 39: 
+ 40: test('a roast id with uppercase letters fails', () => {
+ 41:   const result = validateRoast(roastWith({ id: 'Fake_Roast' }));
+ 42:   assert.equal(result.valid, false);
+ 43:   assert.ok(result.errors.some((error) => error.includes('lowercase')));
+ 44: });
+ 45: 
+ 46: test('a roast without a clubId fails', () => {
+ 47:   const roast = structuredClone(fakeRoast);
+ 48:   delete roast.clubId;
+ 49:   const result = validateRoast(roast);
+ 50:   assert.equal(result.valid, false);
+ 51:   assert.ok(result.errors.some((error) => error.includes('clubId')));
+ 52: });
+ 53: 
+ 54: test('a roast whose clubId does not match the club fails', () => {
+ 55:   const result = validateRoast(structuredClone(fakeRoast), { clubId: 'otherclub' });
+ 56:   assert.equal(result.valid, false);
+ 57:   assert.ok(result.errors.some((error) => error.includes('must match the club')));
+ 58: });
+ 59: 
+ 60: test('a roast with a headline longer than 90 characters fails', () => {
+ 61:   const result = validateRoast(roastWith({ headline: 'x'.repeat(91) }));
+ 62:   assert.equal(result.valid, false);
+ 63:   assert.ok(result.errors.some((error) => error.includes('headline')));
+ 64: });
+ 65: 
+ 66: test('a roast with an explanation longer than 280 characters fails', () => {
+ 67:   const result = validateRoast(roastWith({ explanation: 'x'.repeat(281) }));
+ 68:   assert.equal(result.valid, false);
+ 69:   assert.ok(result.errors.some((error) => error.includes('explanation')));
+ 70: });
+ 71: 
+ 72: test('a roast with no evidence fails', () => {
+ 73:   const result = validateRoast(roastWith({ evidence: [] }));
+ 74:   assert.equal(result.valid, false);
+ 75:   assert.ok(result.errors.some((error) => error.includes('must contain at least')));
+ 76: });
+ 77: 
+ 78: test('an evidence item without a period fails', () => {
+ 79:   const roast = roastWith({ evidence: [{ ...structuredClone(fakeRoast).evidence[0] }] });
+ 80:   delete roast.evidence[0].period;
+ 81:   const result = validateRoast(roast);
+ 82:   assert.equal(result.valid, false);
+ 83:   assert.ok(result.errors.some((error) => error.includes('period')));
+ 84: });
+ 85: 
+ 86: test('an evidence item without a sourceName fails', () => {
+ 87:   const roast = roastWith({ evidence: [{ ...structuredClone(fakeRoast).evidence[0] }] });
+ 88:   delete roast.evidence[0].sourceName;
+ 89:   const result = validateRoast(roast);
+ 90:   assert.equal(result.valid, false);
+ 91:   assert.ok(result.errors.some((error) => error.includes('sourceName')));
+ 92: });
+ 93: 
+ 94: test('an http source url is rejected', () => {
+ 95:   const roast = roastWith({
+ 96:     evidence: [{ ...structuredClone(fakeRoast).evidence[0], sourceUrl: 'http://example.com/fakeSource' }],
+ 97:   });
+ 98:   const result = validateRoast(roast);
+ 99:   assert.equal(result.valid, false);
+100:   assert.ok(result.errors.some((error) => error.includes('https')));
+101: });
+102: 
+103: test('an accessedOn value in the wrong format fails', () => {
+104:   const roast = roastWith({
+105:     evidence: [{ ...structuredClone(fakeRoast).evidence[0], accessedOn: '15/01/2024' }],
+106:   });
+107:   const result = validateRoast(roast);
+108:   assert.equal(result.valid, false);
+109:   assert.ok(result.errors.some((error) => error.includes('accessedOn')));
+110: });
+111: 
+112: test('an accessedOn value that does not exist on the calendar is rejected', () => {
+113:   const roast = roastWith({
+114:     evidence: [{ ...structuredClone(fakeRoast).evidence[0], accessedOn: '2024/02/31' }],
+115:   });
+116:   const result = validateRoast(roast);
+117:   assert.equal(result.valid, false);
+118:   assert.ok(result.errors.some((error) => error.includes('accessedOn')));
+119: });
+120: 
+121: test('February 29 in a non leap year is rejected', () => {
+122:   const roast = roastWith({
+123:     evidence: [{ ...structuredClone(fakeRoast).evidence[0], accessedOn: '2023/02/29' }],
+124:   });
+125:   const result = validateRoast(roast);
+126:   assert.equal(result.valid, false);
+127:   assert.ok(result.errors.some((error) => error.includes('accessedOn')));
+128: });
+129: 
+130: test('February 29 in a leap year is accepted', () => {
+131:   const roast = roastWith({
+132:     evidence: [{ ...structuredClone(fakeRoast).evidence[0], accessedOn: '2024/02/29' }],
+133:   });
+134:   const result = validateRoast(roast);
+135:   assert.equal(result.valid, true, result.errors.join(', '));
+136: });
+137: 
+138: test('an unverified roast is rejected', () => {
+139:   const result = validateRoast(roastWith({ verified: false, verifiedOn: undefined }));
+140:   assert.equal(result.valid, false);
+141:   assert.ok(result.errors.some((error) => error.includes('verified')));
+142: });
+143: 
+144: test('a verified roast without verifiedOn fails', () => {
+145:   const roast = roastWith({});
+146:   delete roast.verifiedOn;
+147:   const result = validateRoast(roast);
+148:   assert.equal(result.valid, false);
+149:   assert.ok(result.errors.some((error) => error.includes('verifiedOn')));
+150: });
+151: 
+152: test('a roast in an unknown category is caught against the club categories', () => {
+153:   const result = validateRoast(structuredClone(fakeRoast), {
+154:     categoryIds: ['painfulStats'],
+155:   });
+156:   assert.equal(result.valid, false);
+157:   assert.ok(result.errors.some((error) => error.includes('not one of the club categories')));
+158: });
+159: 
+160: test('a roast in a category the club does not expose is caught by the club validator', () => {
+161:   const data = structuredClone(fakeClubData);
+162:   data.categories = data.categories.filter((category) => category.id !== 'trophyDroughts');
+163:   const result = validateClub(data, { mode: 'data' });
+164:   assert.equal(result.valid, false);
+165:   assert.ok(result.errors.some((error) => error.includes('not one of the club categories')));
+166: });
+167: 
+168: test('a valid club data file passes validation', () => {
+169:   const result = validateClub(structuredClone(fakeClubData), { mode: 'data' });
+170:   assert.equal(result.valid, true, result.errors.join(', '));
+171: });
+172: 
+173: test('duplicate roast ids are caught', () => {
+174:   const data = structuredClone(fakeClubData);
+175:   data.roasts = [
+176:     structuredClone(fakeClubData.roasts[0]),
+177:     { ...structuredClone(fakeClubData.roasts[0]), headline: 'FAKE second headline for the duplicate check.' },
+178:   ];
+179:   const result = validateClub(data, { mode: 'data' });
+180:   assert.equal(result.valid, false);
+181:   assert.ok(result.errors.some((error) => error.includes('already used')));
+182: });
+183: 
+184: test('a club data file with a mismatched club id is caught', () => {
+185:   const result = validateClub(structuredClone(fakeClubData), {
+186:     mode: 'data',
+187:     clubId: 'otherclub',
+188:   });
+189:   assert.equal(result.valid, false);
+190:   assert.ok(result.errors.some((error) => error.includes('must match the registry club')));
+191: });
+192: 
+193: test('a valid registry passes validation', () => {
+194:   const result = validateRegistry(structuredClone(fakeRegistry));
+195:   assert.equal(result.valid, true, result.errors.join(', '));
+196: });
+197: 
+198: test('registry validation catches a live club without a data file', () => {
+199:   const registry = structuredClone(fakeRegistry);
+200:   delete registry.clubs[0].dataFile;
+201:   const result = validateRegistry(registry);
+202:   assert.equal(result.valid, false);
+203:   assert.ok(result.errors.some((error) => error.includes('dataFile')));
+204: });
+205: 
+206: test('registry validation catches duplicate club ids', () => {
+207:   const registry = structuredClone(fakeRegistry);
+208:   registry.clubs.push(structuredClone(registry.clubs[0]));
+209:   const result = validateRegistry(registry);
+210:   assert.equal(result.valid, false);
+211:   assert.ok(result.errors.some((error) => error.includes('duplicate club id')));
+212: });
+213: 
+214: test('registry validation catches a registry with no live club', () => {
+215:   const registry = structuredClone(fakeRegistry);
+216:   registry.clubs[0].status = 'comingSoon';
+217:   registry.clubs[0].dataFile = 'tests/fixtures/fakeclub.json';
+218:   const result = validateRegistry(registry);
+219:   assert.equal(result.valid, false);
+220:   assert.ok(result.errors.some((error) => error.includes('at least one live club')));
+221: });
+222: 
+223: test('validators never throw on unexpected input', () => {
+224:   const values = [undefined, null, 0, 'text', [], true];
+225: 
+226:   for (const value of values) {
+227:     assert.doesNotThrow(() => validateRoast(value));
+228:     assert.doesNotThrow(() => validateEvidence(value));
+229:     assert.doesNotThrow(() => validateClub(value));
+230:     assert.doesNotThrow(() => validateRegistry(value));
+231:     assert.equal(validateRoast(value).valid, false);
+232:     assert.equal(validateRegistry(value).valid, false);
+233:   }
+234: });
+
+================
+File: .gitignore
+================
+1: node_modules
+2: dist
+3: .DS_Store
+4: .wrangler
+
+================
+File: favicon.svg
+================
+1: <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="The Roast Room">
+2:   <rect width="64" height="64" rx="14" fill="#DA291C"/>
+3:   <path d="M32 10 C30 18 20 22 20 34 C20 44 26 52 32 54 C38 52 44 44 44 34 C44 22 34 18 32 10 Z" fill="#FBE122"/>
+4:   <path d="M32 30 C30 36 26 38 26 44 C26 48 28 50 32 52 C36 50 38 48 38 44 C38 38 34 36 32 30 Z" fill="#DA291C"/>
+5: </svg>
+
+================
+File: room.html
+================
+  1: <!DOCTYPE html>
+  2: <html lang="en">
+  3:   <head>
+  4:     <meta charset="utf-8" />
+  5:     <meta name="viewport" content="width=device-width, initial-scale=1" />
+  6:     <title>Roast Room | The Roast Room</title>
+  7:     <meta
+  8:       name="description"
+  9:       content="Pick a category and hit Roast them. Every roast is sourced and dated."
+ 10:     />
+ 11:     <meta name="color-scheme" content="dark" />
+ 12:     <meta name="theme-color" content="#0A0A0A" />
+ 13: 
+ 14:     <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
+ 15: 
+ 16:     <link rel="preconnect" href="https://fonts.googleapis.com" />
+ 17:     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+ 18:     <link
+ 19:       rel="stylesheet"
+ 20:       href="https://fonts.googleapis.com/css2?family=Anton&amp;family=Inter:wght@400;500;600;700&amp;display=swap"
+ 21:     />
+ 22:     <link rel="stylesheet" href="./dist/styles.css" />
+ 23: 
+ 24:     <script type="module" src="./js/pages/room.js" defer></script>
+ 25:   </head>
+ 26: 
+ 27:   <body class="min-h-screen bg-background text-text">
+ 28:     <a class="skipLink" href="#main">Skip to content</a>
+ 29: 
+ 30:     <header class="border-b border-line bg-surface">
+ 31:       <div class="mx-auto flex max-w-4xl flex-wrap items-center justify-between gap-3 px-4 py-4">
+ 32:         <a href="./index.html" class="font-display text-xl uppercase tracking-wide text-text no-underline">
+ 33:           The Roast Room
+ 34:         </a>
+ 35:         <div class="flex flex-wrap items-center gap-3">
+ 36:           <span
+ 37:             id="clubBadge"
+ 38:             class="rounded-pill border border-line bg-surfaceRaised px-3 py-1 text-xs text-textMuted"
+ 39:           >
+ 40:             Loading club
+ 41:           </span>
+ 42:           <a href="./index.html#pickerHeading" class="text-sm text-textMuted underline">
+ 43:             Pick a different club
+ 44:           </a>
+ 45:         </div>
+ 46:       </div>
+ 47:     </header>
+ 48: 
+ 49:     <main id="main" class="mx-auto max-w-4xl px-4 py-8">
+ 50:       <h1 id="pageHeading" class="srOnly">The Roast Room</h1>
+ 51: 
+ 52:       <section
+ 53:         id="loadingState"
+ 54:         class="rounded-sharp border border-line bg-surface p-8"
+ 55:         aria-label="Loading"
+ 56:       >
+ 57:         <p class="text-textMuted">Loading the club and its roasts.</p>
+ 58:       </section>
+ 59: 
+ 60:       <section
+ 61:         id="errorState"
+ 62:         class="hidden rounded-sharp border border-line bg-surface p-8"
+ 63:         role="alert"
+ 64:       >
+ 65:         <h2 class="text-2xl text-text">Roast room unavailable</h2>
+ 66:         <p id="errorMessage" class="mt-2 text-textMuted">We could not open this club.</p>
+ 67:         <p class="mt-4">
+ 68:           <a href="./index.html" class="text-accent underline">Back to the club picker</a>
+ 69:         </p>
+ 70:       </section>
+ 71: 
+ 72:       <section id="roomState" class="hidden">
+ 73:         <div class="mb-6">
+ 74:           <p class="tokenLabel">Filter by category</p>
+ 75:           <div id="categoryFilter" class="mt-3"></div>
+ 76:         </div>
+ 77: 
+ 78:         <div class="mb-6 flex flex-wrap items-center gap-4">
+ 79:           <button
+ 80:             id="roastButton"
+ 81:             type="button"
+ 82:             class="rounded-sharp bg-primary px-8 py-5 font-display text-2xl uppercase tracking-wide text-primaryContrast transition-colors duration-fast ease-standard hover:bg-accent hover:text-background disabled:opacity-50"
+ 83:           >
+ 84:             Roast them
+ 85:           </button>
+ 86:           <p id="progress" class="text-sm text-textMuted"></p>
+ 87:         </div>
+ 88: 
+ 89:         <div id="roastContainer"></div>
+ 90: 
+ 91:         <p
+ 92:           id="emptyState"
+ 93:           class="hidden mt-8 rounded-sharp border border-line bg-surface p-6 text-textMuted"
+ 94:         >
+ 95:           No roasts in this category yet. Try another category, or hit Roast them on All.
+ 96:         </p>
+ 97: 
+ 98:         <p id="roastLiveRegion" class="srOnly" aria-live="polite"></p>
+ 99:       </section>
+100:     </main>
+101: 
+102:     <footer class="mt-12 border-t border-line bg-surface">
+103:       <div class="mx-auto max-w-4xl px-4 py-8">
+104:         <p class="text-sm text-textMuted">
+105:           Built by <a href="https://fritt.org">Fritt</a>. Every roast is sourced and dated.
+106:         </p>
+107:         <p class="mt-2 text-sm">
+108:           <a href="./index.html" class="text-textMuted underline">Back to the club picker</a>
+109:         </p>
+110:       </div>
+111:     </footer>
+112:   </body>
+113: </html>
+
+================
+File: tokens.html
+================
+  1: <!DOCTYPE html>
+  2: <html lang="en">
+  3:   <head>
+  4:     <meta charset="utf-8" />
+  5:     <meta name="viewport" content="width=device-width, initial-scale=1" />
+  6:     <title>Token Preview | The Roast Room</title>
+  7:     <meta
+  8:       name="description"
+  9:       content="Developer preview of the design tokens, club registry and theming system for The Roast Room."
+ 10:     />
+ 11:     <meta name="color-scheme" content="dark" />
+ 12:     <meta name="theme-color" content="#0A0A0A" />
+ 13: 
+ 14:     <link rel="preconnect" href="https://fonts.googleapis.com" />
+ 15:     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+ 16:     <link
+ 17:       rel="stylesheet"
+ 18:       href="https://fonts.googleapis.com/css2?family=Anton&amp;family=Inter:wght@400;500;600;700&amp;display=swap"
+ 19:     />
+ 20:     <link rel="stylesheet" href="./dist/styles.css" />
+ 21:   </head>
+ 22: 
+ 23:   <body class="min-h-screen bg-background text-text">
+ 24:     <a class="skipLink" href="#main">Skip to content</a>
+ 25: 
+ 26:     <header class="border-b border-line bg-surface">
+ 27:       <div class="mx-auto max-w-5xl px-4 py-10">
+ 28:         <p class="tokenLabel">Developer preview</p>
+ 29:         <h1 class="mt-3 text-displayMd text-text">The Roast Room</h1>
+ 30:         <p class="mt-4 max-w-2xl text-lg text-textMuted">
+ 31:           Stage 1 foundations. This page exists to prove that the design tokens, the club
+ 32:           registry and the theming system work. There are no roasts on it yet and no real
+ 33:           content.
+ 34:         </p>
+ 35:         <p
+ 36:           class="mt-4 inline-block rounded-sharp border border-line bg-surfaceRaised px-3 py-2 text-sm text-accent"
+ 37:         >
+ 38:           Not a public page. It is a developer preview for the Fritt team.
+ 39:         </p>
+ 40:       </div>
+ 41:     </header>
+ 42: 
+ 43:     <main id="main" class="mx-auto max-w-5xl px-4 py-10">
+ 44:       <section aria-labelledby="themeHeading" class="mb-12">
+ 45:         <h2 id="themeHeading" class="text-2xl text-text">Theme</h2>
+ 46:         <p class="mt-2 max-w-2xl text-sm text-textMuted">
+ 47:           The button writes CSS custom properties onto the document root. Every theme
+ 48:           property is cleared before the next theme is applied, so a coming soon club that
+ 49:           only defines primary and accent falls back to the defaults for every other token.
+ 50:         </p>
+ 51:         <div class="mt-4 rounded-sharp border border-line bg-surface p-5">
+ 52:           <div class="flex flex-wrap items-center gap-4">
+ 53:             <button
+ 54:               id="themeToggle"
+ 55:               type="button"
+ 56:               disabled
+ 57:               class="rounded-sharp border-2 border-primary bg-primary px-5 py-3 font-display text-lg uppercase tracking-wide text-primaryContrast transition-colors duration-fast ease-standard hover:bg-surface hover:text-accent disabled:opacity-60"
+ 58:             >
+ 59:               Cycle club theme
+ 60:             </button>
+ 61:             <p class="text-sm text-textMuted">
+ 62:               Current theme:
+ 63:               <span id="currentTheme" class="text-accent">Manchester United</span>
+ 64:             </p>
+ 65:           </div>
+ 66:           <p id="themeOverrides" class="mt-3 text-xs text-textMuted" aria-live="polite"></p>
+ 67:         </div>
+ 68:       </section>
+ 69: 
+ 70:       <section aria-labelledby="colourHeading" class="mb-12">
+ 71:         <h2 id="colourHeading" class="text-2xl text-text">Club theme colours</h2>
+ 72:         <p class="mt-2 max-w-2xl text-sm text-textMuted">
+ 73:           Nine tokens, one CSS custom property each. The value shown under every swatch is
+ 74:           read live from the document root.
+ 75:         </p>
+ 76: 
+ 77:         <ul class="mt-4 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+ 78:           <li class="rounded-sharp border border-line bg-surface p-4">
+ 79:             <span
+ 80:               class="block h-12 w-full rounded-sharp border border-line"
+ 81:               style="background-color: var(--colorPrimary)"
+ 82:             ></span>
+ 83:             <span class="tokenLabel mt-3 block">Primary</span>
+ 84:             <code class="block text-sm text-text">--colorPrimary</code>
+ 85:             <span class="block text-xs text-textMuted" data-token="--colorPrimary">#DA291C</span>
+ 86:           </li>
+ 87:           <li class="rounded-sharp border border-line bg-surface p-4">
+ 88:             <span
+ 89:               class="block h-12 w-full rounded-sharp border border-line"
+ 90:               style="background-color: var(--colorPrimaryContrast)"
+ 91:             ></span>
+ 92:             <span class="tokenLabel mt-3 block">Primary contrast</span>
+ 93:             <code class="block text-sm text-text">--colorPrimaryContrast</code>
+ 94:             <span class="block text-xs text-textMuted" data-token="--colorPrimaryContrast">#FFFFFF</span>
+ 95:           </li>
+ 96:           <li class="rounded-sharp border border-line bg-surface p-4">
+ 97:             <span
+ 98:               class="block h-12 w-full rounded-sharp border border-line"
+ 99:               style="background-color: var(--colorAccent)"
+100:             ></span>
+101:             <span class="tokenLabel mt-3 block">Accent</span>
+102:             <code class="block text-sm text-text">--colorAccent</code>
+103:             <span class="block text-xs text-textMuted" data-token="--colorAccent">#FBE122</span>
+104:           </li>
+105:           <li class="rounded-sharp border border-line bg-surface p-4">
+106:             <span
+107:               class="block h-12 w-full rounded-sharp border border-line"
+108:               style="background-color: var(--colorBackground)"
+109:             ></span>
+110:             <span class="tokenLabel mt-3 block">Background</span>
+111:             <code class="block text-sm text-text">--colorBackground</code>
+112:             <span class="block text-xs text-textMuted" data-token="--colorBackground">#0A0A0A</span>
+113:           </li>
+114:           <li class="rounded-sharp border border-line bg-surface p-4">
+115:             <span
+116:               class="block h-12 w-full rounded-sharp border border-line"
+117:               style="background-color: var(--colorSurface)"
+118:             ></span>
+119:             <span class="tokenLabel mt-3 block">Surface</span>
+120:             <code class="block text-sm text-text">--colorSurface</code>
+121:             <span class="block text-xs text-textMuted" data-token="--colorSurface">#141414</span>
+122:           </li>
+123:           <li class="rounded-sharp border border-line bg-surface p-4">
+124:             <span
+125:               class="block h-12 w-full rounded-sharp border border-line"
+126:               style="background-color: var(--colorSurfaceRaised)"
+127:             ></span>
+128:             <span class="tokenLabel mt-3 block">Surface raised</span>
+129:             <code class="block text-sm text-text">--colorSurfaceRaised</code>
+130:             <span class="block text-xs text-textMuted" data-token="--colorSurfaceRaised">#1C1C1C</span>
+131:           </li>
+132:           <li class="rounded-sharp border border-line bg-surface p-4">
+133:             <span
+134:               class="block h-12 w-full rounded-sharp border border-line"
+135:               style="background-color: var(--colorLine)"
+136:             ></span>
+137:             <span class="tokenLabel mt-3 block">Line</span>
+138:             <code class="block text-sm text-text">--colorLine</code>
+139:             <span class="block text-xs text-textMuted" data-token="--colorLine">#2A2A2A</span>
+140:           </li>
+141:           <li class="rounded-sharp border border-line bg-surface p-4">
+142:             <span
+143:               class="block h-12 w-full rounded-sharp border border-line"
+144:               style="background-color: var(--colorText)"
+145:             ></span>
+146:             <span class="tokenLabel mt-3 block">Text</span>
+147:             <code class="block text-sm text-text">--colorText</code>
+148:             <span class="block text-xs text-textMuted" data-token="--colorText">#F5F5F5</span>
+149:           </li>
+150:           <li class="rounded-sharp border border-line bg-surface p-4">
+151:             <span
+152:               class="block h-12 w-full rounded-sharp border border-line"
+153:               style="background-color: var(--colorTextMuted)"
+154:             ></span>
+155:             <span class="tokenLabel mt-3 block">Text muted</span>
+156:             <code class="block text-sm text-text">--colorTextMuted</code>
+157:             <span class="block text-xs text-textMuted" data-token="--colorTextMuted">#A0A0A0</span>
+158:           </li>
+159:         </ul>
+160:       </section>
+161: 
+162:       <section aria-labelledby="typeHeading" class="mb-12">
+163:         <h2 id="typeHeading" class="text-2xl text-text">Type scale</h2>
+164:         <p class="mt-2 max-w-2xl text-sm text-textMuted">
+165:           Anton carries the display voice, Inter carries the body voice. Every size is fluid
+166:           through a clamp token.
+167:         </p>
+168: 
+169:         <ul class="mt-4 space-y-3">
+170:           <li class="rounded-sharp border border-line bg-surface p-4">
+171:             <span class="tokenLabel">displayLg</span>
+172:             <p class="font-display text-displayLg text-text">Roast Room</p>
+173:           </li>
+174:           <li class="rounded-sharp border border-line bg-surface p-4">
+175:             <span class="tokenLabel">displayMd</span>
+176:             <p class="font-display text-displayMd text-text">Roast Room</p>
+177:           </li>
+178:           <li class="rounded-sharp border border-line bg-surface p-4">
+179:             <span class="tokenLabel">displaySm</span>
+180:             <p class="font-display text-displaySm text-text">Roast Room</p>
+181:           </li>
+182:           <li class="rounded-sharp border border-line bg-surface p-4">
+183:             <span class="tokenLabel">2xl</span>
+184:             <p class="text-2xl text-text">Rivalry, but make it sourced.</p>
+185:           </li>
+186:           <li class="rounded-sharp border border-line bg-surface p-4">
+187:             <span class="tokenLabel">base</span>
+188:             <p class="text-base text-textMuted">
+189:               Body copy sits at the base size with a relaxed line height so long evidence
+190:               blocks stay readable on a phone.
+191:             </p>
+192:           </li>
+193:           <li class="rounded-sharp border border-line bg-surface p-4">
+194:             <span class="tokenLabel">xs</span>
+195:             <p class="text-xs text-textMuted">Small labels, metadata and source lines.</p>
+196:           </li>
+197:         </ul>
+198:       </section>
+199: 
+200:       <section aria-labelledby="scaleHeading" class="mb-12">
+201:         <h2 id="scaleHeading" class="text-2xl text-text">Spacing and radius</h2>
+202: 
+203:         <div class="mt-4 grid gap-6 md:grid-cols-2">
+204:           <div class="rounded-sharp border border-line bg-surface p-5">
+205:             <h3 class="tokenLabel">Spacing</h3>
+206:             <ul class="mt-4 space-y-3">
+207:               <li class="flex items-center gap-3">
+208:                 <span class="w-16 text-xs text-textMuted">space1</span>
+209:                 <span class="h-3 rounded-sharp bg-primary" style="width: var(--space1)"></span>
+210:                 <span class="text-xs text-textMuted">0.25rem</span>
+211:               </li>
+212:               <li class="flex items-center gap-3">
+213:                 <span class="w-16 text-xs text-textMuted">space2</span>
+214:                 <span class="h-3 rounded-sharp bg-primary" style="width: var(--space2)"></span>
+215:                 <span class="text-xs text-textMuted">0.5rem</span>
+216:               </li>
+217:               <li class="flex items-center gap-3">
+218:                 <span class="w-16 text-xs text-textMuted">space4</span>
+219:                 <span class="h-3 rounded-sharp bg-primary" style="width: var(--space4)"></span>
+220:                 <span class="text-xs text-textMuted">1rem</span>
+221:               </li>
+222:               <li class="flex items-center gap-3">
+223:                 <span class="w-16 text-xs text-textMuted">space6</span>
+224:                 <span class="h-3 rounded-sharp bg-primary" style="width: var(--space6)"></span>
+225:                 <span class="text-xs text-textMuted">1.5rem</span>
+226:               </li>
+227:               <li class="flex items-center gap-3">
+228:                 <span class="w-16 text-xs text-textMuted">space8</span>
+229:                 <span class="h-3 rounded-sharp bg-primary" style="width: var(--space8)"></span>
+230:                 <span class="text-xs text-textMuted">2rem</span>
+231:               </li>
+232:               <li class="flex items-center gap-3">
+233:                 <span class="w-16 text-xs text-textMuted">space12</span>
+234:                 <span class="h-3 rounded-sharp bg-primary" style="width: var(--space12)"></span>
+235:                 <span class="text-xs text-textMuted">3rem</span>
+236:               </li>
+237:             </ul>
+238:           </div>
+239: 
+240:           <div class="rounded-sharp border border-line bg-surface p-5">
+241:             <h3 class="tokenLabel">Radius</h3>
+242:             <ul class="mt-4 space-y-3">
+243:               <li class="flex items-center gap-4">
+244:                 <span class="tokenLabel w-16">sharp</span>
+245:                 <span class="block h-12 w-full rounded-sharp border border-line bg-surfaceRaised"></span>
+246:                 <span class="text-xs text-textMuted">2px</span>
+247:               </li>
+248:               <li class="flex items-center gap-4">
+249:                 <span class="tokenLabel w-16">soft</span>
+250:                 <span class="block h-12 w-full rounded-soft border border-line bg-surfaceRaised"></span>
+251:                 <span class="text-xs text-textMuted">6px</span>
+252:               </li>
+253:               <li class="flex items-center gap-4">
+254:                 <span class="tokenLabel w-16">pill</span>
+255:                 <span class="block h-12 w-full rounded-pill border border-line bg-surfaceRaised"></span>
+256:                 <span class="text-xs text-textMuted">999px</span>
+257:               </li>
+258:             </ul>
+259: 
+260:             <h3 class="tokenLabel mt-6">Motion</h3>
+261:             <ul class="mt-3 space-y-1 text-xs text-textMuted">
+262:               <li>fast 120ms</li>
+263:               <li>normal 200ms</li>
+264:               <li>slow 320ms</li>
+265:               <li>Durations drop to 1ms when prefers reduced motion is set.</li>
+266:             </ul>
+267:           </div>
+268:         </div>
+269:       </section>
+270: 
+271:       <section aria-labelledby="clubsHeading" class="mb-12">
+272:         <h2 id="clubsHeading" class="text-2xl text-text">Clubs</h2>
+273:         <p class="mt-2 max-w-2xl text-sm text-textMuted">
+274:           Read from data/clubs.json through the real registry module. The registry is the
+275:           single source of truth for which clubs exist.
+276:         </p>
+277:         <p id="registryStatus" role="status" class="mt-3 text-sm text-accent">
+278:           Loading the club registry.
+279:         </p>
+280: 
+281:         <div class="mt-4 grid gap-6 md:grid-cols-2">
+282:           <div>
+283:             <h3 class="tokenLabel">Live</h3>
+284:             <ul id="liveClubs" class="mt-3 space-y-3"></ul>
+285:           </div>
+286:           <div>
+287:             <h3 class="tokenLabel">Coming soon</h3>
+288:             <ul id="comingSoonClubs" class="mt-3 space-y-3"></ul>
+289:           </div>
+290:         </div>
+291:       </section>
+292:     </main>
+293: 
+294:     <footer class="border-t border-line bg-surface">
+295:       <div class="mx-auto max-w-5xl px-4 py-10">
+296:         <p class="text-sm text-textMuted">
+297:           The Roast Room, stage 1 foundations. Built by Fritt. Every claim on the finished
+298:           site must be sourced, dated and verified before it can be published.
+299:         </p>
+300:       </div>
+301:     </footer>
+302: 
+303:     <script type="module">
+304:       import { getComingSoonClubs, getLiveClubs, loadClub, loadRegistry } from './js/registry.js';
+305:       import { applyTheme } from './js/theme.js';
+306: 
+307:       const registryStatus = document.getElementById('registryStatus');
+308:       const liveClubsList = document.getElementById('liveClubs');
+309:       const comingSoonClubsList = document.getElementById('comingSoonClubs');
+310:       const themeButton = document.getElementById('themeToggle');
+311:       const themeName = document.getElementById('currentTheme');
+312:       const overridesEl = document.getElementById('themeOverrides');
+313:       const tokenValues = Array.from(document.querySelectorAll('[data-token]'));
+314: 
+315:       const themeCycle = [];
+316:       let themeIndex = 0;
+317: 
+318:       /**
+319:        * Read the live value of every colour token and print it under the swatch.
+320:        * @returns {void}
+321:        */
+322:       function refreshTokenValues() {
+323:         const styles = getComputedStyle(document.documentElement);
+324: 
+325:         for (const element of tokenValues) {
+326:           const variable = element.getAttribute('data-token');
+327:           const value = styles.getPropertyValue(variable).trim();
+328:           element.textContent = value || 'not set';
+329:         }
+330:       }
+331: 
+332:       /**
+333:        * Print which tokens the currently applied theme overrides. Because
+334:        * applyTheme clears every property before applying a new theme, this list
+335:        * is exactly the set of keys in the active theme object.
+336:        * @returns {void}
+337:        */
+338:       function updateOverrideLine() {
+339:         if (!overridesEl) return;
+340: 
+341:         if (themeCycle.length === 0) {
+342:           overridesEl.textContent = '';
+343:           return;
+344:         }
+345: 
+346:         const current = themeCycle[themeIndex];
+347:         const keys = current.theme ? Object.keys(current.theme) : [];
+348:         const list = keys.length > 0 ? keys.join(', ') : 'none';
+349:         overridesEl.textContent = `Tokens currently overridden by ${current.label}: ${list}`;
+350:       }
+351: 
+352:       /**
+353:        * Build one club card for the registry lists.
+354:        * @param {Record<string, unknown>} club
+355:        * @returns {HTMLLIElement}
+356:        */
+357:       function createClubItem(club) {
+358:         const item = document.createElement('li');
+359:         item.className = 'rounded-sharp border border-line bg-surface p-4';
+360: 
+361:         const name = document.createElement('p');
+362:         name.className = 'font-display text-xl uppercase text-text';
+363:         name.textContent = String(club.name);
+364: 
+365:         const meta = document.createElement('p');
+366:         meta.className = 'mt-2 text-sm text-textMuted';
+367:         meta.textContent = `id: ${club.id} | status: ${club.status} | themeKey: ${club.themeKey}`;
+368: 
+369:         item.append(name, meta);
+370: 
+371:         if (typeof club.dataFile === 'string') {
+372:           const file = document.createElement('p');
+373:           file.className = 'mt-1 text-xs text-textMuted';
+374:           file.textContent = `dataFile: ${club.dataFile}`;
+375:           item.append(file);
+376:         }
+377: 
+378:         return item;
+379:       }
+380: 
+381:       /**
+382:        * Replace the contents of a list with the given clubs.
+383:        * @param {HTMLUListElement} list
+384:        * @param {Array<Record<string, unknown>>} clubs
+385:        * @returns {void}
+386:        */
+387:       function renderClubList(list, clubs) {
+388:         list.textContent = '';
+389:         for (const club of clubs) {
+390:           list.append(createClubItem(club));
+391:         }
+392:       }
+393: 
+394:       /**
+395:        * Load the registry and the live club, then wire up the theme button.
+396:        * The cycle is deliberately Manchester United, Arsenal, Manchester United.
+397:        * @returns {Promise<void>}
+398:        */
+399:       async function start() {
+400:         try {
+401:           const registry = await loadRegistry();
+402:           renderClubList(liveClubsList, getLiveClubs(registry));
+403:           renderClubList(comingSoonClubsList, getComingSoonClubs(registry));
+404:           registryStatus.textContent = `Registry version ${registry.version} loaded with ${registry.clubs.length} clubs.`;
+405: 
+406:           const liveClub = await loadClub('manutd');
+407:           themeCycle.push({ label: liveClub.name, theme: liveClub.theme });
+408: 
+409:           const comingSoonWithTheme = getComingSoonClubs(registry).filter((club) => club.theme);
+410:           for (const club of comingSoonWithTheme) {
+411:             themeCycle.push({ label: club.name, theme: club.theme });
+412:           }
+413: 
+414:           themeButton.disabled = themeCycle.length < 2;
+415:         } catch (error) {
+416:           registryStatus.textContent =
+417:             'Could not load the club registry. Serve the site over http, for example with npx serve, then reload. ' +
+418:             String(error.message);
+419:         }
+420: 
+421:         refreshTokenValues();
+422:         updateOverrideLine();
+423:       }
+424: 
+425:       themeButton.addEventListener('click', () => {
+426:         if (themeCycle.length === 0) return;
+427: 
+428:         themeIndex = (themeIndex + 1) % themeCycle.length;
+429:         const next = themeCycle[themeIndex];
+430: 
+431:         applyTheme(next.theme);
+432:         themeName.textContent = next.label;
+433:         refreshTokenValues();
+434:         updateOverrideLine();
+435:       });
+436: 
+437:       await start();
+438:     </script>
+439:   </body>
+440: </html>
+
+================
+File: src/input.css
+================
+1: @import "../css/tokens.css";
+2: @import "../css/base.css";
+3: @import "../css/components.css";
+4: 
+5: @tailwind base;
+6: @tailwind components;
+7: @tailwind utilities;
+
+================
+File: index.html
+================
+  1: <!DOCTYPE html>
+  2: <html lang="en">
+  3:   <head>
+  4:     <meta charset="utf-8" />
+  5:     <meta name="viewport" content="width=device-width, initial-scale=1" />
+  6:     <title>The Roast Room | Football banter with receipts</title>
+  7:     <meta
+  8:       name="description"
+  9:       content="Friendly football banter with receipts. Pick a rival club and read sourced, dated facts that actually happened."
+ 10:     />
+ 11:     <meta name="color-scheme" content="dark" />
+ 12:     <meta name="theme-color" content="#0A0A0A" />
+ 13: 
+ 14:     <meta property="og:title" content="The Roast Room" />
+ 15:     <meta
+ 16:       property="og:description"
+ 17:       content="Pick a rival club. Hit the button. Check the receipts. Every roast is sourced and dated."
+ 18:     />
+ 19:     <meta property="og:type" content="website" />
+ 20: 
+ 21:     <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
+ 22: 
+ 23:     <link rel="preconnect" href="https://fonts.googleapis.com" />
+ 24:     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+ 25:     <link
+ 26:       rel="stylesheet"
+ 27:       href="https://fonts.googleapis.com/css2?family=Anton&amp;family=Inter:wght@400;500;600;700&amp;display=swap"
+ 28:     />
+ 29:     <link rel="stylesheet" href="./dist/styles.css" />
+ 30: 
+ 31:     <script type="module" src="./js/pages/landing.js" defer></script>
+ 32:   </head>
+ 33: 
+ 34:   <body class="min-h-screen bg-background text-text">
+ 35:     <a class="skipLink" href="#main">Skip to content</a>
+ 36: 
+ 37:     <header class="border-b border-line bg-surface">
+ 38:       <div class="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-3 px-4 py-4">
+ 39:         <a href="./index.html" class="font-display text-xl uppercase tracking-wide text-text no-underline">
+ 40:           The Roast Room
+ 41:         </a>
+ 42:         <span class="tokenLabel">A Fritt experiment</span>
+ 43:       </div>
+ 44:     </header>
+ 45: 
+ 46:     <main id="main">
+ 47:       <section class="relative overflow-hidden border-b border-line">
+ 48:         <svg
+ 49:           class="pointer-events-none absolute inset-0 h-full w-full text-text"
+ 50:           style="opacity: 0.06"
+ 51:           viewBox="0 0 800 400"
+ 52:           preserveAspectRatio="none"
+ 53:           aria-hidden="true"
+ 54:         >
+ 55:           <rect x="10" y="10" width="780" height="380" fill="none" stroke="currentColor" stroke-width="2" />
+ 56:           <line x1="400" y1="10" x2="400" y2="390" stroke="currentColor" stroke-width="2" />
+ 57:           <circle cx="400" cy="200" r="70" fill="none" stroke="currentColor" stroke-width="2" />
+ 58:           <circle cx="400" cy="200" r="4" fill="currentColor" />
+ 59:           <rect x="10" y="100" width="100" height="200" fill="none" stroke="currentColor" stroke-width="2" />
+ 60:           <rect x="690" y="100" width="100" height="200" fill="none" stroke="currentColor" stroke-width="2" />
+ 61:         </svg>
+ 62: 
+ 63:         <div class="relative mx-auto max-w-5xl px-4 py-16 md:py-24">
+ 64:           <div class="grid items-end gap-8 md:grid-cols-[1fr_auto]">
+ 65:             <div>
+ 66:               <p class="tokenLabel text-accent">Football banter, sourced and dated</p>
+ 67:               <h1 class="mt-3 text-displayMd text-text">Every rivalry needs receipts.</h1>
+ 68:               <p class="mt-4 max-w-xl text-lg text-textMuted">
+ 69:                 Pick a rival club, hit the button, and read the pain. Every roast is backed by
+ 70:                 dated evidence you can check yourself.
+ 71:               </p>
+ 72:               <div class="mt-8 flex flex-wrap gap-4">
+ 73:                 <a
+ 74:                   href="./room.html?club=manutd"
+ 75:                   data-cta-club
+ 76:                   class="inline-block rounded-sharp bg-primary px-6 py-4 font-display text-xl uppercase tracking-wide text-primaryContrast no-underline transition-colors duration-fast ease-standard hover:bg-accent hover:text-background"
+ 77:                 >
+ 78:                   Enter the Roast Room
+ 79:                 </a>
+ 80:               </div>
+ 81:             </div>
+ 82: 
+ 83:             <div class="rounded-sharp bg-primary p-6 text-primaryContrast" style="max-width: 20rem">
+ 84:               <p class="tokenLabel" style="color: rgba(255,255,255,0.7)">Roast Room</p>
+ 85:               <p class="mt-2 font-display text-3xl uppercase">Every claim backed</p>
+ 86:               <p class="mt-2 text-sm">Pick a club. Roast. Check the receipts.</p>
+ 87:             </div>
+ 88:           </div>
+ 89:         </div>
+ 90:       </section>
+ 91: 
+ 92:       <section
+ 93:         id="tickerSection"
+ 94:         class="hidden overflow-hidden border-b border-line bg-surface"
+ 95:         aria-label="Recent roast headlines"
+ 96:       >
+ 97:         <div class="mx-auto max-w-5xl px-4 py-3">
+ 98:           <p class="tokenLabel mb-2">Recent roasts</p>
+ 99:           <div id="tickerTrack" class="tickerTrack"></div>
+100:         </div>
+101:       </section>
+102: 
+103:       <section aria-labelledby="howHeading" class="mx-auto max-w-5xl px-4 py-16">
+104:         <h2 id="howHeading" class="text-displaySm text-text">How it works</h2>
+105:         <ol class="mt-8 grid gap-6 md:grid-cols-3">
+106:           <li class="rounded-sharp border border-line bg-surface p-6">
+107:             <span class="font-display text-3xl text-primary">01</span>
+108:             <h3 class="mt-2 text-xl text-text">Pick a club</h3>
+109:             <p class="mt-2 text-sm text-textMuted">Choose the rival you want to roast.</p>
+110:           </li>
+111:           <li class="rounded-sharp border border-line bg-surface p-6">
+112:             <span class="font-display text-3xl text-primary">02</span>
+113:             <h3 class="mt-2 text-xl text-text">Hit the button</h3>
+114:             <p class="mt-2 text-sm text-textMuted">One tap and the roast appears.</p>
+115:           </li>
+116:           <li class="rounded-sharp border border-line bg-surface p-6">
+117:             <span class="font-display text-3xl text-primary">03</span>
+118:             <h3 class="mt-2 text-xl text-text">Check the receipts</h3>
+119:             <p class="mt-2 text-sm text-textMuted">Every roast lists dated, sourced evidence.</p>
+120:           </li>
+121:         </ol>
+122:       </section>
+123: 
+124:       <section aria-labelledby="pickerHeading" class="mx-auto max-w-5xl border-t border-line px-4 py-16">
+125:         <h2 id="pickerHeading" class="text-displaySm text-text">Pick a club</h2>
+126:         <p class="mt-3 max-w-xl text-textMuted">
+127:           Live clubs have a roast room ready. More clubs are on the way.
+128:         </p>
+129: 
+130:         <div id="liveClubs" class="mt-8 grid gap-4 md:grid-cols-2"></div>
+131: 
+132:         <p class="mt-10 tokenLabel">Coming soon</p>
+133:         <p class="mt-2 max-w-xl text-sm text-textMuted">
+134:           More clubs are on the way.
+135:         </p>
+136:         <div id="comingSoonClubs" class="mt-4 grid gap-3 sm:grid-cols-2 md:grid-cols-3"></div>
+137:       </section>
+138:     </main>
+139: 
+140:     <footer class="border-t border-line bg-surface">
+141:       <div class="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-4 px-4 py-8">
+142:         <p class="text-sm text-textMuted">
+143:           Built by <a href="https://fritt.org">Fritt</a>. Every roast is sourced and dated.
+144:         </p>
+145:       </div>
+146:     </footer>
+147:   </body>
+148: </html>
+
+================
+File: README.md
+================
+  1: # The Roast Room
+  2: 
+  3: The Roast Room is an interactive football banter site. Supporters pick a rival club and
+  4: read funny, embarrassing and painful facts about it. Every published roast is backed by
+  5: dated evidence that a human has checked.
+  6: 
+  7: The site launches with Manchester United live. Arsenal, Liverpool, Manchester City,
+  8: Chelsea and Tottenham Hotspur are listed as coming soon.
+  9: 
+ 10: It is built by the solo web agency Fritt and doubles as a portfolio piece, so the code is
+ 11: kept small, readable and easy to extend.
+ 12: 
+ 13: ## Project status
+ 14: 
+ 15: - **Stage 1 (foundations)**: done. Design tokens, theming, club registry, roast schema,
+ 16:   validation, developer token preview, documentation.
+ 17: - **Stage 2 (public pages)**: done. Landing page, club picker, roast generator, shuffle
+ 18:   bag, reveal animation, deep links, category filter, share ready roast URL helper.
+ 19: - **Stage 3 (next)**: share cards, suggestions form, branding and polish, deployment.
+ 20: 
+ 21: ## Pages
+ 22: 
+ 23: | Page | Purpose |
+ 24: | --- | --- |
+ 25: | `index.html` | Public landing page. Hero, recent roast ticker, how it works, club picker. |
+ 26: | `room.html?club=<id>` | Roast generator for one live club. Category filter, shuffle bag, roast card with receipts. |
+ 27: | `tokens.html` | Developer preview of design tokens and theming. Not linked from public pages. |
+ 28: 
+ 29: ## Files added in stage 2
+ 30: 
+ 31: ```text
+ 32: index.html                   Public landing page
+ 33: room.html                    Roast generator page, opened as room.html?club=manutd
+ 34: tokens.html                  Developer token preview, moved from stage 1
+ 35: favicon.svg                  Inline SVG favicon, flame shape in club red and yellow
+ 36: css/components.css           Shared component styles in Tailwind layers
+ 37: js/pages/landing.js          Landing page logic
+ 38: js/pages/room.js             Roast room logic
+ 39: js/ui/roastCard.js           Roast card DOM builder
+ 40: js/ui/categoryFilter.js      Category filter chip builder
+ 41: js/ui/shuffleBag.js          Pure shuffle bag, no DOM
+ 42: js/ui/reveal.js              Slot machine reel and fade in
+ 43: js/utils/dom.js              Safe DOM helpers, no innerHTML with data
+ 44: js/utils/links.js            roastUrl and parseRoastHash
+ 45: tests/shuffleBag.test.mjs    node:test suite for the shuffle bag
+ 46: ```
+ 47: 
+ 48: ## Requirements
+ 49: 
+ 50: - Node 18 or later
+ 51: - npm
+ 52: 
+ 53: The only development dependency is Tailwind CSS, pinned to the 3.4 line.
+ 54: 
+ 55: ## Run it locally
+ 56: 
+ 57: ```bash
+ 58: npm install
+ 59: npm run css
+ 60: npx serve .
+ 61: ```
+ 62: 
+ 63: Then open the URL that `serve` prints.
+ 64: 
+ 65: `fetch` needs an http origin, so opening the HTML files from the file system will not load
+ 66: the registry. If you would rather not install `serve`, the Python standard library works:
+ 67: 
+ 68: ```bash
+ 69: python3 -m http.server 8000
+ 70: ```
+ 71: 
+ 72: ## Scripts
+ 73: 
+ 74: | Script | What it does |
+ 75: | --- | --- |
+ 76: | `npm run css` | Compiles `src/input.css` to `dist/styles.css` once |
+ 77: | `npm run watch` | Compiles the CSS and rebuilds on every change |
+ 78: | `npm run validate` | Validates the registry and every club data file, exits 1 on any problem |
+ 79: | `npm test` | Runs the schema and shuffle bag tests with the Node test runner |
+ 80: 
+ 81: ## Folder structure
+ 82: 
+ 83: ```text
+ 84: index.html                 Public landing page
+ 85: room.html                  Roast generator page
+ 86: tokens.html                Developer token preview page
+ 87: favicon.svg
+ 88: package.json
+ 89: tailwind.config.js
+ 90: README.md
+ 91: src/input.css
+ 92: css/tokens.css
+ 93: css/base.css
+ 94: css/components.css
+ 95: js/config.js
+ 96: js/schema.js
+ 97: js/registry.js
+ 98: js/theme.js
+ 99: js/pages/landing.js
+100: js/pages/room.js
+101: js/ui/roastCard.js
+102: js/ui/categoryFilter.js
+103: js/ui/shuffleBag.js
+104: js/ui/reveal.js
+105: js/utils/dom.js
+106: js/utils/links.js
+107: data/clubs.json
+108: data/clubs/manutd.json
+109: scripts/validate.mjs
+110: tests/schema.test.mjs
+111: tests/shuffleBag.test.mjs
+112: tests/fixtures/
+113: dist/
+114: ```
+115: 
+116: ## Deep links
+117: 
+118: A roast has a stable hash based URL that points at the roast room for its club.
+119: 
+120: - Landing page: `/index.html`
+121: - Roast room for Manchester United: `/room.html?club=manutd`
+122: - A specific roast: `/room.html?club=manutd#trophies_last_league_title`
+123: 
+124: `js/utils/links.js` exports `roastUrl(clubId, roastId)` for building these URLs (this is
+125: what share cards will use later) and `parseRoastHash(hash)` for reading them back. When a
+126: visitor lands on `room.html` with a hash that matches a live roast, the roast is shown
+127: immediately without the reveal animation.
+128: 
+129: When the visitor presses Roast them, the hash is updated with `history.replaceState` so
+130: the URL always points at the visible roast, without pushing a new history entry and
+131: without scrolling.
+132: 
+133: ## Design tokens and theming
+134: 
+135: Every colour lives in `css/tokens.css` as a CSS custom property on `:root`. The default
+136: values are the Manchester United theme. `tailwind.config.js` maps Tailwind colour keys such
+137: as `background`, `surface` and `primary` onto those variables, so a club theme swap is a
+138: CSS variable swap, not a rebuild.
+139: 
+140: `applyTheme(theme)` clears every theme property from the root first, then sets the keys you
+141: pass, so a partial theme falls back to the defaults for the keys it does not set.
+142: `clearTheme()` does the same reset without applying anything. Both keep the `theme-color`
+143: meta tag in step.
+144: 
+145: ## Club registry
+146: 
+147: `data/clubs.json` is the single source of truth for which clubs exist. `status` is either
+148: `live` or `comingSoon`. A live club must have a `dataFile`. A coming soon club may omit
+149: `dataFile` or declare one that does not exist yet, but the file is validated the moment it
+150: exists.
+151: 
+152: ## Roast schema
+153: 
+154: Every roast must satisfy all of the following:
+155: 
+156: | Field | Rule |
+157: | --- | --- |
+158: | `id` | Lowercase letters, digits and underscores, unique inside the club |
+159: | `clubId` | Must match the club that owns the data file |
+160: | `category` | Must exist in that club categories array |
+161: | `headline` | The joke, 90 characters or fewer |
+162: | `explanation` | Plain factual context, 280 characters or fewer |
+163: | `evidence` | At least one item |
+164: | `evidence[].claim` | A precise factual statement |
+165: | `evidence[].period` | A season such as `2013/14` or a date such as `2021/09/11` |
+166: | `evidence[].sourceName` | The publication or record the claim came from |
+167: | `evidence[].sourceUrl` | Absolute URL starting with `https` |
+168: | `evidence[].accessedOn` | Real calendar date the source was read, formatted `YYYY/MM/DD` |
+169: | `verified` | Boolean, and it must be `true` for the roast to be published |
+170: | `verifiedOn` | Required when `verified` is true, formatted `YYYY/MM/DD` |
+171: | `tags` | Optional array of strings |
+172: 
+173: Dates are validated against the real calendar, so `2024/02/31` and `2023/02/29` are
+174: rejected while `2024/02/29` is accepted.
+175: 
+176: **FAKE example. This is placeholder data that exists only to show the shape.**
+177: 
+178: ```json
+179: {
+180:   "id": "fake_example_roast",
+181:   "clubId": "fakeclub",
+182:   "category": "trophyDroughts",
+183:   "headline": "FAKE headline used to show the schema shape.",
+184:   "explanation": "FAKE explanation used to show the schema shape.",
+185:   "evidence": [
+186:     {
+187:       "claim": "FAKE claim used to show the evidence shape.",
+188:       "period": "2013/14",
+189:       "sourceName": "FAKE Source Name",
+190:       "sourceUrl": "https://example.com/fakeSource",
+191:       "accessedOn": "2024/01/15"
+192:     }
+193:   ],
+194:   "verified": true,
+195:   "verifiedOn": "2024/01/16",
+196:   "tags": ["fake"]
+197: }
+198: ```
+199: 
+200: ## Content accuracy rules
+201: 
+202: 1. Never invent a fact, a score, a statistic, a date or a URL.
+203: 2. Every claim needs a named source and a live `https` URL.
+204: 3. Every claim records the period it refers to.
+205: 4. A roast is published only when a human has set `verified` to `true` and dated it.
+206: 5. If a fact cannot be sourced, the roast is cut. It is not softened or hedged.
+207: 6. Sample and test data is labelled FAKE and is never loaded by the site.
+208: 
+209: The browser drops invalid roasts and logs a console warning with the roast id and the
+210: reasons. The data gate is strict and fails the build.
+211: 
+212: ## Adding a new club
+213: 
+214: 1. Add the club to `data/clubs.json` with `id`, `name`, `shortName`, `status` set to
+215:    `comingSoon`, `themeKey` and an optional `dataFile`.
+216: 2. Create `data/clubs/<clubid>.json` with club metadata, the full theme object, the
+217:    categories array and an empty `roasts` array. The file is validated exactly like a live
+218:    club file.
+219: 3. Run `npm run validate` and `npm test`. When both pass, change the registry status from
+220:    `comingSoon` to `live` and run `npm run validate` again.
+221: 
+222: The orphan rule is strict: every file in `data/clubs` must be referenced by a `dataFile`
+223: path on some registry entry, whatever the status of that entry.
+224: 
+225: ## Accessibility and performance
+226: 
+227: - Semantic landmarks, a skip link, a `lang` attribute and one `h1` per page
+228: - Visible focus rings driven by tokens, never colour alone
+229: - Colour contrast checked against WCAG AA
+230: - All motion runs through duration tokens and collapses under `prefers-reduced-motion`
+231: - The roast reveal animation checks `prefers-reduced-motion` in JavaScript as well as
+232:   CSS, so the reel is skipped entirely for users who ask for less motion
+233: - The intermediate reel text is `aria hidden`; only the final roast is announced through
+234:   a polite live region
+235: - Fonts load with `preconnect` and `display=swap`, and every stack has a system fallback
+236: - No frameworks, no bundlers and one development dependency
+237: 
+238: ## Validation and tests
+239: 
+240: ```bash
+241: npm run validate
+242: npm test
+243: ```
+244: 
+245: `npm run validate` fails on an invalid roast, a duplicate roast id, an unknown category,
+246: an unknown club, a live club with no data file, an unreadable live data file, an invalid
+247: data file on a coming soon club that declares one, an orphaned data file that no registry
+248: entry references, or a malformed registry. `npm test` runs both the schema tests and the
+249: shuffle bag tests with FAKE fixtures in `tests/fixtures/`.
+
+================
+File: tailwind.config.js
+================
+  1: /**
+  2:  * Tailwind reads its colour, type, spacing, radius, shadow, z index and motion
+  3:  * scales straight from the CSS custom properties in css/tokens.css. That is
+  4:  * what lets a club theme swap without a rebuild or a class change.
+  5:  */
+  6: 
+  7: const colors = {
+  8:   transparent: 'transparent',
+  9:   current: 'currentColor',
+ 10:   inherit: 'inherit',
+ 11:   white: '#FFFFFF',
+ 12:   black: '#000000',
+ 13:   background: 'var(--colorBackground)',
+ 14:   surface: 'var(--colorSurface)',
+ 15:   surfaceRaised: 'var(--colorSurfaceRaised)',
+ 16:   line: 'var(--colorLine)',
+ 17:   text: 'var(--colorText)',
+ 18:   textMuted: 'var(--colorTextMuted)',
+ 19:   primary: 'var(--colorPrimary)',
+ 20:   primaryContrast: 'var(--colorPrimaryContrast)',
+ 21:   accent: 'var(--colorAccent)',
+ 22: };
+ 23: 
+ 24: /** @type {import('tailwindcss').Config} */
+ 25: export default {
+ 26:   content: ['./*.html', './js/**/*.js'],
+ 27:   theme: {
+ 28:     colors,
+ 29:     borderColor: {
+ 30:       DEFAULT: 'var(--colorLine)',
+ 31:       ...colors,
+ 32:     },
+ 33:     ringColor: {
+ 34:       DEFAULT: 'var(--colorAccent)',
+ 35:       ...colors,
+ 36:     },
+ 37:     outlineColor: {
+ 38:       ...colors,
+ 39:     },
+ 40:     fontFamily: {
+ 41:       display: 'var(--fontDisplay)',
+ 42:       body: 'var(--fontBody)',
+ 43:       sans: 'var(--fontBody)',
+ 44:     },
+ 45:     fontSize: {
+ 46:       xs: ['var(--textXs)', { lineHeight: 'var(--leadingNormal)' }],
+ 47:       sm: ['var(--textSm)', { lineHeight: 'var(--leadingNormal)' }],
+ 48:       base: ['var(--textBase)', { lineHeight: 'var(--leadingNormal)' }],
+ 49:       lg: ['var(--textLg)', { lineHeight: 'var(--leadingRelaxed)' }],
+ 50:       xl: ['var(--textXl)', { lineHeight: 'var(--leadingSnug)' }],
+ 51:       '2xl': ['var(--text2xl)', { lineHeight: 'var(--leadingSnug)' }],
+ 52:       '3xl': ['var(--text3xl)', { lineHeight: 'var(--leadingTight)' }],
+ 53:       displaySm: ['var(--textDisplaySm)', { lineHeight: 'var(--leadingTight)', letterSpacing: 'var(--trackingTight)' }],
+ 54:       displayMd: ['var(--textDisplayMd)', { lineHeight: 'var(--leadingTight)', letterSpacing: 'var(--trackingTight)' }],
+ 55:       displayLg: ['var(--textDisplayLg)', { lineHeight: 'var(--leadingTight)', letterSpacing: 'var(--trackingTight)' }],
+ 56:     },
+ 57:     lineHeight: {
+ 58:       tight: 'var(--leadingTight)',
+ 59:       snug: 'var(--leadingSnug)',
+ 60:       normal: 'var(--leadingNormal)',
+ 61:       relaxed: 'var(--leadingRelaxed)',
+ 62:     },
+ 63:     letterSpacing: {
+ 64:       tight: 'var(--trackingTight)',
+ 65:       normal: 'var(--trackingNormal)',
+ 66:       wide: 'var(--trackingWide)',
+ 67:       wider: 'var(--trackingWider)',
+ 68:     },
+ 69:     spacing: {
+ 70:       0: '0px',
+ 71:       px: '1px',
+ 72:       1: 'var(--space1)',
+ 73:       2: 'var(--space2)',
+ 74:       3: 'var(--space3)',
+ 75:       4: 'var(--space4)',
+ 76:       5: 'var(--space5)',
+ 77:       6: 'var(--space6)',
+ 78:       8: 'var(--space8)',
+ 79:       10: 'var(--space10)',
+ 80:       12: 'var(--space12)',
+ 81:       16: 'var(--space16)',
+ 82:       20: 'var(--space20)',
+ 83:       24: 'var(--space24)',
+ 84:     },
+ 85:     borderRadius: {
+ 86:       none: '0px',
+ 87:       sharp: 'var(--radiusSharp)',
+ 88:       soft: 'var(--radiusSoft)',
+ 89:       pill: 'var(--radiusPill)',
+ 90:       full: '9999px',
+ 91:     },
+ 92:     borderWidth: {
+ 93:       DEFAULT: 'var(--borderWidth1)',
+ 94:       0: '0px',
+ 95:       1: 'var(--borderWidth1)',
+ 96:       2: 'var(--borderWidth2)',
+ 97:       3: 'var(--borderWidth3)',
+ 98:     },
+ 99:     boxShadow: {
+100:       none: 'none',
+101:       flat: 'var(--shadowFlat)',
+102:       raised: 'var(--shadowRaised)',
+103:     },
+104:     zIndex: {
+105:       base: 'var(--zBase)',
+106:       raised: 'var(--zRaised)',
+107:       overlay: 'var(--zOverlay)',
+108:       toast: 'var(--zToast)',
+109:     },
+110:     transitionDuration: {
+111:       fast: 'var(--durationFast)',
+112:       normal: 'var(--durationNormal)',
+113:       slow: 'var(--durationSlow)',
+114:     },
+115:     transitionTimingFunction: {
+116:       standard: 'var(--easeStandard)',
+117:       out: 'var(--easeOut)',
+118:     },
+119:     extend: {},
+120:   },
+121:   plugins: [],
+122: };
+
+================
+File: package.json
+================
+ 1: {
+ 2:   "name": "theroastroom",
+ 3:   "version": "1.1.0",
+ 4:   "private": true,
+ 5:   "description": "The Roast Room, a football banter site built by Fritt. Stage 2: landing page, club picker and roast generator.",
+ 6:   "type": "module",
+ 7:   "scripts": {
+ 8:     "css": "tailwindcss -i ./src/input.css -o ./dist/styles.css --minify",
+ 9:     "watch": "tailwindcss -i ./src/input.css -o ./dist/styles.css --watch",
+10:     "validate": "node ./scripts/validate.mjs",
+11:     "test": "node --test ./tests/schema.test.mjs ./tests/shuffleBag.test.mjs"
+12:   },
+13:   "devDependencies": {
+14:     "tailwindcss": "3.4.17"
+15:   }
+16: }
+
+
+
+
+
+================================================================
+End of Codebase
+================================================================

@@ -8,8 +8,7 @@
     "css": "tailwindcss -i ./src/input.css -o ./dist/styles.css --minify",
     "watch": "tailwindcss -i ./src/input.css -o ./dist/styles.css --watch",
     "validate": "node ./scripts/validate.mjs",
-    "test": "node --test ./tests/schema.test.mjs ./tests/shuffleBag.test.mjs",
-    "build": "tailwindcss -i ./src/input.css -o ./dist/styles.css --minify"
+    "test": "node --test ./tests/schema.test.mjs ./tests/shuffleBag.test.mjs"
   },
   "devDependencies": {
     "tailwindcss": "3.4.17"
