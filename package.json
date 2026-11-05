@@ -1,14 +1,14 @@
 {
   "name": "theroastroom",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "private": true,
-  "description": "The Roast Room, a football banter site built by Fritt. Stage 2: landing page, club picker and roast generator.",
+  "description": "The Roast Room, a football banter site built by Fritt. Stage 3: branded share cards, download and share actions.",
   "type": "module",
   "scripts": {
     "css": "tailwindcss -i ./src/input.css -o ./dist/styles.css --minify",
     "watch": "tailwindcss -i ./src/input.css -o ./dist/styles.css --watch",
     "validate": "node ./scripts/validate.mjs",
-    "test": "node --test ./tests/schema.test.mjs ./tests/shuffleBag.test.mjs"
+    "test": "node --test ./tests/schema.test.mjs ./tests/shuffleBag.test.mjs ./tests/shareText.test.mjs"
   },
   "devDependencies": {
     "tailwindcss": "3.4.17"

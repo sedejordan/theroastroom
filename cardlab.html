@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Card lab | The Roast Room</title>
+    <meta
+      name="description"
+      content="Developer only QA page for shared roast cards."
+    />
+    <meta name="robots" content="noindex" />
+    <meta name="color-scheme" content="dark" />
+    <meta name="theme-color" content="#0A0A0A" />
+
+    <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Anton&amp;family=Inter:wght@400;500;600;700&amp;display=swap"
+    />
+    <link rel="stylesheet" href="./dist/styles.css" />
+
+    <script type="module" src="./js/dev/cardLab.js" defer></script>
+  </head>
+
+  <body class="min-h-screen bg-background text-text">
+    <a class="skipLink" href="#main">Skip to content</a>
+
+    <header class="border-b border-line bg-surface">
+      <div class="mx-auto max-w-6xl px-4 py-8">
+        <p class="tokenLabel">Developer only QA page</p>
+        <h1 class="mt-3 font-display text-4xl uppercase text-text">Card lab</h1>
+        <p class="mt-3 max-w-2xl text-sm text-textMuted">
+          Every roast of every live club is drawn in both formats. This page is not linked
+          from public pages.
+        </p>
+      </div>
+    </header>
+
+    <main id="main" class="mx-auto max-w-6xl px-4 py-8">
+      <p id="cardLabSummary" role="status" aria-live="polite" class="text-accent">
+        Loading cards.
+      </p>
+      <p
+        id="cardLabWarning"
+        class="hidden mt-3 rounded-sharp border border-primary bg-surfaceRaised p-4 text-text"
+        role="alert"
+      ></p>
+
+      <div id="cardLabGrid" class="mt-6 grid gap-6 md:grid-cols-2 xl:grid-cols-3"></div>
+    </main>
+  </body>
+</html>

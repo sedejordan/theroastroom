@@ -122,6 +122,147 @@
       will-change: auto;
     }
   }
+
+  /* Share panel */
+  .sharePanel {
+    margin-top: var(--space8);
+    border: var(--borderWidth1) solid var(--colorLine);
+    border-radius: var(--radiusSharp);
+    background-color: var(--colorSurface);
+    padding: var(--space5);
+  }
+
+  .sharePanelHeading {
+    margin: 0;
+    font-family: var(--fontDisplay);
+    font-size: var(--text2xl);
+    line-height: var(--leadingTight);
+    letter-spacing: var(--trackingTight);
+    text-transform: uppercase;
+    color: var(--colorText);
+  }
+
+  .shareFormatToggle {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space2);
+    margin-top: var(--space4);
+  }
+
+  .shareFormatButton {
+    border: var(--borderWidth1) solid var(--colorLine);
+    border-radius: var(--radiusPill);
+    background-color: var(--colorSurfaceRaised);
+    color: var(--colorText);
+    padding: var(--space2) var(--space4);
+    font-size: var(--textSm);
+    transition:
+      background-color var(--durationFast) var(--easeStandard),
+      color var(--durationFast) var(--easeStandard),
+      border-color var(--durationFast) var(--easeStandard);
+  }
+
+  .shareFormatButton:hover {
+    border-color: var(--colorPrimary);
+  }
+
+  .shareFormatButton[aria-pressed='true'] {
+    background-color: var(--colorPrimary);
+    border-color: var(--colorPrimary);
+    color: var(--colorPrimaryContrast);
+  }
+
+  .sharePreviewWrap {
+    display: flex;
+    justify-content: center;
+    margin-top: var(--space4);
+    border: var(--borderWidth1) solid var(--colorLine);
+    background-color: var(--colorSurfaceRaised);
+    padding: var(--space3);
+  }
+
+  .sharePreviewCanvas {
+    display: block;
+    width: 100%;
+    height: auto;
+    max-height: 60vh;
+    object-fit: contain;
+    background-color: var(--colorBackground);
+  }
+
+  .shareActions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space3);
+    margin-top: var(--space4);
+  }
+
+  .shareActionPrimary,
+  .shareActionSecondary {
+    border-radius: var(--radiusSharp);
+    border: var(--borderWidth1) solid var(--colorLine);
+    padding: var(--space3) var(--space5);
+    font-weight: 600;
+    transition:
+      background-color var(--durationFast) var(--easeStandard),
+      color var(--durationFast) var(--easeStandard),
+      border-color var(--durationFast) var(--easeStandard);
+  }
+
+  .shareActionPrimary {
+    background-color: var(--colorPrimary);
+    border-color: var(--colorPrimary);
+    color: var(--colorPrimaryContrast);
+  }
+
+  .shareActionPrimary:hover {
+    background-color: var(--colorAccent);
+    border-color: var(--colorAccent);
+    color: var(--colorBackground);
+  }
+
+  .shareActionSecondary {
+    background-color: var(--colorSurfaceRaised);
+    color: var(--colorText);
+  }
+
+  .shareActionSecondary:hover {
+    border-color: var(--colorPrimary);
+  }
+
+  .shareActionPrimary:disabled,
+  .shareActionSecondary:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
+  .shareStatus {
+    min-height: 1.5em;
+    margin-top: var(--space3);
+    font-size: var(--textSm);
+    color: var(--colorTextMuted);
+  }
+
+  .shareFallback {
+    margin-top: var(--space3);
+  }
+
+  .shareFallbackInput {
+    width: 100%;
+    margin-top: var(--space2);
+    border: var(--borderWidth1) solid var(--colorLine);
+    border-radius: var(--radiusSharp);
+    background-color: var(--colorBackground);
+    color: var(--colorText);
+    padding: var(--space3);
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: var(--textSm);
+  }
+
+  .shareFallbackInput:focus-visible {
+    outline: var(--borderWidth2) solid var(--colorAccent);
+    outline-offset: 2px;
+  }
 }
 
 @keyframes tickerScroll {

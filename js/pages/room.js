@@ -13,6 +13,7 @@ import { createShuffleBag } from '../ui/shuffleBag.js';
 import { revealRoast } from '../ui/reveal.js';
 import { clear, prefersReducedMotion } from '../utils/dom.js';
 import { parseRoastHash } from '../utils/links.js';
+import { createSharePanel } from '../share/sharePanel.js';
 
 const params = new URLSearchParams(window.location.search);
 const clubIdParam = params.get('club') || DEFAULT_CLUB_ID;
@@ -29,6 +30,7 @@ const clubBadge = document.getElementById('clubBadge');
 const emptyEl = document.getElementById('emptyState');
 const liveRegion = document.getElementById('roastLiveRegion');
 const pageHeading = document.getElementById('pageHeading');
+const sharePanelEl = document.getElementById('sharePanel');
 
 /** @type {Record<string, unknown> | null} */
 let club = null;
@@ -38,6 +40,8 @@ let bag = null;
 /** @type {Record<string, unknown> | null} */
 let currentRoast = null;
 let busy = false;
+/** @type {ReturnType<typeof createSharePanel> | null} */
+let sharePanel = null;
 
 function showLoading() {
   if (loadingEl) loadingEl.classList.remove('hidden');
@@ -154,6 +158,14 @@ async function showRoast(roast, options = {}) {
     liveRegion.textContent = String(roast.headline);
   }
 
+  if (sharePanel) {
+    try {
+      sharePanel.update(roast, category, club);
+    } catch (error) {
+      console.warn('[roastRoom] could not update the share panel', error);
+    }
+  }
+
   updateProgress();
 }
 
@@ -190,6 +202,7 @@ function rebuildBagAndFilter() {
     clear(roastContainer);
     currentRoast = null;
     if (progressEl) progressEl.textContent = '';
+    if (sharePanel) sharePanel.hide();
   }
 }
 
@@ -204,6 +217,7 @@ function handleFilterChange(newId) {
   currentRoast = null;
   if (roastContainer) clear(roastContainer);
   if (liveRegion) liveRegion.textContent = '';
+  if (sharePanel) sharePanel.hide();
   rebuildBagAndFilter();
 }
 
@@ -270,6 +284,14 @@ async function init() {
     selectedCategory = 'all';
     rebuildBagAndFilter();
     showRoom();
+
+    if (sharePanelEl && !sharePanel) {
+      try {
+        sharePanel = createSharePanel({ container: sharePanelEl });
+      } catch (error) {
+        console.warn('[roastRoom] could not create the share panel', error);
+      }
+    }
 
     if (deepRoast) {
       await showRoast(deepRoast, { animate: false });
