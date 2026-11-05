@@ -1,0 +1,18 @@
+name = "roastroomsuggest"
+main = "src/index.js"
+compatibility_date = "2025-04-01"
+
+[[kv_namespaces]]
+binding = "SUGGESTIONS"
+id = "c7d1798800ad476598ef3323f31195eb"
+
+[vars]
+# Comma separated list of allowed origins.
+# Requests with an Origin header that is not on this list are rejected with 403
+# for POST routes and receive no CORS headers for any route.
+#
+# http://localhost:3000              local dev (any dev server on this port)
+# http://localhost:8000              local dev (python -m http.server)
+# https://paste_your_netlify_site_here   your Netlify site URL
+# https://roastroom.fritt.org        production site
+ALLOWED_ORIGINS = "http://localhost:3000,http://localhost:8000,https://deroastroom.netlify.app/,https://roastroom.fritt.org"
