@@ -355,13 +355,16 @@ async function handleAdminRemove(request, env, origin) {
 }
 
 export default {
-  /**
-   * Worker entry point.
-   * @param {Request} request
-   * @param {Record<string, unknown>} env
-   * @returns {Promise<Response>}
-   */
   async fetch(request, env) {
+    try {
+      return await handleRequest(request, env);
+    } catch {
+      return errorResponse('serverError', 'Something went wrong. Please try again.', 500, '');
+    }
+  },
+};
+
+async function handleRequest(request, env) {
     const url = new URL(request.url);
     const allowedOrigins = typeof env.ALLOWED_ORIGINS === 'string' ? env.ALLOWED_ORIGINS : '';
     const origin = pickOrigin(request.headers.get('Origin') || '', allowedOrigins);
@@ -398,5 +401,4 @@ export default {
     }
 
     return errorResponse('notFound', 'That route does not exist.', 404, origin);
-  },
-};
+}
