@@ -49,16 +49,32 @@ Directory Structure
 ================================================================
 css/
   base.css
+  components.css
   tokens.css
 data/
   clubs/
     manutd.json
   clubs.json
 js/
+  dev/
+    adminLab.js
+    cardLab.js
   pages/
     landing.js
     room.js
     shuffleBag.test.mjs
+  share/
+    actions.js
+    cardFormats.js
+    renderCard.js
+    shareConfig.js
+    sharePanel.js
+    shareText.js
+    textLayout.js
+  suggest/
+    suggestClient.js
+    suggestConfig.js
+    suggestSection.js
   ui/
     categoryFilter.js
     reveal.js
@@ -72,6 +88,7 @@ js/
   schema.js
   theme.js
 scripts/
+  buildSite.mjs
   validate.mjs
 src/
   input.css
@@ -79,7 +96,18 @@ tests/
   fixtures/
     fakeData.mjs
   schema.test.mjs
+  shareText.test.mjs
+  suggestLogic.test.mjs
+worker/
+  src/
+    index.js
+    logic.js
+  package.json
+  README.md
+  wrangler.toml
 .gitignore
+adminlab.html
+cardlab.html
 favicon.svg
 index.html
 package.json
@@ -91,6 +119,892 @@ tokens.html
 ================================================================
 Files
 ================================================================
+
+================
+File: js/dev/adminLab.js
+================
+  1: /**
+  2:  * Logic for the developer only suggestions admin page.
+  3:  * The admin token lives in memory only and is never stored or logged.
+  4:  * Every network call is wrapped with an 8 second timeout and returns a
+  5:  * friendly result. Never throws.
+  6:  */
+  7: 
+  8: import { SUGGEST_API_BASE } from '../suggest/suggestConfig.js';
+  9: 
+ 10: const formEl = document.getElementById('adminForm');
+ 11: const tokenEl = document.getElementById('adminToken');
+ 12: const statusEl = document.getElementById('adminStatus');
+ 13: const bodyEl = document.getElementById('adminBody');
+ 14: 
+ 15: let adminToken = '';
+ 16: 
+ 17: /**
+ 18:  * Set the live status message.
+ 19:  * @param {string} message
+ 20:  * @returns {void}
+ 21:  */
+ 22: function setStatus(message) {
+ 23:   if (statusEl) statusEl.textContent = message || '';
+ 24: }
+ 25: 
+ 26: /**
+ 27:  * Fetch a Worker admin endpoint with a bearer token and an 8 second timeout.
+ 28:  * @param {string} path
+ 29:  * @param {RequestInit} options
+ 30:  * @returns {Promise<{ ok: boolean, response: Response | null }>}
+ 31:  */
+ 32: async function adminFetch(path, options) {
+ 33:   const controller = new AbortController();
+ 34:   const timer = setTimeout(() => controller.abort(), 8000);
+ 35:   try {
+ 36:     const response = await fetch(`${SUGGEST_API_BASE}${path}`, {
+ 37:       ...options,
+ 38:       headers: {
+ 39:         ...(options && options.headers ? options.headers : {}),
+ 40:         Authorization: `Bearer ${adminToken}`,
+ 41:       },
+ 42:       signal: controller.signal,
+ 43:     });
+ 44:     return { ok: true, response };
+ 45:   } catch {
+ 46:     return { ok: false, response: null };
+ 47:   } finally {
+ 48:     clearTimeout(timer);
+ 49:   }
+ 50: }
+ 51: 
+ 52: /**
+ 53:  * Load every suggestion from the Worker.
+ 54:  * @returns {Promise<void>}
+ 55:  */
+ 56: async function loadSuggestions() {
+ 57:   setStatus('Loading.');
+ 58:   const result = await adminFetch('/api/admin/suggestions', { method: 'GET' });
+ 59:   if (!result.ok || !result.response || !result.response.ok) {
+ 60:     setStatus('Could not load. Check the token and try again.');
+ 61:     return;
+ 62:   }
+ 63:   let data = null;
+ 64:   try {
+ 65:     data = await result.response.json();
+ 66:   } catch {
+ 67:     data = null;
+ 68:   }
+ 69:   if (!data || !Array.isArray(data.suggestions)) {
+ 70:     setStatus('Could not load. The response was not what we expected.');
+ 71:     return;
+ 72:   }
+ 73:   renderTable(data.suggestions);
+ 74:   setStatus(`${data.suggestions.length} suggestions loaded.`);
+ 75: }
+ 76: 
+ 77: /**
+ 78:  * Approve or hide one suggestion.
+ 79:  * @param {string} slug
+ 80:  * @param {boolean} approved
+ 81:  * @returns {Promise<void>}
+ 82:  */
+ 83: async function setApproved(slug, approved) {
+ 84:   const result = await adminFetch('/api/admin/approve', {
+ 85:     method: 'POST',
+ 86:     headers: { 'Content-Type': 'application/json' },
+ 87:     body: JSON.stringify({ slug, approved }),
+ 88:   });
+ 89:   if (!result.ok || !result.response || !result.response.ok) {
+ 90:     setStatus('Could not update that suggestion.');
+ 91:     return;
+ 92:   }
+ 93:   await loadSuggestions();
+ 94:   setStatus(approved ? 'Approved.' : 'Hidden.');
+ 95: }
+ 96: 
+ 97: /**
+ 98:  * Remove one suggestion.
+ 99:  * @param {string} slug
+100:  * @returns {Promise<void>}
+101:  */
+102: async function removeSuggestion(slug) {
+103:   const result = await adminFetch('/api/admin/remove', {
+104:     method: 'POST',
+105:     headers: { 'Content-Type': 'application/json' },
+106:     body: JSON.stringify({ slug }),
+107:   });
+108:   if (!result.ok || !result.response || !result.response.ok) {
+109:     setStatus('Could not remove that suggestion.');
+110:     return;
+111:   }
+112:   await loadSuggestions();
+113:   setStatus('Removed.');
+114: }
+115: 
+116: /**
+117:  * Render the suggestion table.
+118:  * @param {Array<{
+119:  *   slug: string, name: string, votes: number, approved: boolean,
+120:  *   createdAt: string, updatedAt: string
+121:  * }>} suggestions
+122:  * @returns {void}
+123:  */
+124: function renderTable(suggestions) {
+125:   if (!bodyEl) return;
+126:   bodyEl.textContent = '';
+127: 
+128:   for (const suggestion of suggestions) {
+129:     const row = document.createElement('tr');
+130: 
+131:     const cell = (value) => {
+132:       const td = document.createElement('td');
+133:       td.className = 'border border-line p-2 text-sm';
+134:       td.textContent = value;
+135:       return td;
+136:     };
+137: 
+138:     row.append(
+139:       cell(suggestion.name),
+140:       cell(suggestion.slug),
+141:       cell(String(suggestion.votes)),
+142:       cell(suggestion.approved ? 'Yes' : 'No'),
+143:       cell(suggestion.createdAt),
+144:       cell(suggestion.updatedAt)
+145:     );
+146: 
+147:     const actions = document.createElement('td');
+148:     actions.className = 'border border-line p-2';
+149: 
+150:     const toggle = document.createElement('button');
+151:     toggle.type = 'button';
+152:     toggle.textContent = suggestion.approved ? 'Hide' : 'Approve';
+153:     toggle.className =
+154:       'mr-2 rounded-sharp border border-primary bg-primary px-2 py-1 text-xs text-primaryContrast';
+155:     toggle.addEventListener('click', () => {
+156:       setApproved(suggestion.slug, !suggestion.approved);
+157:     });
+158: 
+159:     const remove = document.createElement('button');
+160:     remove.type = 'button';
+161:     remove.textContent = 'Remove';
+162:     remove.className = 'rounded-sharp border border-line bg-surface px-2 py-1 text-xs text-text';
+163:     remove.addEventListener('click', () => {
+164:       if (window.confirm(`Remove ${suggestion.name}?`)) {
+165:         removeSuggestion(suggestion.slug);
+166:       }
+167:     });
+168: 
+169:     actions.append(toggle, remove);
+170:     row.append(actions);
+171:     bodyEl.append(row);
+172:   }
+173: }
+174: 
+175: if (formEl) {
+176:   formEl.addEventListener('submit', (event) => {
+177:     event.preventDefault();
+178:     if (!SUGGEST_API_BASE) {
+179:       setStatus('SUGGEST_API_BASE is empty. Set it to the deployed Worker URL first.');
+180:       return;
+181:     }
+182:     adminToken = tokenEl && typeof tokenEl.value === 'string' ? tokenEl.value : '';
+183:     if (!adminToken) {
+184:       setStatus('Enter the admin token first.');
+185:       return;
+186:     }
+187:     loadSuggestions();
+188:   });
+189: }
+
+================
+File: js/suggest/suggestClient.js
+================
+  1: /**
+  2:  * Network client for the suggestions Worker.
+  3:  * Every call is wrapped with an 8 second timeout and returns a friendly
+  4:  * result. Never throws. Never logs secrets, tokens or IP addresses.
+  5:  */
+  6: 
+  7: import { SUGGEST_API_BASE } from './suggestConfig.js';
+  8: 
+  9: const REQUEST_TIMEOUT_MS = 8000;
+ 10: 
+ 11: /**
+ 12:  * Read a response body as JSON without throwing.
+ 13:  * @param {Response} response
+ 14:  * @returns {Promise<unknown>}
+ 15:  */
+ 16: async function readJson(response) {
+ 17:   try {
+ 18:     return await response.json();
+ 19:   } catch {
+ 20:     return null;
+ 21:   }
+ 22: }
+ 23: 
+ 24: /**
+ 25:  * Fetch with an 8 second timeout. Returns a friendly result on any failure.
+ 26:  * @param {string} path
+ 27:  * @param {RequestInit} options
+ 28:  * @returns {Promise<{ ok: boolean, response: Response | null }>}
+ 29:  */
+ 30: async function fetchWithTimeout(path, options) {
+ 31:   const controller = new AbortController();
+ 32:   const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+ 33:   try {
+ 34:     const response = await fetch(`${SUGGEST_API_BASE}${path}`, {
+ 35:       ...options,
+ 36:       signal: controller.signal,
+ 37:     });
+ 38:     return { ok: true, response };
+ 39:   } catch {
+ 40:     return { ok: false, response: null };
+ 41:   } finally {
+ 42:     clearTimeout(timer);
+ 43:   }
+ 44: }
+ 45: 
+ 46: /**
+ 47:  * Load the public leaderboard from the Worker.
+ 48:  * @returns {Promise<{
+ 49:  *   ok: boolean,
+ 50:  *   suggestions: Array<{ slug: string, name: string, votes: number }>
+ 51:  * }>}
+ 52:  */
+ 53: export async function fetchSuggestions() {
+ 54:   if (!SUGGEST_API_BASE) return { ok: false, suggestions: [] };
+ 55:   const result = await fetchWithTimeout('/api/suggestions', { method: 'GET' });
+ 56:   if (!result.ok || !result.response.ok) return { ok: false, suggestions: [] };
+ 57:   const data = await readJson(result.response);
+ 58:   if (!data || !Array.isArray(data.suggestions)) {
+ 59:     return { ok: false, suggestions: [] };
+ 60:   }
+ 61:   return { ok: true, suggestions: data.suggestions };
+ 62: }
+ 63: 
+ 64: /**
+ 65:  * Submit a suggestion. The website field is the honeypot; the UI already
+ 66:  * short circuits a filled honeypot, and the Worker does the same.
+ 67:  * @param {string} name
+ 68:  * @param {string} website
+ 69:  * @returns {Promise<{ ok: boolean, status: string, message: string }>}
+ 70:  */
+ 71: export async function submitSuggestion(name, website) {
+ 72:   if (!SUGGEST_API_BASE) return { ok: false, status: '', message: '' };
+ 73:   const result = await fetchWithTimeout('/api/suggestions', {
+ 74:     method: 'POST',
+ 75:     headers: { 'Content-Type': 'application/json' },
+ 76:     body: JSON.stringify({ name, website: website || '' }),
+ 77:   });
+ 78:   if (!result.ok || !result.response) {
+ 79:     return { ok: false, status: '', message: 'Suggestions are unavailable right now.' };
+ 80:   }
+ 81:   const data = await readJson(result.response);
+ 82:   if (!result.response.ok || !data || typeof data !== 'object') {
+ 83:     const message = data && typeof data.message === 'string' ? data.message : 'Suggestions are unavailable right now.';
+ 84:     return { ok: false, status: '', message };
+ 85:   }
+ 86:   return {
+ 87:     ok: true,
+ 88:     status: typeof data.status === 'string' ? data.status : '',
+ 89:     message: typeof data.message === 'string' ? data.message : '',
+ 90:   };
+ 91: }
+ 92: 
+ 93: /**
+ 94:  * Vote for an approved suggestion.
+ 95:  * @param {string} slug
+ 96:  * @returns {Promise<{ ok: boolean, status: string, message: string }>}
+ 97:  */
+ 98: export async function submitVote(slug) {
+ 99:   if (!SUGGEST_API_BASE) return { ok: false, status: '', message: '' };
+100:   const result = await fetchWithTimeout('/api/votes', {
+101:     method: 'POST',
+102:     headers: { 'Content-Type': 'application/json' },
+103:     body: JSON.stringify({ slug }),
+104:   });
+105:   if (!result.ok || !result.response) {
+106:     return { ok: false, status: '', message: 'Suggestions are unavailable right now.' };
+107:   }
+108:   const data = await readJson(result.response);
+109:   if (!result.response.ok || !data || typeof data !== 'object') {
+110:     const message = data && typeof data.message === 'string' ? data.message : 'Suggestions are unavailable right now.';
+111:     return { ok: false, status: '', message };
+112:   }
+113:   return {
+114:     ok: true,
+115:     status: typeof data.status === 'string' ? data.status : '',
+116:     message: typeof data.message === 'string' ? data.message : '',
+117:   };
+118: }
+
+================
+File: js/suggest/suggestConfig.js
+================
+ 1: /**
+ 2:  * Base URL of the suggestions Worker.
+ 3:  *
+ 4:  * Leave this empty to hide the whole suggestion section and make no network
+ 5:  * calls. Set it to the deployed Worker URL, for example
+ 6:  * https://roastroomsuggest.yourname.workers.dev, once the Worker is ready.
+ 7:  *
+ 8:  * @type {string}
+ 9:  */
+10: export const SUGGEST_API_BASE = 'https://roastroomsuggest.roastroom.workers.dev';
+
+================
+File: js/suggest/suggestSection.js
+================
+  1: /**
+  2:  * Builds the suggestion section on the landing page.
+  3:  * Renders the form, the leaderboard and the status line. Remembers voted
+  4:  * slugs in localStorage so a reload keeps the Voted state. When
+  5:  * SUGGEST_API_BASE is empty, does nothing: the section stays hidden and no
+  6:  * network calls are made.
+  7:  */
+  8: 
+  9: import { SUGGEST_API_BASE } from './suggestConfig.js';
+ 10: import { fetchSuggestions, submitSuggestion, submitVote } from './suggestClient.js';
+ 11: import { clear, createElement } from '../utils/dom.js';
+ 12: 
+ 13: const VOTED_STORAGE_KEY = 'roastroom_voted';
+ 14: 
+ 15: /**
+ 16:  * Read the voted slugs from localStorage. Always inside try and catch.
+ 17:  * @returns {string[]}
+ 18:  */
+ 19: function readVotedSlugs() {
+ 20:   try {
+ 21:     const raw = window.localStorage.getItem(VOTED_STORAGE_KEY);
+ 22:     if (!raw) return [];
+ 23:     const parsed = JSON.parse(raw);
+ 24:     return Array.isArray(parsed) ? parsed.filter((entry) => typeof entry === 'string') : [];
+ 25:   } catch {
+ 26:     return [];
+ 27:   }
+ 28: }
+ 29: 
+ 30: /**
+ 31:  * Write the voted slugs to localStorage. Always inside try and catch.
+ 32:  * @param {string[]} slugs
+ 33:  * @returns {void}
+ 34:  */
+ 35: function writeVotedSlugs(slugs) {
+ 36:   try {
+ 37:     window.localStorage.setItem(VOTED_STORAGE_KEY, JSON.stringify(slugs));
+ 38:   } catch {
+ 39:     // localStorage is best effort only.
+ 40:   }
+ 41: }
+ 42: 
+ 43: /**
+ 44:  * Initialise the suggestion section. Does nothing when SUGGEST_API_BASE is
+ 45:  * empty. Safe to call on any page.
+ 46:  * @returns {void}
+ 47:  */
+ 48: export function initSuggestSection() {
+ 49:   if (!SUGGEST_API_BASE) return;
+ 50: 
+ 51:   const section = document.getElementById('suggestSection');
+ 52:   if (!section) return;
+ 53: 
+ 54:   section.classList.remove('hidden');
+ 55: 
+ 56:   const formEl = document.getElementById('suggestForm');
+ 57:   const inputEl = document.getElementById('suggestName');
+ 58:   const honeypotEl = document.getElementById('suggestWebsite');
+ 59:   const submitButton = document.getElementById('suggestSubmit');
+ 60:   const statusEl = document.getElementById('suggestStatus');
+ 61:   const boardEl = document.getElementById('suggestBoard');
+ 62:   const loadingEl = document.getElementById('suggestLoading');
+ 63:   const emptyEl = document.getElementById('suggestEmpty');
+ 64:   const errorEl = document.getElementById('suggestError');
+ 65: 
+ 66:   let votedSlugs = readVotedSlugs();
+ 67: 
+ 68:   /**
+ 69:    * Set the live status message.
+ 70:    * @param {string} message
+ 71:    * @returns {void}
+ 72:    */
+ 73:   function setStatus(message) {
+ 74:     if (statusEl) statusEl.textContent = message || '';
+ 75:   }
+ 76: 
+ 77:   /**
+ 78:    * Show the loading state.
+ 79:    * @returns {void}
+ 80:    */
+ 81:   function showLoading() {
+ 82:     if (loadingEl) loadingEl.classList.remove('hidden');
+ 83:     if (emptyEl) emptyEl.classList.add('hidden');
+ 84:     if (errorEl) errorEl.classList.add('hidden');
+ 85:     if (boardEl) clear(boardEl);
+ 86:   }
+ 87: 
+ 88:   /**
+ 89:    * Show the empty state.
+ 90:    * @returns {void}
+ 91:    */
+ 92:   function showEmpty() {
+ 93:     if (loadingEl) loadingEl.classList.add('hidden');
+ 94:     if (emptyEl) emptyEl.classList.remove('hidden');
+ 95:     if (errorEl) errorEl.classList.add('hidden');
+ 96:     if (boardEl) clear(boardEl);
+ 97:   }
+ 98: 
+ 99:   /**
+100:    * Show the error state.
+101:    * @returns {void}
+102:    */
+103:   function showError() {
+104:     if (loadingEl) loadingEl.classList.add('hidden');
+105:     if (emptyEl) emptyEl.classList.add('hidden');
+106:     if (errorEl) errorEl.classList.remove('hidden');
+107:     if (boardEl) clear(boardEl);
+108:   }
+109: 
+110:   /**
+111:    * Render one row.
+112:    * @param {{ slug: string, name: string, votes: number }} suggestion
+113:    * @returns {HTMLLIElement}
+114:    */
+115:   function renderRow(suggestion) {
+116:     const row = createElement('li', {
+117:       className:
+118:         'flex flex-wrap items-center gap-3 rounded-sharp border border-line bg-surface p-4',
+119:     });
+120:     const name = createElement('p', {
+121:       className: 'font-display text-lg uppercase text-text',
+122:       text: suggestion.name,
+123:     });
+124:     const votes = createElement('p', {
+125:       className: 'text-sm text-textMuted',
+126:       text: suggestion.votes === 1 ? '1 vote' : `${suggestion.votes} votes`,
+127:     });
+128: 
+129:     const alreadyVoted = votedSlugs.includes(suggestion.slug);
+130:     const voteButton = createElement('button', {
+131:       className:
+132:         'rounded-sharp border-2 border-primary bg-primary px-4 py-2 font-display text-base uppercase tracking-wide text-primaryContrast transition-colors duration-fast ease-standard hover:bg-accent hover:text-background disabled:opacity-60',
+133:       text: alreadyVoted ? 'Voted' : 'Vote',
+134:       attrs: {
+135:         type: 'button',
+136:         'aria-label': alreadyVoted
+137:           ? `Voted for ${suggestion.name}`
+138:           : `Vote for ${suggestion.name}`,
+139:       },
+140:     });
+141: 
+142:     if (alreadyVoted) {
+143:       voteButton.disabled = true;
+144:     } else {
+145:       voteButton.addEventListener('click', async () => {
+146:         voteButton.disabled = true;
+147:         const result = await submitVote(suggestion.slug);
+148:         if (result.ok) {
+149:           votedSlugs = votedSlugs.concat(suggestion.slug);
+150:           writeVotedSlugs(votedSlugs);
+151:           voteButton.textContent = 'Voted';
+152:           voteButton.setAttribute('aria-label', `Voted for ${suggestion.name}`);
+153:           setStatus(result.message || 'Your vote was added.');
+154:           await load();
+155:         } else {
+156:           voteButton.disabled = false;
+157:           setStatus(result.message || 'Suggestions are unavailable right now.');
+158:         }
+159:       });
+160:     }
+161: 
+162:     row.append(name, votes, voteButton);
+163:     return row;
+164:   }
+165: 
+166:   /**
+167:    * Load the leaderboard.
+168:    * @returns {Promise<void>}
+169:    */
+170:   async function load() {
+171:     showLoading();
+172:     const result = await fetchSuggestions();
+173:     if (!result.ok) {
+174:       showError();
+175:       return;
+176:     }
+177:     if (result.suggestions.length === 0) {
+178:       showEmpty();
+179:       return;
+180:     }
+181:     if (loadingEl) loadingEl.classList.add('hidden');
+182:     if (emptyEl) emptyEl.classList.add('hidden');
+183:     if (errorEl) errorEl.classList.add('hidden');
+184:     if (boardEl) {
+185:       clear(boardEl);
+186:       for (const suggestion of result.suggestions) {
+187:         boardEl.append(renderRow(suggestion));
+188:       }
+189:     }
+190:   }
+191: 
+192:   if (formEl) {
+193:     formEl.addEventListener('submit', async (event) => {
+194:       event.preventDefault();
+195: 
+196:       // Honeypot: pretend success and send nothing.
+197:       const honeypotValue =
+198:         honeypotEl && typeof honeypotEl.value === 'string' ? honeypotEl.value : '';
+199:       if (honeypotValue.trim().length > 0) {
+200:         if (inputEl) inputEl.value = '';
+201:         setStatus('Thanks, your suggestion will appear after review.');
+202:         return;
+203:       }
+204: 
+205:       if (submitButton) submitButton.disabled = true;
+206:       setStatus('');
+207: 
+208:       const name = inputEl ? inputEl.value : '';
+209:       const result = await submitSuggestion(name, '');
+210: 
+211:       if (submitButton) submitButton.disabled = false;
+212: 
+213:       if (!result.ok) {
+214:         setStatus(result.message || 'Suggestions are unavailable right now.');
+215:         return;
+216:       }
+217: 
+218:       setStatus(result.message || 'Thanks, your suggestion will appear after review.');
+219:       if (inputEl) inputEl.value = '';
+220:       await load();
+221:     });
+222:   }
+223: 
+224:   load();
+225: }
+
+================
+File: scripts/buildSite.mjs
+================
+1: excludedPages.add('adminlab.html');
+
+================
+File: tests/suggestLogic.test.mjs
+================
+  1: /**
+  2:  * Tests for the pure suggestion logic. Node test runner only, no extra
+  3:  * dependencies. Imports the same logic the Worker uses.
+  4:  */
+  5: 
+  6: import test from 'node:test';
+  7: import assert from 'node:assert/strict';
+  8: 
+  9: import {
+ 10:   MAX_SUGGESTIONS,
+ 11:   applySuggestion,
+ 12:   applyVote,
+ 13:   canAct,
+ 14:   canVote,
+ 15:   constantTimeEquals,
+ 16:   normaliseName,
+ 17:   pickOrigin,
+ 18:   publicView,
+ 19:   slugify,
+ 20:   validateName,
+ 21: } from '../worker/src/logic.js';
+ 22: 
+ 23: const NOW = '2026-11-03T12:00:00.000Z';
+ 24: 
+ 25: /**
+ 26:  * Build an empty board.
+ 27:  * @returns {{ version: number, suggestions: Record<string, unknown> }}
+ 28:  */
+ 29: function emptyBoard() {
+ 30:   return { version: 1, suggestions: {} };
+ 31: }
+ 32: 
+ 33: /**
+ 34:  * Build an empty rate record.
+ 35:  * @returns {{ actions: number, voted: string[] }}
+ 36:  */
+ 37: function emptyRate() {
+ 38:   return { actions: 0, voted: [] };
+ 39: }
+ 40: 
+ 41: test('normaliseName trims and collapses whitespace', () => {
+ 42:   assert.equal(normaliseName('  Arsenal  '), 'Arsenal');
+ 43:   assert.equal(normaliseName('Manchester   United'), 'Manchester United');
+ 44:   assert.equal(normaliseName(''), '');
+ 45:   assert.equal(normaliseName(null), '');
+ 46: });
+ 47: 
+ 48: test('validateName accepts an ordinary name', () => {
+ 49:   const result = validateName('Arsenal');
+ 50:   assert.equal(result.valid, true);
+ 51:   assert.equal(result.name, 'Arsenal');
+ 52: });
+ 53: 
+ 54: test('validateName accepts accented names', () => {
+ 55:   assert.equal(validateName('Atlético').valid, true);
+ 56: });
+ 57: 
+ 58: test('validateName accepts an apostrophe', () => {
+ 59:   assert.equal(validateName("St Patrick's").valid, true);
+ 60: });
+ 61: 
+ 62: test('validateName accepts an ampersand', () => {
+ 63:   assert.equal(validateName('Brighton & Hove').valid, true);
+ 64: });
+ 65: 
+ 66: test('validateName rejects a url', () => {
+ 67:   assert.equal(validateName('https://evil.example').valid, false);
+ 68:   assert.equal(validateName('www.evil.example').valid, false);
+ 69: });
+ 70: 
+ 71: test('validateName rejects an at sign', () => {
+ 72:   assert.equal(validateName('user@example').valid, false);
+ 73: });
+ 74: 
+ 75: test('validateName rejects digits only', () => {
+ 76:   assert.equal(validateName('12345').valid, false);
+ 77: });
+ 78: 
+ 79: test('validateName rejects a name that is too short', () => {
+ 80:   assert.equal(validateName('A').valid, false);
+ 81: });
+ 82: 
+ 83: test('validateName rejects a name that is too long', () => {
+ 84:   assert.equal(validateName('A'.repeat(41)).valid, false);
+ 85: });
+ 86: 
+ 87: test('slugify uses lowercase and underscores only', () => {
+ 88:   assert.equal(slugify('Manchester United'), 'manchester_united');
+ 89:   assert.equal(slugify('Arsenal'), 'arsenal');
+ 90:   assert.equal(slugify('Atlético'), 'atletico');
+ 91: });
+ 92: 
+ 93: test('slugify never produces a hyphen', () => {
+ 94:   const value = slugify('Manchester United & Brighton');
+ 95:   assert.ok(!value.includes('-'));
+ 96:   assert.match(value, /^[a-z0-9_]+$/);
+ 97: });
+ 98: 
+ 99: test('a repeated suggestion merges into a vote', () => {
+100:   const first = applySuggestion({
+101:     board: emptyBoard(),
+102:     name: 'Arsenal',
+103:     rateRecord: emptyRate(),
+104:     now: NOW,
+105:   });
+106:   assert.equal(first.outcome, 'pending');
+107:   assert.ok(first.board.suggestions.arsenal);
+108: 
+109:   const second = applySuggestion({
+110:     board: first.board,
+111:     name: 'Arsenal',
+112:     rateRecord: first.rateRecord,
+113:     now: NOW,
+114:   });
+115:   assert.equal(second.outcome, 'voted');
+116:   assert.equal(second.board.suggestions.arsenal.votes, 2);
+117: });
+118: 
+119: test('the board has a 300 suggestion cap', () => {
+120:   const board = { version: 1, suggestions: {} };
+121:   for (let i = 0; i < MAX_SUGGESTIONS; i += 1) {
+122:     board.suggestions[`club_${i}`] = {
+123:       name: `Club ${i}`,
+124:       votes: 1,
+125:       approved: true,
+126:       createdAt: NOW,
+127:       updatedAt: NOW,
+128:     };
+129:   }
+130:   const result = applySuggestion({
+131:     board,
+132:     name: 'New Club',
+133:     rateRecord: emptyRate(),
+134:     now: NOW,
+135:   });
+136:   assert.equal(result.outcome, 'full');
+137: });
+138: 
+139: test('canAct allows fewer than 6 actions', () => {
+140:   assert.equal(canAct({ actions: 5, voted: [] }).allowed, true);
+141: });
+142: 
+143: test('canAct blocks at 6 actions', () => {
+144:   assert.equal(canAct({ actions: 6, voted: [] }).allowed, false);
+145: });
+146: 
+147: test('canVote allows a slug the client has not voted for today', () => {
+148:   assert.equal(canVote({ actions: 0, voted: [] }, 'arsenal').allowed, true);
+149: });
+150: 
+151: test('canVote blocks a slug the client has already voted for today', () => {
+152:   assert.equal(canVote({ actions: 1, voted: ['arsenal'] }, 'arsenal').allowed, false);
+153: });
+154: 
+155: test('applyVote rejects a missing slug', () => {
+156:   const result = applyVote({
+157:     board: emptyBoard(),
+158:     slug: 'missing',
+159:     rateRecord: emptyRate(),
+160:     now: NOW,
+161:   });
+162:   assert.equal(result.outcome, 'notFound');
+163: });
+164: 
+165: test('applyVote rejects an unapproved suggestion', () => {
+166:   const board = {
+167:     version: 1,
+168:     suggestions: {
+169:       arsenal: {
+170:         name: 'Arsenal',
+171:         votes: 1,
+172:         approved: false,
+173:         createdAt: NOW,
+174:         updatedAt: NOW,
+175:       },
+176:     },
+177:   };
+178:   const result = applyVote({ board, slug: 'arsenal', rateRecord: emptyRate(), now: NOW });
+179:   assert.equal(result.outcome, 'notApproved');
+180: });
+181: 
+182: test('publicView shows approved only, sorted by votes then name, no timestamps', () => {
+183:   const board = {
+184:     version: 1,
+185:     suggestions: {
+186:       a: { name: 'Alpha', votes: 3, approved: true, createdAt: NOW, updatedAt: NOW },
+187:       b: { name: 'Bravo', votes: 5, approved: true, createdAt: NOW, updatedAt: NOW },
+188:       c: { name: 'Charlie', votes: 3, approved: true, createdAt: NOW, updatedAt: NOW },
+189:       d: { name: 'Delta', votes: 10, approved: false, createdAt: NOW, updatedAt: NOW },
+190:     },
+191:   };
+192:   const view = publicView(board);
+193:   assert.equal(view.suggestions.length, 3);
+194:   assert.deepEqual(view.suggestions.map((s) => s.slug), ['b', 'a', 'c']);
+195:   for (const suggestion of view.suggestions) {
+196:     assert.equal(suggestion.createdAt, undefined);
+197:     assert.equal(suggestion.updatedAt, undefined);
+198:   }
+199: });
+200: 
+201: test('pickOrigin returns the origin when listed', () => {
+202:   assert.equal(
+203:     pickOrigin('https://roastroom.fritt.org', 'https://roastroom.fritt.org,http://localhost:3000'),
+204:     'https://roastroom.fritt.org'
+205:   );
+206: });
+207: 
+208: test('pickOrigin returns an empty string when not listed', () => {
+209:   assert.equal(pickOrigin('https://evil.example', 'https://roastroom.fritt.org'), '');
+210:   assert.equal(pickOrigin('', 'https://roastroom.fritt.org'), '');
+211: });
+212: 
+213: test('constantTimeEquals compares strings', () => {
+214:   assert.equal(constantTimeEquals('abc', 'abc'), true);
+215:   assert.equal(constantTimeEquals('abc', 'abd'), false);
+216:   assert.equal(constantTimeEquals('abc', 'abcd'), false);
+217:   assert.equal(constantTimeEquals('', ''), true);
+218:   assert.equal(constantTimeEquals(null, 'abc'), false);
+219: });
+220: 
+221: test('applySuggestion rejects an invalid name', () => {
+222:   const result = applySuggestion({
+223:     board: emptyBoard(),
+224:     name: 'https://evil.example',
+225:     rateRecord: emptyRate(),
+226:     now: NOW,
+227:   });
+228:   assert.equal(result.outcome, 'invalid');
+229: });
+230: 
+231: test('applySuggestion rejects when the daily rate limit is reached', () => {
+232:   const result = applySuggestion({
+233:     board: emptyBoard(),
+234:     name: 'Arsenal',
+235:     rateRecord: { actions: 6, voted: [] },
+236:     now: NOW,
+237:   });
+238:   assert.equal(result.outcome, 'rateLimited');
+239: });
+
+================
+File: adminlab.html
+================
+ 1: <!DOCTYPE html>
+ 2: <html lang="en">
+ 3:   <head>
+ 4:     <meta charset="utf-8" />
+ 5:     <meta name="viewport" content="width=device-width, initial-scale=1" />
+ 6:     <title>Suggestions admin | The Roast Room</title>
+ 7:     <meta name="description" content="Developer only admin page for The Roast Room suggestions." />
+ 8:     <meta name="robots" content="noindex" />
+ 9:     <meta name="color-scheme" content="dark" />
+10:     <meta name="theme-color" content="#0A0A0A" />
+11: 
+12:     <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
+13: 
+14:     <link rel="preconnect" href="https://fonts.googleapis.com" />
+15:     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+16:     <link
+17:       rel="stylesheet"
+18:       href="https://fonts.googleapis.com/css2?family=Anton&amp;family=Inter:wght@400;500;600;700&amp;display=swap"
+19:     />
+20:     <link rel="stylesheet" href="./dist/styles.css" />
+21: 
+22:     <script type="module" src="./js/dev/adminLab.js" defer></script>
+23:   </head>
+24: 
+25:   <body class="min-h-screen bg-background text-text">
+26:     <a class="skipLink" href="#main">Skip to content</a>
+27: 
+28:     <header class="border-b border-line bg-surface">
+29:       <div class="mx-auto max-w-5xl px-4 py-8">
+30:         <p class="tokenLabel">Developer only admin page</p>
+31:         <h1 class="mt-3 font-display text-3xl uppercase text-text">Suggestions admin</h1>
+32:         <p class="mt-3 max-w-2xl text-sm text-textMuted">
+33:           This page is not linked from public pages and is excluded from the deploy. The
+34:           token lives in memory only and is never stored.
+35:         </p>
+36:       </div>
+37:     </header>
+38: 
+39:     <main id="main" class="mx-auto max-w-5xl px-4 py-8">
+40:       <form id="adminForm" class="max-w-md" novalidate>
+41:         <label for="adminToken" class="tokenLabel block">Admin token</label>
+42:         <input
+43:           id="adminToken"
+44:           type="password"
+45:           autocomplete="off"
+46:           class="mt-2 w-full rounded-sharp border border-line bg-surface px-3 py-2 text-text focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
+47:         />
+48:         <button
+49:           type="submit"
+50:           class="mt-3 rounded-sharp border-2 border-primary bg-primary px-5 py-3 font-display text-lg uppercase tracking-wide text-primaryContrast transition-colors duration-fast ease-standard hover:bg-accent hover:text-background"
+51:         >
+52:           Load
+53:         </button>
+54:       </form>
+55: 
+56:       <p id="adminStatus" class="mt-4 text-sm text-accent" role="status" aria-live="polite"></p>
+57: 
+58:       <div class="mt-6 overflow-x-auto">
+59:         <table class="w-full border-collapse">
+60:           <thead>
+61:             <tr>
+62:               <th scope="col" class="border border-line p-2 text-left text-xs tokenLabel">Name</th>
+63:               <th scope="col" class="border border-line p-2 text-left text-xs tokenLabel">Slug</th>
+64:               <th scope="col" class="border border-line p-2 text-left text-xs tokenLabel">Votes</th>
+65:               <th scope="col" class="border border-line p-2 text-left text-xs tokenLabel">Approved</th>
+66:               <th scope="col" class="border border-line p-2 text-left text-xs tokenLabel">Created</th>
+67:               <th scope="col" class="border border-line p-2 text-left text-xs tokenLabel">Updated</th>
+68:               <th scope="col" class="border border-line p-2 text-left text-xs tokenLabel">Actions</th>
+69:             </tr>
+70:           </thead>
+71:           <tbody id="adminBody"></tbody>
+72:         </table>
+73:       </div>
+74:     </main>
+75:   </body>
+76: </html>
 
 ================
 File: css/base.css
@@ -1024,6 +1938,185 @@ File: data/clubs.json
 68: }
 
 ================
+File: js/dev/cardLab.js
+================
+  1: /**
+  2:  * Logic for the developer only card lab page.
+  3:  * Renders every roast of every live club in both formats.
+  4:  */
+  5: 
+  6: import { CARD_FORMATS } from '../share/cardFormats.js';
+  7: import { SHARE_HOST_OVERRIDE } from '../share/shareConfig.js';
+  8: import { renderRoastCard } from '../share/renderCard.js';
+  9: import { hostLabel } from '../share/shareText.js';
+ 10: import { getLiveClubs, loadClub, loadRegistry } from '../registry.js';
+ 11: import { clear, createElement } from '../utils/dom.js';
+ 12: 
+ 13: const summaryEl = document.getElementById('cardLabSummary');
+ 14: const warningEl = document.getElementById('cardLabWarning');
+ 15: const gridEl = document.getElementById('cardLabGrid');
+ 16: 
+ 17: /**
+ 18:  * Set the summary line.
+ 19:  * @param {string} text Summary text.
+ 20:  * @returns {void}
+ 21:  */
+ 22: function setSummary(text) {
+ 23:   if (summaryEl) summaryEl.textContent = text;
+ 24: }
+ 25: 
+ 26: /**
+ 27:  * Show the warning badge area.
+ 28:  * @param {string} text Warning text.
+ 29:  * @returns {void}
+ 30:  */
+ 31: function showWarning(text) {
+ 32:   if (!warningEl) return;
+ 33:   warningEl.textContent = text;
+ 34:   warningEl.classList.remove('hidden');
+ 35: }
+ 36: 
+ 37: /**
+ 38:  * Hide the warning badge area.
+ 39:  * @returns {void}
+ 40:  */
+ 41: function hideWarning() {
+ 42:   if (!warningEl) return;
+ 43:   warningEl.classList.add('hidden');
+ 44: }
+ 45: 
+ 46: /**
+ 47:  * Build one card holder in the grid.
+ 48:  * @param {Record<string, unknown>} club Club data.
+ 49:  * @param {Record<string, unknown>} roast Roast data.
+ 50:  * @param {{ id: string, label: string, width: number, height: number }} format Card format.
+ 51:  * @returns {{ card: HTMLElement, canvas: HTMLCanvasElement, meta: HTMLElement }} Holder.
+ 52:  */
+ 53: function buildHolder(club, roast, format) {
+ 54:   const card = createElement('article', {
+ 55:     className: 'rounded-sharp border border-line bg-surface p-4',
+ 56:   });
+ 57: 
+ 58:   const title = createElement('h2', {
+ 59:     className: 'font-display text-lg uppercase text-text',
+ 60:     text: `${String(club.shortName || club.name || '')} ${format.label}`,
+ 61:   });
+ 62: 
+ 63:   const canvas = createElement('canvas', {
+ 64:     className: 'mt-3 block w-full',
+ 65:     attrs: {
+ 66:       role: 'img',
+ 67:       'aria-label': `Roast card ${format.label} for ${String(roast.headline || '')}`,
+ 68:     },
+ 69:   });
+ 70: 
+ 71:   canvas.style.width = '100%';
+ 72:   canvas.style.height = 'auto';
+ 73:   canvas.style.maxHeight = '320px';
+ 74:   canvas.style.objectFit = 'contain';
+ 75:   canvas.style.backgroundColor = 'var(--colorBackground)';
+ 76: 
+ 77:   const meta = createElement('p', {
+ 78:     className: 'mt-2 text-xs text-textMuted',
+ 79:     text: 'Rendering',
+ 80:   });
+ 81: 
+ 82:   card.append(title, canvas, meta);
+ 83:   gridEl.append(card);
+ 84: 
+ 85:   return { card, canvas, meta };
+ 86: }
+ 87: 
+ 88: /**
+ 89:  * Start the card lab.
+ 90:  * @returns {Promise<void>}
+ 91:  */
+ 92: async function init() {
+ 93:   if (!gridEl) return;
+ 94: 
+ 95:   clear(gridEl);
+ 96:   hideWarning();
+ 97: 
+ 98:   let rendered = 0;
+ 99:   let truncatedCount = 0;
+100:   let failed = 0;
+101: 
+102:   try {
+103:     const registry = await loadRegistry();
+104:     const live = getLiveClubs(registry);
+105:     const host = hostLabel(window.location.host, SHARE_HOST_OVERRIDE);
+106: 
+107:     for (const entry of live) {
+108:       let club;
+109: 
+110:       try {
+111:         club = await loadClub(entry.id);
+112:       } catch {
+113:         failed += 1;
+114:         continue;
+115:       }
+116: 
+117:       const roasts = Array.isArray(club.roasts) ? club.roasts : [];
+118:       const categories = Array.isArray(club.categories) ? club.categories : [];
+119: 
+120:       for (const roast of roasts) {
+121:         const category =
+122:           categories.find((item) => item && item.id === roast.category) || null;
+123: 
+124:         for (const format of Object.values(CARD_FORMATS)) {
+125:           const holder = buildHolder(club, roast, format);
+126: 
+127:           try {
+128:             const result = await renderRoastCard({
+129:               canvas: holder.canvas,
+130:               roast,
+131:               category,
+132:               club,
+133:               format,
+134:               host,
+135:             });
+136: 
+137:             rendered += 1;
+138: 
+139:             if (result.truncated) {
+140:               truncatedCount += 1;
+141:               holder.meta.textContent = `Headline ${result.headlineFontSize} / Explanation ${result.explanationFontSize} / TRUNCATED`;
+142:               const badge = createElement('span', {
+143:                 className:
+144:                   'ml-2 inline-block rounded-sharp bg-primary px-2 py-1 text-xs font-bold text-primaryContrast',
+145:                 text: 'TRUNCATED',
+146:               });
+147:               holder.meta.append(badge);
+148:               holder.card.classList.add('border-primary');
+149:             } else {
+150:               holder.meta.textContent = `Headline ${result.headlineFontSize} / Explanation ${result.explanationFontSize}`;
+151:             }
+152:           } catch {
+153:             failed += 1;
+154:             holder.meta.textContent = 'Render failed';
+155:           }
+156:         }
+157:       }
+158:     }
+159:   } catch {
+160:     setSummary('Could not load the card lab data. Serve the site over http and reload.');
+161:     showWarning('Card lab could not start.');
+162:     return;
+163:   }
+164: 
+165:   const failedText = failed > 0 ? `, ${failed} failed` : '';
+166:   setSummary(`${rendered} cards rendered, ${truncatedCount} truncated${failedText}`);
+167: 
+168:   if (truncatedCount > 0) {
+169:     showWarning(`${truncatedCount} card(s) are truncated. Check the font sizes and content.`);
+170:   } else {
+171:     hideWarning();
+172:   }
+173: }
+174: 
+175: init();
+
+================
 File: js/pages/landing.js
 ================
   1: /**
@@ -1211,297 +2304,6 @@ File: js/pages/landing.js
 183: init();
 
 ================
-File: js/pages/room.js
-================
-  1: /**
-  2:  * Roast room logic.
-  3:  * Reads the club id from the query string, loads the club, wires the category
-  4:  * filter and the shuffle bag, and shows roasts on demand with a short reel.
-  5:  */
-  6: 
-  7: import { CLUB_STATUS, DEFAULT_CLUB_ID } from '../config.js';
-  8: import { loadClub, loadRegistry } from '../registry.js';
-  9: import { applyTheme } from '../theme.js';
- 10: import { buildCategoryFilter } from '../ui/categoryFilter.js';
- 11: import { createRoastCard } from '../ui/roastCard.js';
- 12: import { createShuffleBag } from '../ui/shuffleBag.js';
- 13: import { revealRoast } from '../ui/reveal.js';
- 14: import { clear, prefersReducedMotion } from '../utils/dom.js';
- 15: import { parseRoastHash } from '../utils/links.js';
- 16: 
- 17: const params = new URLSearchParams(window.location.search);
- 18: const clubIdParam = params.get('club') || DEFAULT_CLUB_ID;
- 19: 
- 20: const loadingEl = document.getElementById('loadingState');
- 21: const errorEl = document.getElementById('errorState');
- 22: const errorMessageEl = document.getElementById('errorMessage');
- 23: const roomEl = document.getElementById('roomState');
- 24: const filterContainer = document.getElementById('categoryFilter');
- 25: const roastButton = document.getElementById('roastButton');
- 26: const progressEl = document.getElementById('progress');
- 27: const roastContainer = document.getElementById('roastContainer');
- 28: const clubBadge = document.getElementById('clubBadge');
- 29: const emptyEl = document.getElementById('emptyState');
- 30: const liveRegion = document.getElementById('roastLiveRegion');
- 31: const pageHeading = document.getElementById('pageHeading');
- 32: 
- 33: /** @type {Record<string, unknown> | null} */
- 34: let club = null;
- 35: let selectedCategory = 'all';
- 36: /** @type {ReturnType<typeof createShuffleBag> | null} */
- 37: let bag = null;
- 38: /** @type {Record<string, unknown> | null} */
- 39: let currentRoast = null;
- 40: let busy = false;
- 41: 
- 42: function showLoading() {
- 43:   if (loadingEl) loadingEl.classList.remove('hidden');
- 44:   if (errorEl) errorEl.classList.add('hidden');
- 45:   if (roomEl) roomEl.classList.add('hidden');
- 46: }
- 47: 
- 48: /**
- 49:  * Show the error state with a friendly message.
- 50:  * @param {string} message
- 51:  * @returns {void}
- 52:  */
- 53: function showError(message) {
- 54:   if (loadingEl) loadingEl.classList.add('hidden');
- 55:   if (roomEl) roomEl.classList.add('hidden');
- 56:   if (errorEl) errorEl.classList.remove('hidden');
- 57:   if (errorMessageEl) errorMessageEl.textContent = message;
- 58:   if (clubBadge) clubBadge.textContent = 'Club unavailable';
- 59: }
- 60: 
- 61: function showRoom() {
- 62:   if (loadingEl) loadingEl.classList.add('hidden');
- 63:   if (errorEl) errorEl.classList.add('hidden');
- 64:   if (roomEl) roomEl.classList.remove('hidden');
- 65: }
- 66: 
- 67: /**
- 68:  * Roasts in the current filter.
- 69:  * @returns {Array<Record<string, unknown>>}
- 70:  */
- 71: function getFilteredRoasts() {
- 72:   if (!club) return [];
- 73:   const roasts = Array.isArray(club.roasts) ? club.roasts : [];
- 74:   if (selectedCategory === 'all') return roasts;
- 75:   return roasts.filter((roast) => roast.category === selectedCategory);
- 76: }
- 77: 
- 78: /**
- 79:  * Update the "Roast N of M" line. Nothing is shown before the first serve or
- 80:  * when the current cycle has already served everything once.
- 81:  * @returns {void}
- 82:  */
- 83: function updateProgress() {
- 84:   if (!progressEl) return;
- 85:   if (!bag || !currentRoast || bag.size() === 0) {
- 86:     progressEl.textContent = '';
- 87:     return;
- 88:   }
- 89:   const size = bag.size();
- 90:   const remaining = bag.remaining();
- 91:   const n = size - remaining;
- 92:   if (n <= 0) {
- 93:     progressEl.textContent = '';
- 94:     return;
- 95:   }
- 96:   progressEl.textContent = `Roast ${n} of ${size}`;
- 97: }
- 98: 
- 99: /**
-100:  * Look up the category metadata for a roast.
-101:  * @param {string} id
-102:  * @returns {Record<string, unknown> | null}
-103:  */
-104: function findCategory(id) {
-105:   if (!club || !Array.isArray(club.categories)) return null;
-106:   return club.categories.find((category) => category && category.id === id) || null;
-107: }
-108: 
-109: /**
-110:  * Show a roast in the card area, reveal it, announce it and update the URL hash.
-111:  * @param {Record<string, unknown>} roast
-112:  * @param {{ animate?: boolean }} [options]
-113:  * @returns {Promise<void>}
-114:  */
-115: async function showRoast(roast, options = {}) {
-116:   if (!roast || !roastContainer) return;
-117: 
-118:   const shouldAnimate = options.animate !== false;
-119:   currentRoast = roast;
-120: 
-121:   const category = findCategory(String(roast.category));
-122:   const built = createRoastCard(roast, category);
-123: 
-124:   clear(roastContainer);
-125:   roastContainer.append(built.element);
-126: 
-127:   const base = window.location.pathname + window.location.search;
-128:   try {
-129:     window.history.replaceState(null, '', `${base}#${encodeURIComponent(String(roast.id))}`);
-130:   } catch {
-131:     // Ignore history errors, the page still works.
-132:   }
-133: 
-134:   const animate = shouldAnimate && !prefersReducedMotion();
-135: 
-136:   if (animate) {
-137:     const pool = (Array.isArray(club?.roasts) ? club.roasts : [])
-138:       .map((entry) => String(entry.headline))
-139:       .filter((headline) => headline.length > 0);
-140:     await revealRoast({
-141:       headlineElement: built.headlineElement,
-142:       finalHeadline: String(roast.headline),
-143:       reelPool: pool,
-144:       hiddenElements: built.hiddenElements,
-145:     });
-146:   } else {
-147:     built.headlineElement.textContent = String(roast.headline);
-148:     for (const el of built.hiddenElements) {
-149:       el.classList.add('isVisible');
-150:     }
-151:   }
-152: 
-153:   if (liveRegion) {
-154:     liveRegion.textContent = String(roast.headline);
-155:   }
-156: 
-157:   updateProgress();
-158: }
-159: 
-160: /**
-161:  * Rebuild the bag and the filter chips for the current selection.
-162:  * @returns {void}
-163:  */
-164: function rebuildBagAndFilter() {
-165:   if (!club) return;
-166: 
-167:   const filtered = getFilteredRoasts();
-168: 
-169:   if (bag) {
-170:     bag.reset(filtered);
-171:   } else {
-172:     bag = createShuffleBag(filtered);
-173:   }
-174: 
-175:   if (filterContainer) {
-176:     buildCategoryFilter({
-177:       container: filterContainer,
-178:       categories: Array.isArray(club.categories) ? club.categories : [],
-179:       roasts: Array.isArray(club.roasts) ? club.roasts : [],
-180:       selectedId: selectedCategory,
-181:       onChange: handleFilterChange,
-182:     });
-183:   }
-184: 
-185:   const isEmpty = filtered.length === 0;
-186:   if (roastButton) roastButton.disabled = isEmpty;
-187:   if (emptyEl) emptyEl.classList.toggle('hidden', !isEmpty);
-188: 
-189:   if (isEmpty) {
-190:     clear(roastContainer);
-191:     currentRoast = null;
-192:     if (progressEl) progressEl.textContent = '';
-193:   }
-194: }
-195: 
-196: /**
-197:  * Handle a filter chip click. Resets the current roast and the bag.
-198:  * @param {string} newId
-199:  * @returns {void}
-200:  */
-201: function handleFilterChange(newId) {
-202:   if (busy) return;
-203:   selectedCategory = newId;
-204:   currentRoast = null;
-205:   if (roastContainer) clear(roastContainer);
-206:   if (liveRegion) liveRegion.textContent = '';
-207:   rebuildBagAndFilter();
-208: }
-209: 
-210: /**
-211:  * Handle the Roast them button click.
-212:  * @returns {Promise<void>}
-213:  */
-214: async function handleRoastClick() {
-215:   if (busy || !bag) return;
-216:   const items = getFilteredRoasts();
-217:   if (items.length === 0) return;
-218: 
-219:   busy = true;
-220:   if (roastButton) roastButton.disabled = true;
-221: 
-222:   try {
-223:     const roast = bag.next();
-224:     if (roast) {
-225:       await showRoast(roast, { animate: true });
-226:     }
-227:   } finally {
-228:     busy = false;
-229:     if (roastButton) {
-230:       roastButton.disabled = getFilteredRoasts().length === 0;
-231:     }
-232:   }
-233: }
-234: 
-235: /**
-236:  * Boot the page. Reads the club id, loads the club, wires everything up.
-237:  * @returns {Promise<void>}
-238:  */
-239: async function init() {
-240:   showLoading();
-241: 
-242:   try {
-243:     const registry = await loadRegistry();
-244:     const clubs = Array.isArray(registry.clubs) ? registry.clubs : [];
-245:     const entry = clubs.find((candidate) => candidate && candidate.id === clubIdParam);
-246: 
-247:     if (!entry) {
-248:       showError(`That club isn't in the registry. Pick one from the picker instead.`);
-249:       return;
-250:     }
-251: 
-252:     if (entry.status !== CLUB_STATUS.LIVE) {
-253:       showError(`${entry.name} is coming soon. There isn't a roast room for it yet.`);
-254:       return;
-255:     }
-256: 
-257:     club = await loadClub(clubIdParam);
-258:     applyTheme(club.theme || {});
-259: 
-260:     if (clubBadge) clubBadge.textContent = String(club.name || 'Roast Room');
-261:     if (pageHeading) pageHeading.textContent = `${club.name || 'Roast Room'} Roast Room`;
-262:     document.title = `${club.shortName || club.name || 'Roast Room'} Roast Room | The Roast Room`;
-263: 
-264:     const hash = parseRoastHash(window.location.hash);
-265:     const deepRoast =
-266:       hash && Array.isArray(club.roasts)
-267:         ? club.roasts.find((roast) => roast && roast.id === hash) || null
-268:         : null;
-269: 
-270:     selectedCategory = 'all';
-271:     rebuildBagAndFilter();
-272:     showRoom();
-273: 
-274:     if (deepRoast) {
-275:       await showRoast(deepRoast, { animate: false });
-276:     }
-277: 
-278:     if (roastButton) {
-279:       roastButton.addEventListener('click', handleRoastClick);
-280:     }
-281:   } catch (error) {
-282:     console.warn('[roastRoom] could not open the roast room', error);
-283:     showError('We could not load this club. Please try again in a moment.');
-284:   }
-285: }
-286: 
-287: init();
-
-================
 File: js/pages/shuffleBag.test.mjs
 ================
   1: /**
@@ -1654,6 +2456,981 @@ File: js/pages/shuffleBag.test.mjs
 148:     assert.equal(unique.size, items.length, `cycle ${cycle} did not serve every item once`);
 149:   }
 150: });
+
+================
+File: js/share/actions.js
+================
+  1: /**
+  2:  * Browser share, download and clipboard actions.
+  3:  * Every exported function returns an object and never throws.
+  4:  */
+  5: 
+  6: /**
+  7:  * Convert a canvas to a PNG blob.
+  8:  * @param {HTMLCanvasElement} canvas Canvas to convert.
+  9:  * @returns {Promise<{ ok: boolean, reason: string, blob?: Blob }>} Result with blob when ok.
+ 10:  */
+ 11: export function canvasToBlob(canvas) {
+ 12:   return new Promise((resolve) => {
+ 13:     try {
+ 14:       if (!canvas || typeof canvas.toBlob !== 'function') {
+ 15:         resolve({ ok: false, reason: 'unsupported' });
+ 16:         return;
+ 17:       }
+ 18: 
+ 19:       canvas.toBlob((blob) => {
+ 20:         if (blob) {
+ 21:           resolve({ ok: true, reason: 'blob', blob });
+ 22:         } else {
+ 23:           resolve({ ok: false, reason: 'empty' });
+ 24:         }
+ 25:       }, 'image/png');
+ 26:     } catch {
+ 27:       resolve({ ok: false, reason: 'failed' });
+ 28:     }
+ 29:   });
+ 30: }
+ 31: 
+ 32: /**
+ 33:  * Download a blob with a file name.
+ 34:  * @param {Blob} blob File contents.
+ 35:  * @param {string} fileName Download file name.
+ 36:  * @returns {{ ok: boolean, reason: string }} Result.
+ 37:  */
+ 38: export function downloadBlob(blob, fileName) {
+ 39:   try {
+ 40:     if (!blob || typeof document === 'undefined' || typeof URL === 'undefined') {
+ 41:       return { ok: false, reason: 'unsupported' };
+ 42:     }
+ 43: 
+ 44:     const url = URL.createObjectURL(blob);
+ 45:     const link = document.createElement('a');
+ 46:     link.href = url;
+ 47:     link.download = String(fileName || 'roastroom.png');
+ 48:     link.rel = 'noopener';
+ 49:     link.style.display = 'none';
+ 50: 
+ 51:     document.body.append(link);
+ 52:     link.click();
+ 53:     link.remove();
+ 54: 
+ 55:     window.setTimeout(() => {
+ 56:       URL.revokeObjectURL(url);
+ 57:     }, 1500);
+ 58: 
+ 59:     return { ok: true, reason: 'downloaded' };
+ 60:   } catch {
+ 61:     return { ok: false, reason: 'failed' };
+ 62:   }
+ 63: }
+ 64: 
+ 65: /**
+ 66:  * Share an image through the system share sheet when available.
+ 67:  * Falls back to sharing text and URL only.
+ 68:  * @param {{
+ 69:  *   blob?: Blob,
+ 70:  *   fileName?: string,
+ 71:  *   title?: string,
+ 72:  *   text?: string,
+ 73:  *   url?: string
+ 74:  * }} options Share options.
+ 75:  * @returns {Promise<{ ok: boolean, reason: string }>} Result.
+ 76:  */
+ 77: export async function shareImage(options) {
+ 78:   try {
+ 79:     if (typeof navigator === 'undefined' || typeof navigator.share !== 'function') {
+ 80:       return { ok: false, reason: 'unsupported' };
+ 81:     }
+ 82: 
+ 83:     const { blob, fileName, title, text, url } = options || {};
+ 84:     const payload = {
+ 85:       title: title === undefined ? '' : String(title),
+ 86:       text: text === undefined ? '' : String(text),
+ 87:       url: url === undefined ? '' : String(url),
+ 88:     };
+ 89: 
+ 90:     if (blob && typeof File === 'function') {
+ 91:       const file = new File([blob], String(fileName || 'roastroom.png'), {
+ 92:         type: blob.type || 'image/png',
+ 93:       });
+ 94:       const files = [file];
+ 95: 
+ 96:       if (typeof navigator.canShare === 'function' && navigator.canShare({ files })) {
+ 97:         try {
+ 98:           await navigator.share({ ...payload, files });
+ 99:           return { ok: true, reason: 'shared' };
+100:         } catch (error) {
+101:           if (error && error.name === 'AbortError') {
+102:             return { ok: false, reason: 'cancelled' };
+103:           }
+104:         }
+105:       }
+106:     }
+107: 
+108:     await navigator.share(payload);
+109:     return { ok: true, reason: 'shared' };
+110:   } catch (error) {
+111:     if (error && error.name === 'AbortError') {
+112:       return { ok: false, reason: 'cancelled' };
+113:     }
+114:     return { ok: false, reason: 'failed' };
+115:   }
+116: }
+117: 
+118: /**
+119:  * Copy text with the Clipboard API.
+120:  * @param {string} text Text to copy.
+121:  * @returns {Promise<{ ok: boolean, reason: string }>} Result.
+122:  */
+123: export async function copyText(text) {
+124:   try {
+125:     if (
+126:       typeof navigator === 'undefined' ||
+127:       !navigator.clipboard ||
+128:       typeof navigator.clipboard.writeText !== 'function'
+129:     ) {
+130:       return { ok: false, reason: 'unsupported' };
+131:     }
+132: 
+133:     await navigator.clipboard.writeText(String(text === undefined || text === null ? '' : text));
+134:     return { ok: true, reason: 'copied' };
+135:   } catch {
+136:     return { ok: false, reason: 'failed' };
+137:   }
+138: }
+
+================
+File: js/share/cardFormats.js
+================
+ 1: /**
+ 2:  * Card formats for shared roast images.
+ 3:  * safeTop and safeBottom are the story safe zone in pixels.
+ 4:  * @type {Readonly<Record<string, { id: string, label: string, width: number, height: number, safeTop: number, safeBottom: number }>>}
+ 5:  */
+ 6: export const CARD_FORMATS = Object.freeze({
+ 7:   post: Object.freeze({
+ 8:     id: 'post',
+ 9:     label: 'Post',
+10:     width: 1080,
+11:     height: 1350,
+12:     safeTop: 0,
+13:     safeBottom: 0,
+14:   }),
+15:   story: Object.freeze({
+16:     id: 'story',
+17:     label: 'Story',
+18:     width: 1080,
+19:     height: 1920,
+20:     safeTop: 250,
+21:     safeBottom: 250,
+22:   }),
+23: });
+
+================
+File: js/share/renderCard.js
+================
+  1: /**
+  2:  * Draws a branded roast card with the Canvas 2D API.
+  3:  * Colours come from club.theme. No images and no remote assets are used.
+  4:  */
+  5: 
+  6: import { CARD_FORMATS } from './cardFormats.js';
+  7: import { fitText, truncateToWidth } from './textLayout.js';
+  8: 
+  9: const MARGIN = 72;
+ 10: const TOP_BAND_HEIGHT = 120;
+ 11: const FOOTER_HEIGHT = 112;
+ 12: const FONT_DISPLAY = "Anton, 'Arial Narrow', Impact, sans-serif";
+ 13: const FONT_BODY = "Inter, 'Helvetica Neue', Arial, system-ui, sans-serif";
+ 14: 
+ 15: const THEME_VARIABLES = Object.freeze({
+ 16:   primary: '--colorPrimary',
+ 17:   primaryContrast: '--colorPrimaryContrast',
+ 18:   accent: '--colorAccent',
+ 19:   background: '--colorBackground',
+ 20:   surface: '--colorSurface',
+ 21:   surfaceRaised: '--colorSurfaceRaised',
+ 22:   line: '--colorLine',
+ 23:   text: '--colorText',
+ 24:   textMuted: '--colorTextMuted',
+ 25: });
+ 26: 
+ 27: /**
+ 28:  * Resolve a theme colour from the club theme, then from CSS tokens.
+ 29:  * @param {Record<string, string>} theme Club theme.
+ 30:  * @param {string} key Theme key.
+ 31:  * @returns {string} Colour value or empty string.
+ 32:  */
+ 33: function resolveColor(theme, key) {
+ 34:   const direct = theme && typeof theme[key] === 'string' ? theme[key].trim() : '';
+ 35:   if (direct.length > 0) return direct;
+ 36: 
+ 37:   if (typeof document !== 'undefined' && typeof getComputedStyle === 'function') {
+ 38:     const variable = THEME_VARIABLES[key];
+ 39:     if (variable) {
+ 40:       const value = getComputedStyle(document.documentElement).getPropertyValue(variable).trim();
+ 41:       if (value.length > 0) return value;
+ 42:     }
+ 43:   }
+ 44: 
+ 45:   return '';
+ 46: }
+ 47: 
+ 48: /**
+ 49:  * Wait for Anton and Inter with a short timeout.
+ 50:  * @param {number} timeoutMs Timeout in milliseconds.
+ 51:  * @returns {Promise<void>}
+ 52:  */
+ 53: async function waitForFonts(timeoutMs) {
+ 54:   if (
+ 55:     typeof document === 'undefined' ||
+ 56:     !document.fonts ||
+ 57:     typeof document.fonts.load !== 'function'
+ 58:   ) {
+ 59:     return;
+ 60:   }
+ 61: 
+ 62:   const loads = [];
+ 63: 
+ 64:   try {
+ 65:     loads.push(document.fonts.load('400 64px Anton'));
+ 66:     loads.push(document.fonts.load('400 32px Inter'));
+ 67:     loads.push(document.fonts.load('600 32px Inter'));
+ 68: 
+ 69:     await Promise.race([
+ 70:       Promise.allSettled(loads),
+ 71:       new Promise((resolve) => {
+ 72:         setTimeout(resolve, timeoutMs || 900);
+ 73:       }),
+ 74:     ]);
+ 75:   } catch {
+ 76:     // System fonts are used when the font set cannot load.
+ 77:   }
+ 78: }
+ 79: 
+ 80: /**
+ 81:  * Draw the low contrast pitch line motif behind the card.
+ 82:  * @param {CanvasRenderingContext2D} ctx Canvas context.
+ 83:  * @param {number} width Canvas width.
+ 84:  * @param {number} height Canvas height.
+ 85:  * @param {string} color Stroke colour.
+ 86:  * @returns {void}
+ 87:  */
+ 88: function drawPitchTexture(ctx, width, height, color) {
+ 89:   if (!color) return;
+ 90: 
+ 91:   ctx.save();
+ 92:   ctx.globalAlpha = 0.05;
+ 93:   ctx.strokeStyle = color;
+ 94:   ctx.lineWidth = 2;
+ 95: 
+ 96:   const pad = 36;
+ 97:   ctx.strokeRect(pad, pad, width - pad * 2, height - pad * 2);
+ 98: 
+ 99:   ctx.beginPath();
+100:   ctx.moveTo(width / 2, pad);
+101:   ctx.lineTo(width / 2, height - pad);
+102:   ctx.stroke();
+103: 
+104:   ctx.beginPath();
+105:   ctx.arc(width / 2, height / 2, Math.min(width, height) * 0.12, 0, Math.PI * 2);
+106:   ctx.stroke();
+107: 
+108:   ctx.beginPath();
+109:   ctx.arc(width / 2, height / 2, 4, 0, Math.PI * 2);
+110:   ctx.fillStyle = color;
+111:   ctx.fill();
+112: 
+113:   const boxWidth = width * 0.12;
+114:   const boxHeight = height * 0.24;
+115:   ctx.strokeRect(pad, (height - boxHeight) / 2, boxWidth, boxHeight);
+116:   ctx.strokeRect(width - pad - boxWidth, (height - boxHeight) / 2, boxWidth, boxHeight);
+117: 
+118:   ctx.restore();
+119: }
+120: 
+121: /**
+122:  * Draw the top club band.
+123:  * @param {CanvasRenderingContext2D} ctx Canvas context.
+124:  * @param {{
+125:  *   width: number,
+126:  *   safeTop: number,
+127:  *   theme: Record<string, string>,
+128:  *   club: Record<string, unknown>,
+129:  *   category: Record<string, unknown> | null
+130:  * }} options Band options.
+131:  * @returns {void}
+132:  */
+133: function drawTopBand(ctx, options) {
+134:   const { width, safeTop, theme, club, category } = options;
+135:   const primary = resolveColor(theme, 'primary');
+136:   const contrast = resolveColor(theme, 'primaryContrast');
+137: 
+138:   if (primary) {
+139:     ctx.fillStyle = primary;
+140:     ctx.fillRect(0, safeTop, width, TOP_BAND_HEIGHT);
+141:   }
+142: 
+143:   if (!contrast) return;
+144: 
+145:   const baseline = safeTop + TOP_BAND_HEIGHT / 2;
+146:   const maxWidth = (width - MARGIN * 2) / 2 - 24;
+147: 
+148:   ctx.save();
+149:   ctx.fillStyle = contrast;
+150:   ctx.font = `600 28px ${FONT_BODY}`;
+151:   ctx.textBaseline = 'middle';
+152:   ctx.textAlign = 'left';
+153: 
+154:   const clubName = club && (club.shortName || club.name) ? String(club.shortName || club.name) : '';
+155:   const clubText = clubName.toUpperCase();
+156:   const clubLine = truncateToWidth(clubText, maxWidth, (value) => ctx.measureText(value).width);
+157:   ctx.fillText(clubLine, MARGIN, baseline);
+158: 
+159:   const categoryText =
+160:     category && category.displayLabel ? String(category.displayLabel).toUpperCase() : '';
+161: 
+162:   if (categoryText.length > 0) {
+163:     ctx.textAlign = 'right';
+164:     const categoryLine = truncateToWidth(categoryText, maxWidth, (value) =>
+165:       ctx.measureText(value).width
+166:     );
+167:     ctx.fillText(categoryLine, width - MARGIN, baseline);
+168:   }
+169: 
+170:   ctx.restore();
+171: }
+172: 
+173: /**
+174:  * Draw a small uppercase label.
+175:  * @param {CanvasRenderingContext2D} ctx Canvas context.
+176:  * @param {string} text Label text.
+177:  * @param {number} x X position.
+178:  * @param {number} y Y position.
+179:  * @param {string} color Text colour.
+180:  * @returns {void}
+181:  */
+182: function drawLabel(ctx, text, x, y, color) {
+183:   if (!color) return;
+184: 
+185:   ctx.save();
+186:   ctx.fillStyle = color;
+187:   ctx.font = `600 24px ${FONT_BODY}`;
+188:   ctx.textBaseline = 'top';
+189:   ctx.textAlign = 'left';
+190:   ctx.fillText(text, x, y);
+191:   ctx.restore();
+192: }
+193: 
+194: /**
+195:  * Draw fitted headline lines.
+196:  * @param {CanvasRenderingContext2D} ctx Canvas context.
+197:  * @param {{ fontSize: number, lines: string[] }} fit Fitted text.
+198:  * @param {number} top Top position.
+199:  * @param {string} color Text colour.
+200:  * @returns {void}
+201:  */
+202: function drawHeadline(ctx, fit, top, color) {
+203:   if (!color) return;
+204: 
+205:   ctx.save();
+206:   ctx.fillStyle = color;
+207:   ctx.textBaseline = 'top';
+208:   ctx.textAlign = 'left';
+209:   ctx.font = `400 ${fit.fontSize}px ${FONT_DISPLAY}`;
+210: 
+211:   let y = top;
+212:   for (const line of fit.lines) {
+213:     ctx.fillText(line, MARGIN, y);
+214:     y += fit.fontSize;
+215:   }
+216: 
+217:   ctx.restore();
+218: }
+219: 
+220: /**
+221:  * Draw fitted explanation lines.
+222:  * @param {CanvasRenderingContext2D} ctx Canvas context.
+223:  * @param {{ fontSize: number, lines: string[] }} fit Fitted text.
+224:  * @param {number} top Top position.
+225:  * @param {string} color Text colour.
+226:  * @returns {void}
+227:  */
+228: function drawExplanation(ctx, fit, top, color) {
+229:   if (!color) return;
+230: 
+231:   ctx.save();
+232:   ctx.fillStyle = color;
+233:   ctx.textBaseline = 'top';
+234:   ctx.textAlign = 'left';
+235:   ctx.font = `400 ${fit.fontSize}px ${FONT_BODY}`;
+236: 
+237:   let y = top;
+238:   for (const line of fit.lines) {
+239:     ctx.fillText(line, MARGIN, y);
+240:     y += fit.fontSize * 1.35;
+241:   }
+242: 
+243:   ctx.restore();
+244: }
+245: 
+246: /**
+247:  * Draw the dashed perforation and side notches.
+248:  * @param {CanvasRenderingContext2D} ctx Canvas context.
+249:  * @param {number} width Canvas width.
+250:  * @param {number} y Perforation y position.
+251:  * @param {Record<string, string>} theme Club theme.
+252:  * @returns {void}
+253:  */
+254: function drawPerforation(ctx, width, y, theme) {
+255:   const line = resolveColor(theme, 'line');
+256:   const background = resolveColor(theme, 'background');
+257: 
+258:   if (line) {
+259:     ctx.save();
+260:     ctx.strokeStyle = line;
+261:     ctx.lineWidth = 2;
+262:     ctx.setLineDash([16, 12]);
+263:     ctx.beginPath();
+264:     ctx.moveTo(MARGIN, y);
+265:     ctx.lineTo(width - MARGIN, y);
+266:     ctx.stroke();
+267:     ctx.restore();
+268:   }
+269: 
+270:   if (background) {
+271:     ctx.save();
+272:     ctx.fillStyle = background;
+273: 
+274:     ctx.beginPath();
+275:     ctx.arc(0, y, 28, 0, Math.PI * 2);
+276:     ctx.fill();
+277: 
+278:     ctx.beginPath();
+279:     ctx.arc(width, y, 28, 0, Math.PI * 2);
+280:     ctx.fill();
+281: 
+282:     ctx.restore();
+283:   }
+284: }
+285: 
+286: /**
+287:  * Read the hostname from an evidence source URL.
+288:  * @param {{ sourceUrl?: string } | null} evidence Evidence item.
+289:  * @returns {string} Hostname or empty string.
+290:  */
+291: function sourceHost(evidence) {
+292:   if (!evidence || typeof evidence.sourceUrl !== 'string') return '';
+293:   try {
+294:     return new URL(evidence.sourceUrl).hostname;
+295:   } catch {
+296:     return '';
+297:   }
+298: }
+299: 
+300: /**
+301:  * Draw the source line and hostname.
+302:  * @param {CanvasRenderingContext2D} ctx Canvas context.
+303:  * @param {{ sourceName?: string, period?: string, sourceUrl?: string } | null} evidence First evidence item.
+304:  * @param {number} top Top position.
+305:  * @param {number} width Canvas width.
+306:  * @param {Record<string, string>} theme Club theme.
+307:  * @returns {void}
+308:  */
+309: function drawSource(ctx, evidence, top, width, theme) {
+310:   const muted = resolveColor(theme, 'textMuted');
+311:   if (!evidence || !muted) return;
+312: 
+313:   ctx.save();
+314:   ctx.fillStyle = muted;
+315:   ctx.textBaseline = 'top';
+316:   ctx.textAlign = 'left';
+317: 
+318:   ctx.font = `600 26px ${FONT_BODY}`;
+319:   const sourceText = `Source: ${String(evidence.sourceName || '')}, ${String(
+320:     evidence.period || ''
+321:   )}`;
+322:   const sourceLine = truncateToWidth(sourceText, width - MARGIN * 2, (value) =>
+323:     ctx.measureText(value).width
+324:   );
+325:   ctx.fillText(sourceLine, MARGIN, top);
+326: 
+327:   const host = sourceHost(evidence);
+328:   if (host.length > 0) {
+329:     ctx.font = `400 22px ${FONT_BODY}`;
+330:     const hostLine = truncateToWidth(host, width - MARGIN * 2, (value) =>
+331:       ctx.measureText(value).width
+332:     );
+333:     ctx.fillText(hostLine, MARGIN, top + 38);
+334:   }
+335: 
+336:   ctx.restore();
+337: }
+338: 
+339: /**
+340:  * Draw the footer wordmark, host and checked date.
+341:  * @param {CanvasRenderingContext2D} ctx Canvas context.
+342:  * @param {{
+343:  *   width: number,
+344:  *   top: number,
+345:  *   theme: Record<string, string>,
+346:  *   host: string,
+347:  *   verifiedOn: string
+348:  * }} options Footer options.
+349:  * @returns {void}
+350:  */
+351: function drawFooter(ctx, options) {
+352:   const { width, top, theme, host, verifiedOn } = options;
+353:   const text = resolveColor(theme, 'text');
+354:   const muted = resolveColor(theme, 'textMuted');
+355: 
+356:   if (text) {
+357:     ctx.save();
+358:     ctx.fillStyle = text;
+359:     ctx.textBaseline = 'top';
+360:     ctx.textAlign = 'left';
+361:     ctx.font = `400 42px ${FONT_DISPLAY}`;
+362:     ctx.fillText('THE ROAST ROOM', MARGIN, top);
+363:     ctx.restore();
+364:   }
+365: 
+366:   if (muted) {
+367:     ctx.save();
+368:     ctx.fillStyle = muted;
+369:     ctx.textBaseline = 'top';
+370: 
+371:     ctx.textAlign = 'right';
+372:     ctx.font = `600 24px ${FONT_BODY}`;
+373:     const hostText = truncateToWidth(String(host || ''), width * 0.4, (value) =>
+374:       ctx.measureText(value).width
+375:     );
+376:     ctx.fillText(hostText, width - MARGIN, top + 8);
+377: 
+378:     ctx.textAlign = 'left';
+379:     ctx.font = `400 22px ${FONT_BODY}`;
+380:     const checked = `Checked ${String(verifiedOn || '')}`.trim();
+381:     if (checked.length > 0) {
+382:       ctx.fillText(checked, MARGIN, top + 56);
+383:     }
+384: 
+385:     ctx.restore();
+386:   }
+387: }
+388: 
+389: /**
+390:  * Render one roast card into a canvas.
+391:  * Never throws. Returns font sizes and whether text was truncated.
+392:  * @param {{
+393:  *   canvas: HTMLCanvasElement,
+394:  *   roast: Record<string, unknown>,
+395:  *   category: Record<string, unknown> | null,
+396:  *   club: Record<string, unknown>,
+397:  *   format: { id: string, label: string, width: number, height: number, safeTop: number, safeBottom: number },
+398:  *   host: string
+399:  * }} options Render options.
+400:  * @returns {Promise<{ truncated: boolean, headlineFontSize: number, explanationFontSize: number }>} Render result.
+401:  */
+402: export async function renderRoastCard(options) {
+403:   const fallback = { truncated: true, headlineFontSize: 0, explanationFontSize: 0 };
+404: 
+405:   try {
+406:     const { canvas, roast, category, club, format, host } = options || {};
+407: 
+408:     if (!canvas || typeof canvas.getContext !== 'function' || !roast) return fallback;
+409: 
+410:     const chosen =
+411:       format && Number.isFinite(format.width) && Number.isFinite(format.height)
+412:         ? format
+413:         : CARD_FORMATS.post;
+414: 
+415:     canvas.width = chosen.width;
+416:     canvas.height = chosen.height;
+417: 
+418:     const ctx = canvas.getContext('2d');
+419:     if (!ctx) return fallback;
+420: 
+421:     await waitForFonts(900);
+422: 
+423:     const theme = club && club.theme ? club.theme : {};
+424:     const background = resolveColor(theme, 'background');
+425:     const text = resolveColor(theme, 'text');
+426:     const accent = resolveColor(theme, 'accent');
+427: 
+428:     if (background) {
+429:       ctx.fillStyle = background;
+430:       ctx.fillRect(0, 0, chosen.width, chosen.height);
+431:     }
+432: 
+433:     drawPitchTexture(ctx, chosen.width, chosen.height, text);
+434:     drawTopBand(ctx, {
+435:       width: chosen.width,
+436:       safeTop: chosen.safeTop,
+437:       theme,
+438:       club,
+439:       category,
+440:     });
+441: 
+442:     const contentBottom = chosen.height - chosen.safeBottom - MARGIN;
+443:     const contentTop = chosen.safeTop + TOP_BAND_HEIGHT + 48;
+444: 
+445:     drawLabel(ctx, 'THE JOKE', MARGIN, contentTop, accent);
+446: 
+447:     const headlineTop = contentTop + 48;
+448:     const headlineBoxHeight = chosen.height * (chosen.id === 'story' ? 0.34 : 0.38);
+449:     const measureAnton = (value, size) => {
+450:       ctx.font = `400 ${size}px ${FONT_DISPLAY}`;
+451:       return ctx.measureText(value).width;
+452:     };
+453: 
+454:     const headlineFit = fitText({
+455:       text: String(roast.headline || '').toUpperCase(),
+456:       maxWidth: chosen.width - MARGIN * 2,
+457:       maxHeight: headlineBoxHeight,
+458:       maxLines: 8,
+459:       minFontSize: 64,
+460:       maxFontSize: 140,
+461:       step: 4,
+462:       lineHeightRatio: 1,
+463:       measure: measureAnton,
+464:     });
+465: 
+466:     drawHeadline(ctx, headlineFit, headlineTop, text);
+467: 
+468:     const headlineHeight = headlineFit.lines.length * headlineFit.fontSize;
+469:     const perforationY = headlineTop + headlineHeight + 48;
+470: 
+471:     drawPerforation(ctx, chosen.width, perforationY, theme);
+472: 
+473:     const receiptLabelY = perforationY + 48;
+474:     drawLabel(ctx, 'THE RECEIPT', MARGIN, receiptLabelY, accent);
+475: 
+476:     const footerTop = contentBottom - FOOTER_HEIGHT;
+477:     const explanationTop = receiptLabelY + 48;
+478:     const sourceReserve = 26 + 12 + 22 + 32;
+479:     const explanationMaxHeight = Math.max(60, footerTop - explanationTop - sourceReserve);
+480:     const measureInter = (value, size) => {
+481:       ctx.font = `400 ${size}px ${FONT_BODY}`;
+482:       return ctx.measureText(value).width;
+483:     };
+484: 
+485:     const explanationFit = fitText({
+486:       text: String(roast.explanation || ''),
+487:       maxWidth: chosen.width - MARGIN * 2,
+488:       maxHeight: explanationMaxHeight,
+489:       maxLines: 8,
+490:       minFontSize: 30,
+491:       maxFontSize: 42,
+492:       step: 2,
+493:       lineHeightRatio: 1.35,
+494:       measure: measureInter,
+495:     });
+496: 
+497:     drawExplanation(ctx, explanationFit, explanationTop, text);
+498: 
+499:     const explanationHeight = explanationFit.lines.length * explanationFit.fontSize * 1.35;
+500:     const evidence =
+501:       Array.isArray(roast.evidence) && roast.evidence.length > 0 ? roast.evidence[0] : null;
+502: 
+503:     drawSource(ctx, evidence, explanationTop + explanationHeight + 24, chosen.width, theme);
+504: 
+505:     drawFooter(ctx, {
+506:       width: chosen.width,
+507:       top: footerTop,
+508:       theme,
+509:       host,
+510:       verifiedOn: roast.verifiedOn,
+511:     });
+512: 
+513:     return {
+514:       truncated: headlineFit.truncated || explanationFit.truncated,
+515:       headlineFontSize: headlineFit.fontSize,
+516:       explanationFontSize: explanationFit.fontSize,
+517:     };
+518:   } catch (error) {
+519:     if (typeof console !== 'undefined' && typeof console.warn === 'function') {
+520:       console.warn('[roastRoom] could not render the share card', error);
+521:     }
+522:     return fallback;
+523:   }
+524: }
+
+================
+File: js/share/shareConfig.js
+================
+1: /**
+2:  * Host shown on shared roast cards.
+3:  * Leave this empty to use window.location.host.
+4:  * Set it to the final domain when the domain exists.
+5:  * @type {string}
+6:  */
+7: export const SHARE_HOST_OVERRIDE = '';
+
+================
+File: js/share/shareText.js
+================
+ 1: /**
+ 2:  * Pure share text and share URL helpers.
+ 3:  */
+ 4: 
+ 5: import { roastUrl } from '../utils/links.js';
+ 6: 
+ 7: /**
+ 8:  * Sanitise one file name part to lowercase letters, digits and underscores.
+ 9:  * @param {unknown} value Raw value.
+10:  * @returns {string} Sanitised part.
+11:  */
+12: function sanitisePart(value) {
+13:   return String(value === undefined || value === null ? '' : value)
+14:     .toLowerCase()
+15:     .replace(/[^a-z0-9]+/g, '_')
+16:     .replace(/^_+|_+$/g, '');
+17: }
+18: 
+19: /**
+20:  * Build the message used by the system share sheet.
+21:  * @param {{ headline?: string }} roast Roast data.
+22:  * @param {string} url Absolute roast URL.
+23:  * @returns {string} Share message.
+24:  */
+25: export function buildShareText(roast, url) {
+26:   const headline = roast && roast.headline ? String(roast.headline) : '';
+27:   const link = url === undefined || url === null ? '' : String(url);
+28:   return `${headline}\n\nReceipts included. Check them yourself: ${link}`;
+29: }
+30: 
+31: /**
+32:  * Build a downloaded PNG file name.
+33:  * @param {unknown} clubId Club id.
+34:  * @param {unknown} roastId Roast id.
+35:  * @param {unknown} formatId Format id such as post or story.
+36:  * @returns {string} File name such as roastroom_manutd_roastid_post.png.
+37:  */
+38: export function buildFileName(clubId, roastId, formatId) {
+39:   const club = sanitisePart(clubId) || 'club';
+40:   const roast = sanitisePart(roastId) || 'roast';
+41:   const format = sanitisePart(formatId) || 'post';
+42:   return `roastroom_${club}_${roast}_${format}.png`;
+43: }
+44: 
+45: /**
+46:  * Build an absolute roast URL from a base href.
+47:  * @param {string} baseHref Page href used as the base.
+48:  * @param {string} clubId Club id.
+49:  * @param {string} roastId Roast id.
+50:  * @returns {string} Absolute URL with the club query and roast hash.
+51:  */
+52: export function absoluteRoastUrl(baseHref, clubId, roastId) {
+53:   const relative = roastUrl(clubId, roastId);
+54:   try {
+55:     return new URL(relative, baseHref).href;
+56:   } catch {
+57:     return relative;
+58:   }
+59: }
+60: 
+61: /**
+62:  * Return the override when set, otherwise the host.
+63:  * @param {string} host Current host.
+64:  * @param {string} override Host override from shareConfig.
+65:  * @returns {string} Host label.
+66:  */
+67: export function hostLabel(host, override) {
+68:   const trimmed = typeof override === 'string' ? override.trim() : '';
+69:   if (trimmed.length > 0) return trimmed;
+70:   return host === undefined || host === null ? '' : String(host);
+71: }
+
+================
+File: js/share/textLayout.js
+================
+  1: /**
+  2:  * Pure text layout helpers. No DOM and no canvas.
+  3:  * A measure function is injected so the same logic works in tests and on canvas.
+  4:  */
+  5: 
+  6: /**
+  7:  * Wrap text into lines that fit inside maxWidth.
+  8:  * Words longer than maxWidth are broken by character.
+  9:  * @param {string} text Text to wrap.
+ 10:  * @param {number} maxWidth Maximum line width.
+ 11:  * @param {(text: string) => number} measure Function returning the width of a string.
+ 12:  * @returns {string[]} Wrapped lines. Empty input returns an empty array.
+ 13:  */
+ 14: export function wrapText(text, maxWidth, measure) {
+ 15:   const source = text === undefined || text === null ? '' : String(text);
+ 16:   if (source.trim().length === 0) return [];
+ 17: 
+ 18:   const safeWidth = Number.isFinite(maxWidth) && maxWidth > 0 ? maxWidth : 1;
+ 19:   if (typeof measure !== 'function') {
+ 20:     return source.split(/\s+/).filter(Boolean);
+ 21:   }
+ 22: 
+ 23:   const words = source.split(/\s+/).filter(Boolean);
+ 24:   const lines = [];
+ 25:   let current = '';
+ 26: 
+ 27:   const push = () => {
+ 28:     if (current.length > 0) {
+ 29:       lines.push(current);
+ 30:       current = '';
+ 31:     }
+ 32:   };
+ 33: 
+ 34:   for (const word of words) {
+ 35:     if (measure(word) <= safeWidth) {
+ 36:       if (current.length === 0) {
+ 37:         current = word;
+ 38:       } else {
+ 39:         const candidate = `${current} ${word}`;
+ 40:         if (measure(candidate) <= safeWidth) {
+ 41:           current = candidate;
+ 42:         } else {
+ 43:           push();
+ 44:           current = word;
+ 45:         }
+ 46:       }
+ 47:       continue;
+ 48:     }
+ 49: 
+ 50:     push();
+ 51: 
+ 52:     for (const char of Array.from(word)) {
+ 53:       if (current.length === 0) {
+ 54:         current = char;
+ 55:       } else if (measure(`${current}${char}`) <= safeWidth) {
+ 56:         current = `${current}${char}`;
+ 57:       } else {
+ 58:         push();
+ 59:         current = char;
+ 60:       }
+ 61:     }
+ 62:   }
+ 63: 
+ 64:   push();
+ 65:   return lines;
+ 66: }
+ 67: 
+ 68: /**
+ 69:  * Truncate text to fit inside maxWidth and add an ellipsis.
+ 70:  * @param {string} text Text to truncate.
+ 71:  * @param {number} maxWidth Maximum line width.
+ 72:  * @param {(text: string) => number} measure Function returning the width of a string.
+ 73:  * @returns {string} The original text when it fits, otherwise a truncated string with an ellipsis.
+ 74:  */
+ 75: export function truncateToWidth(text, maxWidth, measure) {
+ 76:   const source = text === undefined || text === null ? '' : String(text);
+ 77:   if (source.length === 0) return '';
+ 78: 
+ 79:   const safeWidth = Number.isFinite(maxWidth) && maxWidth > 0 ? maxWidth : 0;
+ 80:   if (safeWidth === 0 || typeof measure !== 'function') return '';
+ 81: 
+ 82:   if (measure(source) <= safeWidth) return source;
+ 83: 
+ 84:   const ellipsis = '…';
+ 85:   if (measure(ellipsis) > safeWidth) return '';
+ 86: 
+ 87:   let low = 0;
+ 88:   let high = source.length;
+ 89: 
+ 90:   while (low < high) {
+ 91:     const mid = Math.ceil((low + high) / 2);
+ 92:     const candidate = `${source.slice(0, mid).trimEnd()}${ellipsis}`;
+ 93:     if (measure(candidate) <= safeWidth) {
+ 94:       low = mid;
+ 95:     } else {
+ 96:       high = mid - 1;
+ 97:     }
+ 98:   }
+ 99: 
+100:   if (low <= 0) return ellipsis;
+101:   return `${source.slice(0, low).trimEnd()}${ellipsis}`;
+102: }
+103: 
+104: /**
+105:  * Pick the largest font size that fits inside a box.
+106:  * @param {{
+107:  *   text: string,
+108:  *   maxWidth: number,
+109:  *   maxHeight: number,
+110:  *   maxLines?: number,
+111:  *   minFontSize?: number,
+112:  *   maxFontSize?: number,
+113:  *   step?: number,
+114:  *   lineHeightRatio?: number,
+115:  *   measure: (text: string, fontSize: number) => number
+116:  * }} options Fit options.
+117:  * @returns {{ fontSize: number, lines: string[], truncated: boolean }} Fit result.
+118:  */
+119: export function fitText(options) {
+120:   const source =
+121:     options && options.text !== undefined && options.text !== null ? String(options.text) : '';
+122: 
+123:   const minSize =
+124:     options && Number.isFinite(options.minFontSize) ? Number(options.minFontSize) : 30;
+125:   const maxSize =
+126:     options && Number.isFinite(options.maxFontSize) ? Number(options.maxFontSize) : 42;
+127:   const sizeStep = options && Number.isFinite(options.step) && options.step > 0 ? options.step : 2;
+128:   const safeMaxLines =
+129:     options && Number.isFinite(options.maxLines) && options.maxLines > 0
+130:       ? Math.floor(options.maxLines)
+131:       : 8;
+132:   const safeMaxWidth =
+133:     options && Number.isFinite(options.maxWidth) && options.maxWidth > 0 ? options.maxWidth : 1;
+134:   const safeMaxHeight =
+135:     options && Number.isFinite(options.maxHeight) && options.maxHeight > 0
+136:       ? options.maxHeight
+137:       : Infinity;
+138:   const safeLineHeight =
+139:     options && Number.isFinite(options.lineHeightRatio) && options.lineHeightRatio > 0
+140:       ? options.lineHeightRatio
+141:       : 1.35;
+142:   const measure = options && typeof options.measure === 'function' ? options.measure : null;
+143: 
+144:   if (source.trim().length === 0) {
+145:     return { fontSize: minSize, lines: [], truncated: false };
+146:   }
+147: 
+148:   if (!measure) {
+149:     return { fontSize: minSize, lines: [source], truncated: true };
+150:   }
+151: 
+152:   const topSize = Math.max(minSize, maxSize);
+153: 
+154:   for (let candidate = topSize; candidate >= minSize; candidate -= sizeStep) {
+155:     const lines = wrapText(source, safeMaxWidth, (value) => measure(value, candidate));
+156:     const maxByHeight =
+157:       safeMaxHeight === Infinity
+158:         ? safeMaxLines
+159:         : Math.max(1, Math.floor(safeMaxHeight / (candidate * safeLineHeight)));
+160:     const allowed = Math.min(safeMaxLines, maxByHeight);
+161: 
+162:     if (lines.length <= allowed) {
+163:       return { fontSize: candidate, lines, truncated: false };
+164:     }
+165:   }
+166: 
+167:   const finalSize = minSize;
+168:   const finalLines = wrapText(source, safeMaxWidth, (value) => measure(value, finalSize));
+169:   const finalMaxByHeight =
+170:     safeMaxHeight === Infinity
+171:       ? safeMaxLines
+172:       : Math.max(1, Math.floor(safeMaxHeight / (finalSize * safeLineHeight)));
+173:   const finalAllowed = Math.min(safeMaxLines, finalMaxByHeight);
+174: 
+175:   if (finalLines.length <= finalAllowed) {
+176:     return { fontSize: finalSize, lines: finalLines, truncated: false };
+177:   }
+178: 
+179:   const kept = finalLines.slice(0, Math.max(1, finalAllowed));
+180:   const lastIndex = kept.length - 1;
+181:   if (lastIndex >= 0) {
+182:     kept[lastIndex] = truncateToWidth(`${kept[lastIndex]}…`, safeMaxWidth, (value) =>
+183:       measure(value, finalSize)
+184:     );
+185:   }
+186: 
+187:   return { fontSize: finalSize, lines: kept, truncated: true };
+188: }
 
 ================
 File: js/ui/categoryFilter.js
@@ -3637,12 +5414,1256 @@ File: tests/schema.test.mjs
 234: });
 
 ================
-File: .gitignore
+File: tests/shareText.test.mjs
 ================
-1: node_modules
-2: dist
-3: .DS_Store
-4: .wrangler
+  1: /**
+  2:  * Tests for pure share text and text layout logic.
+  3:  * Node test runner only, no extra dependencies.
+  4:  */
+  5: 
+  6: import test from 'node:test';
+  7: import assert from 'node:assert/strict';
+  8: 
+  9: import { fitText, truncateToWidth, wrapText } from '../js/share/textLayout.js';
+ 10: import {
+ 11:   absoluteRoastUrl,
+ 12:   buildFileName,
+ 13:   buildShareText,
+ 14:   hostLabel,
+ 15: } from '../js/share/shareText.js';
+ 16: 
+ 17: /**
+ 18:  * Fake measure for single font text.
+ 19:  * @param {string} text
+ 20:  * @returns {number}
+ 21:  */
+ 22: function fakeMeasure(text) {
+ 23:   return String(text).length * 10;
+ 24: }
+ 25: 
+ 26: /**
+ 27:  * Fake measure for fit text.
+ 28:  * @param {string} text
+ 29:  * @param {number} fontSize
+ 30:  * @returns {number}
+ 31:  */
+ 32: function fakeFitMeasure(text, fontSize) {
+ 33:   return String(text).length * fontSize;
+ 34: }
+ 35: 
+ 36: test('wrapText wraps within maxWidth', () => {
+ 37:   const lines = wrapText('one two three four', 100, fakeMeasure);
+ 38: 
+ 39:   assert.ok(lines.length > 1);
+ 40:   for (const line of lines) {
+ 41:     assert.ok(fakeMeasure(line) <= 100, `line "${line}" is too wide`);
+ 42:   }
+ 43:   assert.equal(lines.join(' '), 'one two three four');
+ 44: });
+ 45: 
+ 46: test('wrapText returns an empty array for empty text', () => {
+ 47:   assert.deepEqual(wrapText('', 100, fakeMeasure), []);
+ 48:   assert.deepEqual(wrapText('   ', 100, fakeMeasure), []);
+ 49: });
+ 50: 
+ 51: test('wrapText breaks a single very long word by character', () => {
+ 52:   const lines = wrapText('abcdefghij', 30, fakeMeasure);
+ 53: 
+ 54:   assert.ok(lines.length > 1);
+ 55:   for (const line of lines) {
+ 56:     assert.ok(fakeMeasure(line) <= 30, `line "${line}" is too wide`);
+ 57:   }
+ 58:   assert.equal(lines.join(''), 'abcdefghij');
+ 59: });
+ 60: 
+ 61: test('truncateToWidth adds an ellipsis and never exceeds maxWidth', () => {
+ 62:   const result = truncateToWidth('abcdefghij', 50, fakeMeasure);
+ 63: 
+ 64:   assert.ok(result.endsWith('…'));
+ 65:   assert.ok(fakeMeasure(result) <= 50);
+ 66: });
+ 67: 
+ 68: test('fitText picks the largest font size that fits', () => {
+ 69:   const result = fitText({
+ 70:     text: 'abcd',
+ 71:     maxWidth: 80,
+ 72:     maxHeight: 200,
+ 73:     maxLines: 1,
+ 74:     minFontSize: 10,
+ 75:     maxFontSize: 20,
+ 76:     step: 10,
+ 77:     lineHeightRatio: 1,
+ 78:     measure: fakeFitMeasure,
+ 79:   });
+ 80: 
+ 81:   assert.equal(result.fontSize, 20);
+ 82:   assert.equal(result.truncated, false);
+ 83:   assert.deepEqual(result.lines, ['abcd']);
+ 84: });
+ 85: 
+ 86: test('fitText sets truncated true only when the minimum size still does not fit', () => {
+ 87:   const result = fitText({
+ 88:     text: 'abcdefghij',
+ 89:     maxWidth: 20,
+ 90:     maxHeight: 100,
+ 91:     maxLines: 1,
+ 92:     minFontSize: 10,
+ 93:     maxFontSize: 20,
+ 94:     step: 10,
+ 95:     lineHeightRatio: 1,
+ 96:     measure: fakeFitMeasure,
+ 97:   });
+ 98: 
+ 99:   assert.equal(result.fontSize, 10);
+100:   assert.equal(result.truncated, true);
+101:   assert.equal(result.lines.length, 1);
+102:   assert.ok(fakeFitMeasure(result.lines[0], result.fontSize) <= 20);
+103: });
+104: 
+105: test('fitText respects maxLines', () => {
+106:   const result = fitText({
+107:     text: 'one two three four five six',
+108:     maxWidth: 100,
+109:     maxHeight: 1000,
+110:     maxLines: 2,
+111:     minFontSize: 10,
+112:     maxFontSize: 10,
+113:     step: 10,
+114:     lineHeightRatio: 1,
+115:     measure: fakeFitMeasure,
+116:   });
+117: 
+118:   assert.ok(result.lines.length <= 2);
+119:   assert.equal(result.truncated, true);
+120: });
+121: 
+122: test('buildFileName matches the pattern and never contains a hyphen', () => {
+123:   const name = buildFileName('Man-Utd', 'Roast-One', 'Post');
+124: 
+125:   assert.match(name, /^[a-z0-9_]+\.png$/);
+126:   assert.ok(!name.includes('-'));
+127: });
+128: 
+129: test('absoluteRoastUrl produces the correct absolute URL including query and hash', () => {
+130:   const url = absoluteRoastUrl(
+131:     'https://example.com/site/room.html?club=old#old',
+132:     'manutd',
+133:     'roast_one'
+134:   );
+135: 
+136:   assert.equal(url, 'https://example.com/site/room.html?club=manutd#roast_one');
+137: });
+138: 
+139: test('hostLabel uses the override when given and the host otherwise', () => {
+140:   assert.equal(hostLabel('example.com', 'roastroom.example'), 'roastroom.example');
+141:   assert.equal(hostLabel('example.com', ''), 'example.com');
+142:   assert.equal(hostLabel('example.com', '   '), 'example.com');
+143: });
+144: 
+145: test('buildShareText contains the headline and the url and no hyphen', () => {
+146:   const roast = { headline: 'A friendly roast headline' };
+147:   const url = 'https://example.com/room.html?club=manutd#roast_one';
+148:   const text = buildShareText(roast, url);
+149: 
+150:   assert.ok(text.includes(roast.headline));
+151:   assert.ok(text.includes(url));
+152:   assert.ok(!text.includes('-'));
+153: });
+
+================
+File: worker/src/index.js
+================
+  1: /**
+  2:  * Cloudflare Worker entry point for The Roast Room suggestions API.
+  3:  * Routing and KV access only. All decisions live in logic.js.
+  4:  */
+  5: 
+  6: import {
+  7:   BODY_LIMIT_BYTES,
+  8:   BOARD_KEY,
+  9:   RATE_LIMIT_HASH_LENGTH,
+ 10:   RATE_LIMIT_TTL_SECONDS,
+ 11:   adminView,
+ 12:   applySuggestion,
+ 13:   applyVote,
+ 14:   constantTimeEquals,
+ 15:   normaliseBoard,
+ 16:   pickOrigin,
+ 17:   publicView,
+ 18: } from './logic.js';
+ 19: 
+ 20: /**
+ 21:  * Build a JSON response with CORS headers only for allowed origins.
+ 22:  * @param {unknown} body
+ 23:  * @param {number} status
+ 24:  * @param {string} origin Allowed origin, or empty string.
+ 25:  * @param {Record<string, string>} [extraHeaders]
+ 26:  * @returns {Response}
+ 27:  */
+ 28: function jsonResponse(body, status, origin, extraHeaders) {
+ 29:   const headers = new Headers();
+ 30:   headers.set('Content-Type', 'application/json; charset=utf-8');
+ 31:   if (origin) {
+ 32:     headers.set('Access-Control-Allow-Origin', origin);
+ 33:     headers.set('Vary', 'Origin');
+ 34:   }
+ 35:   if (extraHeaders) {
+ 36:     for (const [key, value] of Object.entries(extraHeaders)) {
+ 37:       headers.set(key, value);
+ 38:     }
+ 39:   }
+ 40:   return new Response(JSON.stringify(body), { status, headers });
+ 41: }
+ 42: 
+ 43: /**
+ 44:  * Build an error response shaped { error, message } with no stack traces.
+ 45:  * @param {string} code
+ 46:  * @param {string} message
+ 47:  * @param {number} status
+ 48:  * @param {string} origin
+ 49:  * @returns {Response}
+ 50:  */
+ 51: function errorResponse(code, message, status, origin) {
+ 52:   return jsonResponse({ error: code, message }, status, origin);
+ 53: }
+ 54: 
+ 55: /**
+ 56:  * Handle a CORS preflight.
+ 57:  * @param {Request} request
+ 58:  * @param {string} allowedOrigins
+ 59:  * @returns {Response}
+ 60:  */
+ 61: function handleOptions(request, allowedOrigins) {
+ 62:   const origin = pickOrigin(request.headers.get('Origin') || '', allowedOrigins);
+ 63:   const headers = new Headers();
+ 64:   if (origin) {
+ 65:     headers.set('Access-Control-Allow-Origin', origin);
+ 66:     headers.set('Vary', 'Origin');
+ 67:     headers.set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+ 68:     headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+ 69:     headers.set('Access-Control-Max-Age', '600');
+ 70:   }
+ 71:   return new Response(null, { status: 204, headers });
+ 72: }
+ 73: 
+ 74: /**
+ 75:  * Hash a client identifier with the salt and truncate to 32 hex characters.
+ 76:  * @param {string} clientIp
+ 77:  * @param {string} salt
+ 78:  * @returns {Promise<string>}
+ 79:  */
+ 80: async function hashClient(clientIp, salt) {
+ 81:   const data = new TextEncoder().encode(`${salt}${clientIp}`);
+ 82:   const digest = await crypto.subtle.digest('SHA-256', data);
+ 83:   const bytes = new Uint8Array(digest);
+ 84:   let hex = '';
+ 85:   for (const byte of bytes) hex += byte.toString(16).padStart(2, '0');
+ 86:   return hex.slice(0, RATE_LIMIT_HASH_LENGTH);
+ 87: }
+ 88: 
+ 89: /**
+ 90:  * Build a UTC day string in the YYYYMMDD shape used in the rate key.
+ 91:  * @param {Date} date
+ 92:  * @returns {string}
+ 93:  */
+ 94: function utcDay(date) {
+ 95:   const year = date.getUTCFullYear();
+ 96:   const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+ 97:   const day = String(date.getUTCDate()).padStart(2, '0');
+ 98:   return `${year}${month}${day}`;
+ 99: }
+100: 
+101: /**
+102:  * Read the request body as a JSON object, enforcing the size limit and the
+103:  * content type. The body check uses byte length, not character count.
+104:  * @param {Request} request
+105:  * @returns {Promise<{ ok: true, data: Record<string, unknown> } | { ok: false, error: string, status: number }>}
+106:  */
+107: async function readJsonBody(request) {
+108:   const contentType = (request.headers.get('Content-Type') || '').toLowerCase();
+109:   if (!contentType.includes('application/json')) {
+110:     return { ok: false, error: 'unsupportedMediaType', status: 415 };
+111:   }
+112:   const text = await request.text();
+113:   if (new TextEncoder().encode(text).length > BODY_LIMIT_BYTES) {
+114:     return { ok: false, error: 'bodyTooLarge', status: 400 };
+115:   }
+116:   try {
+117:     const data = JSON.parse(text);
+118:     if (!data || typeof data !== 'object' || Array.isArray(data)) {
+119:       return { ok: false, error: 'invalidBody', status: 400 };
+120:     }
+121:     return { ok: true, data };
+122:   } catch {
+123:     return { ok: false, error: 'invalidBody', status: 400 };
+124:   }
+125: }
+126: 
+127: /**
+128:  * Check the admin bearer token against the configured secret in constant time.
+129:  * An unset ADMIN_TOKEN rejects every admin request.
+130:  * @param {Request} request
+131:  * @param {Record<string, unknown>} env
+132:  * @returns {boolean}
+133:  */
+134: function checkAdmin(request, env) {
+135:   const configured = env && typeof env.ADMIN_TOKEN === 'string' ? env.ADMIN_TOKEN : '';
+136:   if (configured.length === 0) return false;
+137:   const auth = request.headers.get('Authorization') || '';
+138:   return constantTimeEquals(auth, `Bearer ${configured}`);
+139: }
+140: 
+141: /**
+142:  * Read the rate record for a request client.
+143:  * @param {Request} request
+144:  * @param {Record<string, unknown>} env
+145:  * @returns {Promise<{ key: string, record: unknown }>}
+146:  */
+147: async function readRate(request, env) {
+148:   const clientIp = request.headers.get('CF-Connecting-IP') || 'unknown';
+149:   const salt = typeof env.HASH_SALT === 'string' ? env.HASH_SALT : '';
+150:   const hash = await hashClient(clientIp, salt);
+151:   const key = `rl:${hash}:${utcDay(new Date())}`;
+152:   const record = await env.SUGGESTIONS.get(key, 'json');
+153:   return { key, record };
+154: }
+155: 
+156: /**
+157:  * Persist an accepted action. Exactly two writes: rate record then board.
+158:  * @param {Record<string, unknown>} env
+159:  * @param {string} rateKey
+160:  * @param {unknown} rateRecord
+161:  * @param {unknown} board
+162:  * @returns {Promise<void>}
+163:  */
+164: async function persist(env, rateKey, rateRecord, board) {
+165:   await env.SUGGESTIONS.put(rateKey, JSON.stringify(rateRecord), {
+166:     expirationTtl: RATE_LIMIT_TTL_SECONDS,
+167:   });
+168:   await env.SUGGESTIONS.put(BOARD_KEY, JSON.stringify(board));
+169: }
+170: 
+171: /**
+172:  * GET /api/suggestions.
+173:  * @param {Record<string, unknown>} env
+174:  * @param {string} origin
+175:  * @returns {Promise<Response>}
+176:  */
+177: async function handleListSuggestions(env, origin) {
+178:   const board = await env.SUGGESTIONS.get(BOARD_KEY, 'json');
+179:   return jsonResponse(publicView(board), 200, origin, {
+180:     'Cache-Control': 'public, max-age=30',
+181:   });
+182: }
+183: 
+184: /**
+185:  * POST /api/suggestions.
+186:  * @param {Request} request
+187:  * @param {Record<string, unknown>} env
+188:  * @param {string} origin
+189:  * @returns {Promise<Response>}
+190:  */
+191: async function handlePostSuggestion(request, env, origin) {
+192:   const bodyResult = await readJsonBody(request);
+193:   if (!bodyResult.ok) {
+194:     return errorResponse(bodyResult.error, 'That request could not be read.', bodyResult.status, origin);
+195:   }
+196:   const { name, website } = bodyResult.data;
+197: 
+198:   // Honeypot: pretend success and write nothing.
+199:   if (typeof website === 'string' && website.trim().length > 0) {
+200:     return jsonResponse(
+201:       { status: 'pending', message: 'Thanks, your suggestion will appear after review.' },
+202:       200,
+203:       origin
+204:     );
+205:   }
+206: 
+207:   const { key: rateKey, record: rateRecord } = await readRate(request, env);
+208:   const board = await env.SUGGESTIONS.get(BOARD_KEY, 'json');
+209:   const now = new Date().toISOString();
+210:   const result = applySuggestion({ board, name, rateRecord, now });
+211: 
+212:   if (result.outcome === 'invalid') {
+213:     return errorResponse('invalidName', result.errors.join('; '), 400, origin);
+214:   }
+215:   if (result.outcome === 'rateLimited') {
+216:     return errorResponse('rateLimited', result.errors.join('; '), 429, origin);
+217:   }
+218:   if (result.outcome === 'full') {
+219:     return jsonResponse(
+220:       {
+221:         status: 'pending',
+222:         message: 'The suggestion list is full right now. Try again later.',
+223:       },
+224:       200,
+225:       origin
+226:     );
+227:   }
+228: 
+229:   await persist(env, rateKey, result.rateRecord, result.board);
+230: 
+231:   if (result.outcome === 'voted') {
+232:     return jsonResponse(
+233:       { status: 'voted', message: 'That club is already on the list. Your vote was added.' },
+234:       200,
+235:       origin
+236:     );
+237:   }
+238:   return jsonResponse(
+239:     { status: 'pending', message: 'Thanks, your suggestion will appear after review.' },
+240:     200,
+241:     origin
+242:   );
+243: }
+244: 
+245: /**
+246:  * POST /api/votes.
+247:  * @param {Request} request
+248:  * @param {Record<string, unknown>} env
+249:  * @param {string} origin
+250:  * @returns {Promise<Response>}
+251:  */
+252: async function handlePostVote(request, env, origin) {
+253:   const bodyResult = await readJsonBody(request);
+254:   if (!bodyResult.ok) {
+255:     return errorResponse(bodyResult.error, 'That request could not be read.', bodyResult.status, origin);
+256:   }
+257:   const { slug } = bodyResult.data;
+258: 
+259:   const { key: rateKey, record: rateRecord } = await readRate(request, env);
+260:   const board = await env.SUGGESTIONS.get(BOARD_KEY, 'json');
+261:   const now = new Date().toISOString();
+262:   const result = applyVote({ board, slug, rateRecord, now });
+263: 
+264:   if (result.outcome === 'notFound' || result.outcome === 'notApproved') {
+265:     return errorResponse('notFound', 'That suggestion is not available.', 404, origin);
+266:   }
+267:   if (result.outcome === 'rateLimited') {
+268:     return errorResponse('rateLimited', result.errors.join('; '), 429, origin);
+269:   }
+270: 
+271:   await persist(env, rateKey, result.rateRecord, result.board);
+272:   return jsonResponse({ status: 'voted', message: 'Your vote was added.' }, 200, origin);
+273: }
+274: 
+275: /**
+276:  * GET /api/admin/suggestions.
+277:  * @param {Request} request
+278:  * @param {Record<string, unknown>} env
+279:  * @param {string} origin
+280:  * @returns {Promise<Response>}
+281:  */
+282: async function handleAdminList(request, env, origin) {
+283:   if (!checkAdmin(request, env)) {
+284:     return errorResponse('unauthorized', 'Not authorized.', 401, origin);
+285:   }
+286:   const board = await env.SUGGESTIONS.get(BOARD_KEY, 'json');
+287:   return jsonResponse(adminView(board), 200, origin);
+288: }
+289: 
+290: /**
+291:  * POST /api/admin/approve.
+292:  * @param {Request} request
+293:  * @param {Record<string, unknown>} env
+294:  * @param {string} origin
+295:  * @returns {Promise<Response>}
+296:  */
+297: async function handleAdminApprove(request, env, origin) {
+298:   if (!checkAdmin(request, env)) {
+299:     return errorResponse('unauthorized', 'Not authorized.', 401, origin);
+300:   }
+301:   const bodyResult = await readJsonBody(request);
+302:   if (!bodyResult.ok) {
+303:     return errorResponse(bodyResult.error, 'That request could not be read.', bodyResult.status, origin);
+304:   }
+305:   const { slug, approved } = bodyResult.data;
+306:   if (typeof slug !== 'string' || typeof approved !== 'boolean') {
+307:     return errorResponse('invalidBody', 'slug and approved are required.', 400, origin);
+308:   }
+309:   const board = normaliseBoard(await env.SUGGESTIONS.get(BOARD_KEY, 'json'));
+310:   const existing = board.suggestions[slug];
+311:   if (!existing) {
+312:     return errorResponse('notFound', 'That suggestion is not in the board.', 404, origin);
+313:   }
+314:   const next = {
+315:     version: board.version,
+316:     suggestions: {
+317:       ...board.suggestions,
+318:       [slug]: { ...existing, approved, updatedAt: new Date().toISOString() },
+319:     },
+320:   };
+321:   await env.SUGGESTIONS.put(BOARD_KEY, JSON.stringify(next));
+322:   return jsonResponse({ slug, approved }, 200, origin);
+323: }
+324: 
+325: /**
+326:  * POST /api/admin/remove.
+327:  * @param {Request} request
+328:  * @param {Record<string, unknown>} env
+329:  * @param {string} origin
+330:  * @returns {Promise<Response>}
+331:  */
+332: async function handleAdminRemove(request, env, origin) {
+333:   if (!checkAdmin(request, env)) {
+334:     return errorResponse('unauthorized', 'Not authorized.', 401, origin);
+335:   }
+336:   const bodyResult = await readJsonBody(request);
+337:   if (!bodyResult.ok) {
+338:     return errorResponse(bodyResult.error, 'That request could not be read.', bodyResult.status, origin);
+339:   }
+340:   const { slug } = bodyResult.data;
+341:   if (typeof slug !== 'string') {
+342:     return errorResponse('invalidBody', 'slug is required.', 400, origin);
+343:   }
+344:   const board = normaliseBoard(await env.SUGGESTIONS.get(BOARD_KEY, 'json'));
+345:   if (!board.suggestions[slug]) {
+346:     return errorResponse('notFound', 'That suggestion is not in the board.', 404, origin);
+347:   }
+348:   const next = {
+349:     version: board.version,
+350:     suggestions: { ...board.suggestions },
+351:   };
+352:   delete next.suggestions[slug];
+353:   await env.SUGGESTIONS.put(BOARD_KEY, JSON.stringify(next));
+354:   return jsonResponse({ slug, removed: true }, 200, origin);
+355: }
+356: 
+357: export default {
+358:   /**
+359:    * Worker entry point.
+360:    * @param {Request} request
+361:    * @param {Record<string, unknown>} env
+362:    * @returns {Promise<Response>}
+363:    */
+364:   async fetch(request, env) {
+365:     const url = new URL(request.url);
+366:     const allowedOrigins = typeof env.ALLOWED_ORIGINS === 'string' ? env.ALLOWED_ORIGINS : '';
+367:     const origin = pickOrigin(request.headers.get('Origin') || '', allowedOrigins);
+368: 
+369:     if (request.method === 'OPTIONS') {
+370:       return handleOptions(request, allowedOrigins);
+371:     }
+372: 
+373:     const isPost = request.method === 'POST';
+374:     const hasOriginHeader = request.headers.get('Origin') !== null;
+375:     if (isPost && hasOriginHeader && !origin) {
+376:       return errorResponse('originNotAllowed', 'This origin is not allowed.', 403, '');
+377:     }
+378: 
+379:     const path = url.pathname;
+380: 
+381:     if (path === '/api/suggestions' && request.method === 'GET') {
+382:       return handleListSuggestions(env, origin);
+383:     }
+384:     if (path === '/api/suggestions' && request.method === 'POST') {
+385:       return handlePostSuggestion(request, env, origin);
+386:     }
+387:     if (path === '/api/votes' && request.method === 'POST') {
+388:       return handlePostVote(request, env, origin);
+389:     }
+390:     if (path === '/api/admin/suggestions' && request.method === 'GET') {
+391:       return handleAdminList(request, env, origin);
+392:     }
+393:     if (path === '/api/admin/approve' && request.method === 'POST') {
+394:       return handleAdminApprove(request, env, origin);
+395:     }
+396:     if (path === '/api/admin/remove' && request.method === 'POST') {
+397:       return handleAdminRemove(request, env, origin);
+398:     }
+399: 
+400:     return errorResponse('notFound', 'That route does not exist.', 404, origin);
+401:   },
+402: };
+
+================
+File: worker/src/logic.js
+================
+  1: /**
+  2:  * Pure logic for The Roast Room suggestions Worker.
+  3:  * No Cloudflare APIs, no fetch, no KV. Everything here runs unchanged in the
+  4:  * Worker and in the Node test runner.
+  5:  */
+  6: 
+  7: export const BOARD_KEY = 'board';
+  8: export const BOARD_VERSION = 1;
+  9: export const MAX_SUGGESTIONS = 300;
+ 10: export const RATE_LIMIT_ACTIONS_PER_DAY = 6;
+ 11: export const RATE_LIMIT_TTL_SECONDS = 172800;
+ 12: export const RATE_LIMIT_HASH_LENGTH = 32;
+ 13: export const NAME_MIN_LENGTH = 2;
+ 14: export const NAME_MAX_LENGTH = 40;
+ 15: export const BODY_LIMIT_BYTES = 2048;
+ 16: 
+ 17: /**
+ 18:  * Normalise a raw club name. Trim and collapse runs of whitespace to a single
+ 19:  * space. Anything that is not a string becomes an empty string.
+ 20:  * @param {unknown} raw
+ 21:  * @returns {string}
+ 22:  */
+ 23: export function normaliseName(raw) {
+ 24:   if (typeof raw !== 'string') return '';
+ 25:   return raw.trim().replace(/\s+/g, ' ');
+ 26: }
+ 27: 
+ 28: /**
+ 29:  * Validate a club name against the published rules.
+ 30:  * Allowed characters are letters in any language, digits, spaces, apostrophe,
+ 31:  * full stop and ampersand. Urls, the at sign and digits only are rejected.
+ 32:  * @param {unknown} raw
+ 33:  * @returns {{ valid: boolean, errors: string[], name: string }}
+ 34:  */
+ 35: export function validateName(raw) {
+ 36:   const name = normaliseName(raw);
+ 37:   const errors = [];
+ 38: 
+ 39:   if (name.length < NAME_MIN_LENGTH) {
+ 40:     errors.push(`name must be at least ${NAME_MIN_LENGTH} characters`);
+ 41:   }
+ 42:   if (name.length > NAME_MAX_LENGTH) {
+ 43:     errors.push(`name must be ${NAME_MAX_LENGTH} characters or fewer`);
+ 44:   }
+ 45: 
+ 46:   const lower = name.toLowerCase();
+ 47:   if (lower.includes('http')) errors.push('name cannot contain a url');
+ 48:   if (lower.includes('www')) errors.push('name cannot contain a url');
+ 49:   if (name.includes('@')) errors.push('name cannot contain an at sign');
+ 50:   if (name.length > 0 && /^[0-9]+$/.test(name)) {
+ 51:     errors.push('name cannot be digits only');
+ 52:   }
+ 53:   if (name.length > 0 && !/^[\p{L}0-9 .'&]+$/u.test(name)) {
+ 54:     errors.push('name contains disallowed characters');
+ 55:   }
+ 56: 
+ 57:   return { valid: errors.length === 0, errors, name };
+ 58: }
+ 59: 
+ 60: /**
+ 61:  * Slugify a normalised name. Output is lowercase a to z, digits and
+ 62:  * underscores only. Accented letters are stripped of diacritics first so
+ 63:  * Atlético becomes atletico. Anything that cannot be turned into a slug
+ 64:  * becomes an empty string, which the caller treats as a validation error.
+ 65:  * @param {unknown} name
+ 66:  * @returns {string}
+ 67:  */
+ 68: export function slugify(name) {
+ 69:   return String(name === undefined || name === null ? '' : name)
+ 70:     .normalize('NFD')
+ 71:     .replace(/[\u0300-\u036f]/g, '')
+ 72:     .toLowerCase()
+ 73:     .replace(/[^a-z0-9]+/g, '_')
+ 74:     .replace(/^_+|_+$/g, '');
+ 75: }
+ 76: 
+ 77: /**
+ 78:  * Read a rate record safely. Missing or malformed records become empty.
+ 79:  * @param {unknown} record
+ 80:  * @returns {{ actions: number, voted: string[] }}
+ 81:  */
+ 82: export function normaliseRateRecord(record) {
+ 83:   if (!record || typeof record !== 'object') {
+ 84:     return { actions: 0, voted: [] };
+ 85:   }
+ 86:   const actions = Number.isInteger(record.actions) && record.actions >= 0 ? record.actions : 0;
+ 87:   const voted = Array.isArray(record.voted)
+ 88:     ? record.voted.filter((entry) => typeof entry === 'string')
+ 89:     : [];
+ 90:   return { actions, voted };
+ 91: }
+ 92: 
+ 93: /**
+ 94:  * Read a board safely. Missing or malformed boards become empty boards.
+ 95:  * @param {unknown} board
+ 96:  * @returns {{ version: number, suggestions: Record<string, Record<string, unknown>> }}
+ 97:  */
+ 98: export function normaliseBoard(board) {
+ 99:   if (
+100:     !board ||
+101:     typeof board !== 'object' ||
+102:     !board.suggestions ||
+103:     typeof board.suggestions !== 'object' ||
+104:     Array.isArray(board.suggestions)
+105:   ) {
+106:     return { version: BOARD_VERSION, suggestions: {} };
+107:   }
+108:   return { version: BOARD_VERSION, suggestions: board.suggestions };
+109: }
+110: 
+111: /**
+112:  * Count the suggestions in a board.
+113:  * @param {unknown} board
+114:  * @returns {number}
+115:  */
+116: export function countSuggestions(board) {
+117:   return Object.keys(normaliseBoard(board).suggestions).length;
+118: }
+119: 
+120: /**
+121:  * Decide whether a client can perform another action today.
+122:  * @param {{ actions: number }} record
+123:  * @returns {{ allowed: boolean, reason: string }}
+124:  */
+125: export function canAct(record) {
+126:   const safe = normaliseRateRecord(record);
+127:   if (safe.actions >= RATE_LIMIT_ACTIONS_PER_DAY) {
+128:     return { allowed: false, reason: 'rateLimited' };
+129:   }
+130:   return { allowed: true, reason: 'ok' };
+131: }
+132: 
+133: /**
+134:  * Decide whether a client can vote for a slug today.
+135:  * @param {{ voted: string[] }} record
+136:  * @param {string} slug
+137:  * @returns {{ allowed: boolean, reason: string }}
+138:  */
+139: export function canVote(record, slug) {
+140:   const safe = normaliseRateRecord(record);
+141:   if (safe.voted.includes(slug)) {
+142:     return { allowed: false, reason: 'alreadyVoted' };
+143:   }
+144:   return { allowed: true, reason: 'ok' };
+145: }
+146: 
+147: /**
+148:  * Apply a suggestion. A slug that already exists merges into a vote on the
+149:  * existing record. A brand new slug creates a pending suggestion and counts
+150:  * the submitter as the first vote. Returns the new board and rate record so
+151:  * the caller can perform exactly two KV writes when the outcome is accepted.
+152:  * @param {{
+153:  *   board: unknown,
+154:  *   name: unknown,
+155:  *   rateRecord: unknown,
+156:  *   now: string
+157:  * }} options
+158:  * @returns {{
+159:  *   outcome: 'voted' | 'pending' | 'full' | 'invalid' | 'rateLimited',
+160:  *   board: { version: number, suggestions: Record<string, Record<string, unknown>> },
+161:  *   rateRecord: { actions: number, voted: string[] },
+162:  *   slug: string,
+163:  *   errors: string[]
+164:  * }}
+165:  */
+166: export function applySuggestion(options) {
+167:   const { board, name, rateRecord, now } = options || {};
+168:   const safeBoard = normaliseBoard(board);
+169:   const safeRate = normaliseRateRecord(rateRecord);
+170: 
+171:   const validation = validateName(name);
+172:   if (!validation.valid) {
+173:     return {
+174:       outcome: 'invalid',
+175:       board: safeBoard,
+176:       rateRecord: safeRate,
+177:       slug: '',
+178:       errors: validation.errors,
+179:     };
+180:   }
+181: 
+182:   const slug = slugify(validation.name);
+183:   if (!slug) {
+184:     return {
+185:       outcome: 'invalid',
+186:       board: safeBoard,
+187:       rateRecord: safeRate,
+188:       slug: '',
+189:       errors: ['name cannot be turned into a slug'],
+190:     };
+191:   }
+192: 
+193:   if (!canAct(safeRate).allowed) {
+194:     return {
+195:       outcome: 'rateLimited',
+196:       board: safeBoard,
+197:       rateRecord: safeRate,
+198:       slug,
+199:       errors: ['You have reached the daily limit. Try again tomorrow.'],
+200:     };
+201:   }
+202: 
+203:   // Vote path: the slug already exists.
+204:   const existing = safeBoard.suggestions[slug];
+205:   if (existing) {
+206:     if (!canVote(safeRate, slug).allowed) {
+207:       return {
+208:         outcome: 'rateLimited',
+209:         board: safeBoard,
+210:         rateRecord: safeRate,
+211:         slug,
+212:         errors: ['You have already voted for this club today.'],
+213:       };
+214:     }
+215:     const nextBoard = {
+216:       version: safeBoard.version,
+217:       suggestions: {
+218:         ...safeBoard.suggestions,
+219:         [slug]: {
+220:           ...existing,
+221:           votes: (Number.isInteger(existing.votes) ? existing.votes : 0) + 1,
+222:           updatedAt: now,
+223:         },
+224:       },
+225:     };
+226:     const nextRate = {
+227:       actions: safeRate.actions + 1,
+228:       voted: safeRate.voted.concat(slug),
+229:     };
+230:     return { outcome: 'voted', board: nextBoard, rateRecord: nextRate, slug, errors: [] };
+231:   }
+232: 
+233:   // New suggestion path.
+234:   if (countSuggestions(safeBoard) >= MAX_SUGGESTIONS) {
+235:     return {
+236:       outcome: 'full',
+237:       board: safeBoard,
+238:       rateRecord: safeRate,
+239:       slug,
+240:       errors: ['The suggestion list is full right now.'],
+241:     };
+242:   }
+243: 
+244:   const nextBoard = {
+245:     version: safeBoard.version,
+246:     suggestions: {
+247:       ...safeBoard.suggestions,
+248:       [slug]: {
+249:         name: validation.name,
+250:         votes: 1,
+251:         approved: false,
+252:         createdAt: now,
+253:         updatedAt: now,
+254:       },
+255:     },
+256:   };
+257:   const nextRate = {
+258:     actions: safeRate.actions + 1,
+259:     voted: safeRate.voted.concat(slug),
+260:   };
+261:   return { outcome: 'pending', board: nextBoard, rateRecord: nextRate, slug, errors: [] };
+262: }
+263: 
+264: /**
+265:  * Apply a vote to an existing approved suggestion.
+266:  * @param {{
+267:  *   board: unknown,
+268:  *   slug: unknown,
+269:  *   rateRecord: unknown,
+270:  *   now: string
+271:  * }} options
+272:  * @returns {{
+273:  *   outcome: 'voted' | 'notFound' | 'notApproved' | 'rateLimited',
+274:  *   board: { version: number, suggestions: Record<string, Record<string, unknown>> },
+275:  *   rateRecord: { actions: number, voted: string[] },
+276:  *   errors: string[]
+277:  * }}
+278:  */
+279: export function applyVote(options) {
+280:   const { board, slug, rateRecord, now } = options || {};
+281:   const safeBoard = normaliseBoard(board);
+282:   const safeRate = normaliseRateRecord(rateRecord);
+283:   const safeSlug = typeof slug === 'string' ? slug : '';
+284: 
+285:   if (!safeSlug || !safeBoard.suggestions[safeSlug]) {
+286:     return {
+287:       outcome: 'notFound',
+288:       board: safeBoard,
+289:       rateRecord: safeRate,
+290:       errors: ['That suggestion is not available.'],
+291:     };
+292:   }
+293: 
+294:   const existing = safeBoard.suggestions[safeSlug];
+295:   if (!existing.approved) {
+296:     return {
+297:       outcome: 'notApproved',
+298:       board: safeBoard,
+299:       rateRecord: safeRate,
+300:       errors: ['That suggestion is not approved yet.'],
+301:     };
+302:   }
+303: 
+304:   if (!canAct(safeRate).allowed) {
+305:     return {
+306:       outcome: 'rateLimited',
+307:       board: safeBoard,
+308:       rateRecord: safeRate,
+309:       errors: ['You have reached the daily limit. Try again tomorrow.'],
+310:     };
+311:   }
+312: 
+313:   if (!canVote(safeRate, safeSlug).allowed) {
+314:     return {
+315:       outcome: 'rateLimited',
+316:       board: safeBoard,
+317:       rateRecord: safeRate,
+318:       errors: ['You have already voted for this club today.'],
+319:     };
+320:   }
+321: 
+322:   const nextBoard = {
+323:     version: safeBoard.version,
+324:     suggestions: {
+325:       ...safeBoard.suggestions,
+326:       [safeSlug]: {
+327:         ...existing,
+328:         votes: (Number.isInteger(existing.votes) ? existing.votes : 0) + 1,
+329:         updatedAt: now,
+330:       },
+331:     },
+332:   };
+333:   const nextRate = {
+334:     actions: safeRate.actions + 1,
+335:     voted: safeRate.voted.concat(safeSlug),
+336:   };
+337:   return { outcome: 'voted', board: nextBoard, rateRecord: nextRate, errors: [] };
+338: }
+339: 
+340: /**
+341:  * Build the public leaderboard. Approved suggestions only, sorted by votes
+342:  * descending then name ascending. Timestamps are stripped.
+343:  * @param {unknown} board
+344:  * @returns {{ suggestions: Array<{ slug: string, name: string, votes: number }> }}
+345:  */
+346: export function publicView(board) {
+347:   const safe = normaliseBoard(board);
+348:   const suggestions = Object.entries(safe.suggestions)
+349:     .filter(([, value]) => value && value.approved === true)
+350:     .map(([slug, value]) => ({
+351:       slug,
+352:       name: String(value.name || ''),
+353:       votes: Number.isInteger(value.votes) ? value.votes : 0,
+354:     }));
+355:   suggestions.sort((a, b) => {
+356:     if (b.votes !== a.votes) return b.votes - a.votes;
+357:     return a.name.localeCompare(b.name);
+358:   });
+359:   return { suggestions };
+360: }
+361: 
+362: /**
+363:  * Build the admin view. Every suggestion with timestamps, sorted by votes
+364:  * descending then name ascending.
+365:  * @param {unknown} board
+366:  * @returns {{ suggestions: Array<{
+367:  *   slug: string, name: string, votes: number, approved: boolean,
+368:  *   createdAt: string, updatedAt: string
+369:  * }> }}
+370:  */
+371: export function adminView(board) {
+372:   const safe = normaliseBoard(board);
+373:   const suggestions = Object.entries(safe.suggestions).map(([slug, value]) => ({
+374:     slug,
+375:     name: String(value.name || ''),
+376:     votes: Number.isInteger(value.votes) ? value.votes : 0,
+377:     approved: value.approved === true,
+378:     createdAt: String(value.createdAt || ''),
+379:     updatedAt: String(value.updatedAt || ''),
+380:   }));
+381:   suggestions.sort((a, b) => {
+382:     if (b.votes !== a.votes) return b.votes - a.votes;
+383:     return a.name.localeCompare(b.name);
+384:   });
+385:   return { suggestions };
+386: }
+387: 
+388: /**
+389:  * Return the origin when it is in the allowed list, otherwise an empty string.
+390:  * Comparison is case sensitive and exact, so trailing slashes matter.
+391:  * @param {string} origin
+392:  * @param {string} allowedList Comma separated list of allowed origins.
+393:  * @returns {string}
+394:  */
+395: export function pickOrigin(origin, allowedList) {
+396:   if (typeof origin !== 'string' || origin.length === 0) return '';
+397:   if (typeof allowedList !== 'string' || allowedList.length === 0) return '';
+398:   const allowed = allowedList
+399:     .split(',')
+400:     .map((entry) => entry.trim())
+401:     .filter((entry) => entry.length > 0);
+402:   return allowed.includes(origin) ? origin : '';
+403: }
+404: 
+405: /**
+406:  * Compare two strings in constant time. Returns false when either is not a
+407:  * string. Differing lengths return false early, which leaks only the length
+408:  * of the admin token, not its content.
+409:  * @param {unknown} a
+410:  * @param {unknown} b
+411:  * @returns {boolean}
+412:  */
+413: export function constantTimeEquals(a, b) {
+414:   if (typeof a !== 'string' || typeof b !== 'string') return false;
+415:   if (a.length !== b.length) return false;
+416:   let result = 0;
+417:   for (let i = 0; i < a.length; i += 1) {
+418:     result |= a.charCodeAt(i) ^ b.charCodeAt(i);
+419:   }
+420:   return result === 0;
+421: }
+
+================
+File: worker/package.json
+================
+ 1: {
+ 2:   "name": "roastroomsuggest",
+ 3:   "version": "1.0.0",
+ 4:   "private": true,
+ 5:   "type": "module",
+ 6:   "scripts": {
+ 7:     "dev": "wrangler dev",
+ 8:     "deploy": "wrangler deploy"
+ 9:   },
+10:   "devDependencies": {
+11:     "wrangler": "^4.0.0"
+12:   }
+13: }
+
+================
+File: worker/README.md
+================
+  1: # Roast Room Suggestions Worker
+  2: 
+  3: Cloudflare Worker that backs the audience participation section on the
+  4: landing page: suggestions and voting. Built with plain JavaScript ES modules
+  5: and Workers KV. No frameworks.
+  6: 
+  7: ## Layout
+  8: 
+  9: ```text
+ 10: worker/
+ 11:   package.json
+ 12:   wrangler.toml
+ 13:   src/
+ 14:     index.js    routing and KV access
+ 15:     logic.js    pure logic, no Cloudflare APIs
+ 16:   README.md
+ 17: ```
+ 18: 
+ 19: ## Endpoints
+ 20: 
+ 21: All responses are JSON encoded as UTF 8. Errors are shaped `{ error, message }`
+ 22: with no stack traces.
+ 23: 
+ 24: | Method | Path | Auth | Purpose |
+ 25: | --- | --- | --- | --- |
+ 26: | GET | /api/suggestions | none | Public leaderboard. Approved only, sorted by votes then name, cached for 30 seconds. |
+ 27: | POST | /api/suggestions | origin | Submit a suggestion or merge into a vote. Body `{ name, website }`. |
+ 28: | POST | /api/votes | origin | Vote for an approved suggestion. Body `{ slug }`. |
+ 29: | GET | /api/admin/suggestions | Bearer | Every suggestion with timestamps. |
+ 30: | POST | /api/admin/approve | Bearer | Body `{ slug, approved }`. |
+ 31: | POST | /api/admin/remove | Bearer | Body `{ slug }`. |
+ 32: | OPTIONS | any route | none | CORS preflight, 204. |
+ 33: 
+ 34: `Bearer` means the `Authorization` header must equal `Bearer <ADMIN_TOKEN>` and
+ 35: the token is compared in constant time. A failed comparison returns 401 with
+ 36: no detail. An unset `ADMIN_TOKEN` rejects every admin request.
+ 37: 
+ 38: An unknown route returns 404 JSON.
+ 39: 
+ 40: ## Storage
+ 41: 
+ 42: Two kinds of key in the `SUGGESTIONS` namespace.
+ 43: 
+ 44: - `board` holds
+ 45:   `{ version: 1, suggestions: { [slug]: { name, votes, approved, createdAt, updatedAt } } }`.
+ 46:   The board is capped at 300 suggestions. A full board returns a friendly
+ 47:   message and writes nothing.
+ 48: - `rl:<hash>:<YYYYMMDD>` holds `{ actions, voted: [slug] }` for one client per
+ 49:   UTC day, expiring after 172800 seconds (two days). `hash` is the first 32
+ 50:   hex characters of `SHA-256(HASH_SALT + CF-Connecting-IP)`. The raw IP
+ 51:   address is never stored and never logged.
+ 52: 
+ 53: Limits:
+ 54: 
+ 55: - 6 actions per day per client. Suggestions and votes both count as actions.
+ 56: - One vote per slug per day per client.
+ 57: - An accepted action performs exactly two KV writes: the rate record and the
+ 58:   board. A rejected action performs no writes.
+ 59: 
+ 60: The Workers KV free plan allows about 1000 writes per day. Because every
+ 61: accepted action is two writes, that is about 500 accepted actions per day on
+ 62: the free plan. Plan accordingly.
+ 63: 
+ 64: ## Consistency
+ 65: 
+ 66: KV is eventually consistent. Two simultaneous writes can lose a vote. This is
+ 67: accepted for stage 4. If exact counts ever matter, replace KV with Durable
+ 68: Objects. Nothing in this Worker depends on exact counts for correctness.
+ 69: 
+ 70: ## Origin allow list
+ 71: 
+ 72: `ALLOWED_ORIGINS` in `wrangler.toml` is a comma separated string of allowed
+ 73: origins. A request that carries an `Origin` header not on the list is rejected
+ 74: with 403 on POST routes and receives no CORS headers on any route. Requests
+ 75: without an `Origin` header, such as `curl`, are allowed; CSRF protection comes
+ 76: from the browser sending an `Origin` header on cross origin POSTs.
+ 77: 
+ 78: ## Name and slug rules
+ 79: 
+ 80: - Trim and collapse runs of whitespace to one space.
+ 81: - 2 to 40 characters.
+ 82: - Allowed characters are letters in any language, digits, spaces, apostrophe,
+ 83:   full stop and ampersand.
+ 84: - Reject anything containing `http`, `www` or an at sign.
+ 85: - Reject digits only.
+ 86: - The slug is lowercase a to z, digits and underscores. Accented letters are
+ 87:   stripped of diacritics first, so `Atlético` becomes `atletico`.
+ 88: 
+ 89: ## Local development
+ 90: 
+ 91: ```bash
+ 92: cd worker
+ 93: npm install
+ 94: npx wrangler login
+ 95: npx wrangler dev
+ 96: ```
+ 97: 
+ 98: `wrangler dev` runs the Worker locally against a development KV namespace.
+ 99: Replace the `id` placeholder in `wrangler.toml` after you create the real
+100: namespace.
+101: 
+102: ## Deployment
+103: 
+104: 1. `cd worker`
+105: 2. `npm install`
+106: 3. `npx wrangler login`
+107: 4. `npx wrangler kv namespace create SUGGESTIONS`
+108:    Copy the `id` from the output and paste it over the placeholder in
+109:    `wrangler.toml`.
+110: 5. `npx wrangler secret put ADMIN_TOKEN`
+111:    Paste a long random value, for example the output of
+112:    `openssl rand -hex 32`. This is the password you type on `adminlab.html`.
+113: 6. `npx wrangler secret put HASH_SALT`
+114:    Paste another long random value, for example the output of
+115:    `openssl rand -hex 32`. This salts the client hash used for rate limiting.
+116:    Rotate it only if you accept that rate limits reset for everyone.
+117: 7. `npx wrangler deploy`
+118:    The output prints the deployed URL, for example
+119:    `https://roastroomsuggest.yourname.workers.dev`.
+120: 8. Paste that URL into `js/suggest/suggestConfig.js` as `SUGGEST_API_BASE`.
+121: 9. Update `ALLOWED_ORIGINS` in `wrangler.toml` with your real site origins,
+122:    replacing the Netlify placeholder, and run `npx wrangler deploy` again.
+123: 
+124: ## Manual smoke test
+125: 
+126: ```bash
+127: # Public leaderboard
+128: curl -s https://roastroomsuggest.yourname.workers.dev/api/suggestions
+129: 
+130: # Submit a suggestion
+131: curl -s -X POST \
+132:   -H "Content-Type: application/json" \
+133:   -H "Origin: http://localhost:3000" \
+134:   -d '{"name":"Arsenal","website":""}' \
+135:   https://roastroomsuggest.yourname.workers.dev/api/suggestions
+136: 
+137: # Vote
+138: curl -s -X POST \
+139:   -H "Content-Type: application/json" \
+140:   -H "Origin: http://localhost:3000" \
+141:   -d '{"slug":"arsenal"}' \
+142:   https://roastroomsuggest.yourname.workers.dev/api/votes
+143: 
+144: # Admin list
+145: curl -s -H "Authorization: Bearer $ADMIN_TOKEN" \
+146:   https://roastroomsuggest.yourname.workers.dev/api/admin/suggestions
+147: 
+148: # Admin approve
+149: curl -s -X POST \
+150:   -H "Authorization: Bearer $ADMIN_TOKEN" \
+151:   -H "Content-Type: application/json" \
+152:   -d '{"slug":"arsenal","approved":true}' \
+153:   https://roastroomsuggest.yourname.workers.dev/api/admin/approve
+154: 
+155: # Wrong origin is blocked
+156: curl -s -o /dev/null -w "%{http_code}\n" -X POST \
+157:   -H "Content-Type: application/json" \
+158:   -H "Origin: https://evil.example" \
+159:   -d '{"name":"Arsenal","website":""}' \
+160:   https://roastroomsuggest.yourname.workers.dev/api/suggestions
+161: # Expect 403
+162: ```
+
+================
+File: worker/wrangler.toml
+================
+ 1: name = "roastroomsuggest"
+ 2: main = "src/index.js"
+ 3: compatibility_date = "2025-04-01"
+ 4: 
+ 5: [[kv_namespaces]]
+ 6: binding = "SUGGESTIONS"
+ 7: id = "c7d1798800ad476598ef3323f31195eb"
+ 8: 
+ 9: [vars]
+10: # Comma separated list of allowed origins.
+11: # Requests with an Origin header that is not on this list are rejected with 403
+12: # for POST routes and receive no CORS headers for any route.
+13: #
+14: # http://localhost:3000              local dev (any dev server on this port)
+15: # http://localhost:8000              local dev (python -m http.server)
+16: # https://paste_your_netlify_site_here   your Netlify site URL
+17: # https://roastroom.fritt.org        production site
+18: ALLOWED_ORIGINS = "http://localhost:3000,http://localhost:8000,https://deroastroom.netlify.app/,https://roastroom.fritt.org"
+
+================
+File: cardlab.html
+================
+ 1: <!DOCTYPE html>
+ 2: <html lang="en">
+ 3:   <head>
+ 4:     <meta charset="utf-8" />
+ 5:     <meta name="viewport" content="width=device-width, initial-scale=1" />
+ 6:     <title>Card lab | The Roast Room</title>
+ 7:     <meta
+ 8:       name="description"
+ 9:       content="Developer only QA page for shared roast cards."
+10:     />
+11:     <meta name="robots" content="noindex" />
+12:     <meta name="color-scheme" content="dark" />
+13:     <meta name="theme-color" content="#0A0A0A" />
+14: 
+15:     <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
+16: 
+17:     <link rel="preconnect" href="https://fonts.googleapis.com" />
+18:     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+19:     <link
+20:       rel="stylesheet"
+21:       href="https://fonts.googleapis.com/css2?family=Anton&amp;family=Inter:wght@400;500;600;700&amp;display=swap"
+22:     />
+23:     <link rel="stylesheet" href="./dist/styles.css" />
+24: 
+25:     <script type="module" src="./js/dev/cardLab.js" defer></script>
+26:   </head>
+27: 
+28:   <body class="min-h-screen bg-background text-text">
+29:     <a class="skipLink" href="#main">Skip to content</a>
+30: 
+31:     <header class="border-b border-line bg-surface">
+32:       <div class="mx-auto max-w-6xl px-4 py-8">
+33:         <p class="tokenLabel">Developer only QA page</p>
+34:         <h1 class="mt-3 font-display text-4xl uppercase text-text">Card lab</h1>
+35:         <p class="mt-3 max-w-2xl text-sm text-textMuted">
+36:           Every roast of every live club is drawn in both formats. This page is not linked
+37:           from public pages.
+38:         </p>
+39:       </div>
+40:     </header>
+41: 
+42:     <main id="main" class="mx-auto max-w-6xl px-4 py-8">
+43:       <p id="cardLabSummary" role="status" aria-live="polite" class="text-accent">
+44:         Loading cards.
+45:       </p>
+46:       <p
+47:         id="cardLabWarning"
+48:         class="hidden mt-3 rounded-sharp border border-primary bg-surfaceRaised p-4 text-text"
+49:         role="alert"
+50:       ></p>
+51: 
+52:       <div id="cardLabGrid" class="mt-6 grid gap-6 md:grid-cols-2 xl:grid-cols-3"></div>
+53:     </main>
+54:   </body>
+55: </html>
 
 ================
 File: favicon.svg
@@ -3652,123 +6673,6 @@ File: favicon.svg
 3:   <path d="M32 10 C30 18 20 22 20 34 C20 44 26 52 32 54 C38 52 44 44 44 34 C44 22 34 18 32 10 Z" fill="#FBE122"/>
 4:   <path d="M32 30 C30 36 26 38 26 44 C26 48 28 50 32 52 C36 50 38 48 38 44 C38 38 34 36 32 30 Z" fill="#DA291C"/>
 5: </svg>
-
-================
-File: room.html
-================
-  1: <!DOCTYPE html>
-  2: <html lang="en">
-  3:   <head>
-  4:     <meta charset="utf-8" />
-  5:     <meta name="viewport" content="width=device-width, initial-scale=1" />
-  6:     <title>Roast Room | The Roast Room</title>
-  7:     <meta
-  8:       name="description"
-  9:       content="Pick a category and hit Roast them. Every roast is sourced and dated."
- 10:     />
- 11:     <meta name="color-scheme" content="dark" />
- 12:     <meta name="theme-color" content="#0A0A0A" />
- 13: 
- 14:     <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
- 15: 
- 16:     <link rel="preconnect" href="https://fonts.googleapis.com" />
- 17:     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
- 18:     <link
- 19:       rel="stylesheet"
- 20:       href="https://fonts.googleapis.com/css2?family=Anton&amp;family=Inter:wght@400;500;600;700&amp;display=swap"
- 21:     />
- 22:     <link rel="stylesheet" href="./dist/styles.css" />
- 23: 
- 24:     <script type="module" src="./js/pages/room.js" defer></script>
- 25:   </head>
- 26: 
- 27:   <body class="min-h-screen bg-background text-text">
- 28:     <a class="skipLink" href="#main">Skip to content</a>
- 29: 
- 30:     <header class="border-b border-line bg-surface">
- 31:       <div class="mx-auto flex max-w-4xl flex-wrap items-center justify-between gap-3 px-4 py-4">
- 32:         <a href="./index.html" class="font-display text-xl uppercase tracking-wide text-text no-underline">
- 33:           The Roast Room
- 34:         </a>
- 35:         <div class="flex flex-wrap items-center gap-3">
- 36:           <span
- 37:             id="clubBadge"
- 38:             class="rounded-pill border border-line bg-surfaceRaised px-3 py-1 text-xs text-textMuted"
- 39:           >
- 40:             Loading club
- 41:           </span>
- 42:           <a href="./index.html#pickerHeading" class="text-sm text-textMuted underline">
- 43:             Pick a different club
- 44:           </a>
- 45:         </div>
- 46:       </div>
- 47:     </header>
- 48: 
- 49:     <main id="main" class="mx-auto max-w-4xl px-4 py-8">
- 50:       <h1 id="pageHeading" class="srOnly">The Roast Room</h1>
- 51: 
- 52:       <section
- 53:         id="loadingState"
- 54:         class="rounded-sharp border border-line bg-surface p-8"
- 55:         aria-label="Loading"
- 56:       >
- 57:         <p class="text-textMuted">Loading the club and its roasts.</p>
- 58:       </section>
- 59: 
- 60:       <section
- 61:         id="errorState"
- 62:         class="hidden rounded-sharp border border-line bg-surface p-8"
- 63:         role="alert"
- 64:       >
- 65:         <h2 class="text-2xl text-text">Roast room unavailable</h2>
- 66:         <p id="errorMessage" class="mt-2 text-textMuted">We could not open this club.</p>
- 67:         <p class="mt-4">
- 68:           <a href="./index.html" class="text-accent underline">Back to the club picker</a>
- 69:         </p>
- 70:       </section>
- 71: 
- 72:       <section id="roomState" class="hidden">
- 73:         <div class="mb-6">
- 74:           <p class="tokenLabel">Filter by category</p>
- 75:           <div id="categoryFilter" class="mt-3"></div>
- 76:         </div>
- 77: 
- 78:         <div class="mb-6 flex flex-wrap items-center gap-4">
- 79:           <button
- 80:             id="roastButton"
- 81:             type="button"
- 82:             class="rounded-sharp bg-primary px-8 py-5 font-display text-2xl uppercase tracking-wide text-primaryContrast transition-colors duration-fast ease-standard hover:bg-accent hover:text-background disabled:opacity-50"
- 83:           >
- 84:             Roast them
- 85:           </button>
- 86:           <p id="progress" class="text-sm text-textMuted"></p>
- 87:         </div>
- 88: 
- 89:         <div id="roastContainer"></div>
- 90: 
- 91:         <p
- 92:           id="emptyState"
- 93:           class="hidden mt-8 rounded-sharp border border-line bg-surface p-6 text-textMuted"
- 94:         >
- 95:           No roasts in this category yet. Try another category, or hit Roast them on All.
- 96:         </p>
- 97: 
- 98:         <p id="roastLiveRegion" class="srOnly" aria-live="polite"></p>
- 99:       </section>
-100:     </main>
-101: 
-102:     <footer class="mt-12 border-t border-line bg-surface">
-103:       <div class="mx-auto max-w-4xl px-4 py-8">
-104:         <p class="text-sm text-textMuted">
-105:           Built by <a href="https://fritt.org">Fritt</a>. Every roast is sourced and dated.
-106:         </p>
-107:         <p class="mt-2 text-sm">
-108:           <a href="./index.html" class="text-textMuted underline">Back to the club picker</a>
-109:         </p>
-110:       </div>
-111:     </footer>
-112:   </body>
-113: </html>
 
 ================
 File: tokens.html
@@ -4215,6 +7119,1041 @@ File: tokens.html
 440: </html>
 
 ================
+File: css/components.css
+================
+  1: /*
+  2:   Shared component styles for The Roast Room.
+  3:   Imported by src/input.css after tokens.css and base.css so every rule here
+  4:   reads the design tokens and the base reset.
+  5: */
+  6: 
+  7: @layer components {
+  8:   /* Visually hidden but available to screen readers */
+  9:   .srOnly {
+ 10:     position: absolute;
+ 11:     width: 1px;
+ 12:     height: 1px;
+ 13:     padding: 0;
+ 14:     margin: -1px;
+ 15:     overflow: hidden;
+ 16:     clip: rect(0, 0, 0, 0);
+ 17:     white-space: nowrap;
+ 18:     border: 0;
+ 19:   }
+ 20: 
+ 21:   /* Roast card, styled as a matchday ticket stub with notches on both sides */
+ 22:   .roastCard {
+ 23:     position: relative;
+ 24:     background-color: var(--colorSurface);
+ 25:     border: var(--borderWidth1) solid var(--colorLine);
+ 26:     border-radius: var(--radiusSharp);
+ 27:     padding: var(--space6);
+ 28:     margin: 0 var(--space4);
+ 29:   }
+ 30: 
+ 31:   .ticketStub::before,
+ 32:   .ticketStub::after {
+ 33:     content: '';
+ 34:     position: absolute;
+ 35:     top: 50%;
+ 36:     width: var(--space6);
+ 37:     height: var(--space6);
+ 38:     background-color: var(--colorBackground);
+ 39:     border-radius: 50%;
+ 40:     transform: translateY(-50%);
+ 41:     pointer-events: none;
+ 42:   }
+ 43: 
+ 44:   .ticketStub::before {
+ 45:     left: calc(var(--space6) / -2);
+ 46:   }
+ 47: 
+ 48:   .ticketStub::after {
+ 49:     right: calc(var(--space6) / -2);
+ 50:   }
+ 51: 
+ 52:   /* Reveal animation target for the facts and receipts */
+ 53:   .revealTarget {
+ 54:     opacity: 0;
+ 55:     transition: opacity var(--durationSlow) var(--easeOut);
+ 56:   }
+ 57: 
+ 58:   .revealTarget.isVisible {
+ 59:     opacity: 1;
+ 60:   }
+ 61: 
+ 62:   /* Category filter chips */
+ 63:   .categoryChip {
+ 64:     display: inline-flex;
+ 65:     align-items: center;
+ 66:     gap: var(--space2);
+ 67:     border-radius: var(--radiusPill);
+ 68:     border: var(--borderWidth1) solid var(--colorLine);
+ 69:     background-color: var(--colorSurface);
+ 70:     color: var(--colorText);
+ 71:     padding: var(--space2) var(--space4);
+ 72:     font-size: var(--textSm);
+ 73:     transition:
+ 74:       background-color var(--durationFast) var(--easeStandard),
+ 75:       color var(--durationFast) var(--easeStandard),
+ 76:       border-color var(--durationFast) var(--easeStandard);
+ 77:   }
+ 78: 
+ 79:   .categoryChip:hover {
+ 80:     border-color: var(--colorPrimary);
+ 81:   }
+ 82: 
+ 83:   .categoryChip[aria-pressed='true'] {
+ 84:     background-color: var(--colorPrimary);
+ 85:     border-color: var(--colorPrimary);
+ 86:     color: var(--colorPrimaryContrast);
+ 87:   }
+ 88: 
+ 89:   .categoryChipCount {
+ 90:     color: var(--colorTextMuted);
+ 91:   }
+ 92: 
+ 93:   .categoryChip[aria-pressed='true'] .categoryChipCount {
+ 94:     color: var(--colorPrimaryContrast);
+ 95:   }
+ 96: 
+ 97:   /* Headline placeholder so the card does not collapse before the reel */
+ 98:   .roastHeadline {
+ 99:     min-height: 1.2em;
+100:   }
+101: 
+102:   /* Ticker strip on the landing page */
+103:   .tickerTrack {
+104:     display: flex;
+105:     gap: var(--space8);
+106:     width: max-content;
+107:     animation: tickerScroll 40s linear infinite;
+108:     will-change: transform;
+109:   }
+110: 
+111:   .tickerTrack:hover,
+112:   .tickerTrack:focus-within {
+113:     animation-play-state: paused;
+114:   }
+115: 
+116:   @media (prefers-reduced-motion: reduce) {
+117:     .tickerTrack {
+118:       animation: none;
+119:       flex-wrap: wrap;
+120:       width: auto;
+121:       transform: none;
+122:       will-change: auto;
+123:     }
+124:   }
+125: 
+126:   /* Share panel */
+127:   .sharePanel {
+128:     margin-top: var(--space8);
+129:     border: var(--borderWidth1) solid var(--colorLine);
+130:     border-radius: var(--radiusSharp);
+131:     background-color: var(--colorSurface);
+132:     padding: var(--space5);
+133:   }
+134: 
+135:   .sharePanelHeading {
+136:     margin: 0;
+137:     font-family: var(--fontDisplay);
+138:     font-size: var(--text2xl);
+139:     line-height: var(--leadingTight);
+140:     letter-spacing: var(--trackingTight);
+141:     text-transform: uppercase;
+142:     color: var(--colorText);
+143:   }
+144: 
+145:   .shareFormatToggle {
+146:     display: flex;
+147:     flex-wrap: wrap;
+148:     gap: var(--space2);
+149:     margin-top: var(--space4);
+150:   }
+151: 
+152:   .shareFormatButton {
+153:     border: var(--borderWidth1) solid var(--colorLine);
+154:     border-radius: var(--radiusPill);
+155:     background-color: var(--colorSurfaceRaised);
+156:     color: var(--colorText);
+157:     padding: var(--space2) var(--space4);
+158:     font-size: var(--textSm);
+159:     transition:
+160:       background-color var(--durationFast) var(--easeStandard),
+161:       color var(--durationFast) var(--easeStandard),
+162:       border-color var(--durationFast) var(--easeStandard);
+163:   }
+164: 
+165:   .shareFormatButton:hover {
+166:     border-color: var(--colorPrimary);
+167:   }
+168: 
+169:   .shareFormatButton[aria-pressed='true'] {
+170:     background-color: var(--colorPrimary);
+171:     border-color: var(--colorPrimary);
+172:     color: var(--colorPrimaryContrast);
+173:   }
+174: 
+175:   .sharePreviewWrap {
+176:     display: flex;
+177:     justify-content: center;
+178:     margin-top: var(--space4);
+179:     border: var(--borderWidth1) solid var(--colorLine);
+180:     background-color: var(--colorSurfaceRaised);
+181:     padding: var(--space3);
+182:   }
+183: 
+184:   .sharePreviewCanvas {
+185:     display: block;
+186:     width: 100%;
+187:     height: auto;
+188:     max-height: 60vh;
+189:     object-fit: contain;
+190:     background-color: var(--colorBackground);
+191:   }
+192: 
+193:   .shareActions {
+194:     display: flex;
+195:     flex-wrap: wrap;
+196:     gap: var(--space3);
+197:     margin-top: var(--space4);
+198:   }
+199: 
+200:   .shareActionPrimary,
+201:   .shareActionSecondary {
+202:     border-radius: var(--radiusSharp);
+203:     border: var(--borderWidth1) solid var(--colorLine);
+204:     padding: var(--space3) var(--space5);
+205:     font-weight: 600;
+206:     transition:
+207:       background-color var(--durationFast) var(--easeStandard),
+208:       color var(--durationFast) var(--easeStandard),
+209:       border-color var(--durationFast) var(--easeStandard);
+210:   }
+211: 
+212:   .shareActionPrimary {
+213:     background-color: var(--colorPrimary);
+214:     border-color: var(--colorPrimary);
+215:     color: var(--colorPrimaryContrast);
+216:   }
+217: 
+218:   .shareActionPrimary:hover {
+219:     background-color: var(--colorAccent);
+220:     border-color: var(--colorAccent);
+221:     color: var(--colorBackground);
+222:   }
+223: 
+224:   .shareActionSecondary {
+225:     background-color: var(--colorSurfaceRaised);
+226:     color: var(--colorText);
+227:   }
+228: 
+229:   .shareActionSecondary:hover {
+230:     border-color: var(--colorPrimary);
+231:   }
+232: 
+233:   .shareActionPrimary:disabled,
+234:   .shareActionSecondary:disabled {
+235:     opacity: 0.6;
+236:     cursor: not-allowed;
+237:   }
+238: 
+239:   .shareStatus {
+240:     min-height: 1.5em;
+241:     margin-top: var(--space3);
+242:     font-size: var(--textSm);
+243:     color: var(--colorTextMuted);
+244:   }
+245: 
+246:   .shareFallback {
+247:     margin-top: var(--space3);
+248:   }
+249: 
+250:   .shareFallbackInput {
+251:     width: 100%;
+252:     margin-top: var(--space2);
+253:     border: var(--borderWidth1) solid var(--colorLine);
+254:     border-radius: var(--radiusSharp);
+255:     background-color: var(--colorBackground);
+256:     color: var(--colorText);
+257:     padding: var(--space3);
+258:     font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+259:     font-size: var(--textSm);
+260:   }
+261: 
+262:   .shareFallbackInput:focus-visible {
+263:     outline: var(--borderWidth2) solid var(--colorAccent);
+264:     outline-offset: 2px;
+265:   }
+266: }
+267: 
+268: @keyframes tickerScroll {
+269:   from {
+270:     transform: translateX(0);
+271:   }
+272:   to {
+273:     transform: translateX(-50%);
+274:   }
+275: }
+
+================
+File: js/pages/room.js
+================
+  1: /**
+  2:  * Roast room logic.
+  3:  * Reads the club id from the query string, loads the club, wires the category
+  4:  * filter and the shuffle bag, and shows roasts on demand with a short reel.
+  5:  */
+  6: 
+  7: import { CLUB_STATUS, DEFAULT_CLUB_ID } from '../config.js';
+  8: import { loadClub, loadRegistry } from '../registry.js';
+  9: import { applyTheme } from '../theme.js';
+ 10: import { buildCategoryFilter } from '../ui/categoryFilter.js';
+ 11: import { createRoastCard } from '../ui/roastCard.js';
+ 12: import { createShuffleBag } from '../ui/shuffleBag.js';
+ 13: import { revealRoast } from '../ui/reveal.js';
+ 14: import { clear, prefersReducedMotion } from '../utils/dom.js';
+ 15: import { parseRoastHash } from '../utils/links.js';
+ 16: import { createSharePanel } from '../share/sharePanel.js';
+ 17: 
+ 18: const params = new URLSearchParams(window.location.search);
+ 19: const clubIdParam = params.get('club') || DEFAULT_CLUB_ID;
+ 20: 
+ 21: const loadingEl = document.getElementById('loadingState');
+ 22: const errorEl = document.getElementById('errorState');
+ 23: const errorMessageEl = document.getElementById('errorMessage');
+ 24: const roomEl = document.getElementById('roomState');
+ 25: const filterContainer = document.getElementById('categoryFilter');
+ 26: const roastButton = document.getElementById('roastButton');
+ 27: const progressEl = document.getElementById('progress');
+ 28: const roastContainer = document.getElementById('roastContainer');
+ 29: const clubBadge = document.getElementById('clubBadge');
+ 30: const emptyEl = document.getElementById('emptyState');
+ 31: const liveRegion = document.getElementById('roastLiveRegion');
+ 32: const pageHeading = document.getElementById('pageHeading');
+ 33: const sharePanelEl = document.getElementById('sharePanel');
+ 34: 
+ 35: /** @type {Record<string, unknown> | null} */
+ 36: let club = null;
+ 37: let selectedCategory = 'all';
+ 38: /** @type {ReturnType<typeof createShuffleBag> | null} */
+ 39: let bag = null;
+ 40: /** @type {Record<string, unknown> | null} */
+ 41: let currentRoast = null;
+ 42: let busy = false;
+ 43: /** @type {ReturnType<typeof createSharePanel> | null} */
+ 44: let sharePanel = null;
+ 45: 
+ 46: function showLoading() {
+ 47:   if (loadingEl) loadingEl.classList.remove('hidden');
+ 48:   if (errorEl) errorEl.classList.add('hidden');
+ 49:   if (roomEl) roomEl.classList.add('hidden');
+ 50: }
+ 51: 
+ 52: /**
+ 53:  * Show the error state with a friendly message.
+ 54:  * @param {string} message
+ 55:  * @returns {void}
+ 56:  */
+ 57: function showError(message) {
+ 58:   if (loadingEl) loadingEl.classList.add('hidden');
+ 59:   if (roomEl) roomEl.classList.add('hidden');
+ 60:   if (errorEl) errorEl.classList.remove('hidden');
+ 61:   if (errorMessageEl) errorMessageEl.textContent = message;
+ 62:   if (clubBadge) clubBadge.textContent = 'Club unavailable';
+ 63: }
+ 64: 
+ 65: function showRoom() {
+ 66:   if (loadingEl) loadingEl.classList.add('hidden');
+ 67:   if (errorEl) errorEl.classList.add('hidden');
+ 68:   if (roomEl) roomEl.classList.remove('hidden');
+ 69: }
+ 70: 
+ 71: /**
+ 72:  * Roasts in the current filter.
+ 73:  * @returns {Array<Record<string, unknown>>}
+ 74:  */
+ 75: function getFilteredRoasts() {
+ 76:   if (!club) return [];
+ 77:   const roasts = Array.isArray(club.roasts) ? club.roasts : [];
+ 78:   if (selectedCategory === 'all') return roasts;
+ 79:   return roasts.filter((roast) => roast.category === selectedCategory);
+ 80: }
+ 81: 
+ 82: /**
+ 83:  * Update the "Roast N of M" line. Nothing is shown before the first serve or
+ 84:  * when the current cycle has already served everything once.
+ 85:  * @returns {void}
+ 86:  */
+ 87: function updateProgress() {
+ 88:   if (!progressEl) return;
+ 89:   if (!bag || !currentRoast || bag.size() === 0) {
+ 90:     progressEl.textContent = '';
+ 91:     return;
+ 92:   }
+ 93:   const size = bag.size();
+ 94:   const remaining = bag.remaining();
+ 95:   const n = size - remaining;
+ 96:   if (n <= 0) {
+ 97:     progressEl.textContent = '';
+ 98:     return;
+ 99:   }
+100:   progressEl.textContent = `Roast ${n} of ${size}`;
+101: }
+102: 
+103: /**
+104:  * Look up the category metadata for a roast.
+105:  * @param {string} id
+106:  * @returns {Record<string, unknown> | null}
+107:  */
+108: function findCategory(id) {
+109:   if (!club || !Array.isArray(club.categories)) return null;
+110:   return club.categories.find((category) => category && category.id === id) || null;
+111: }
+112: 
+113: /**
+114:  * Show a roast in the card area, reveal it, announce it and update the URL hash.
+115:  * @param {Record<string, unknown>} roast
+116:  * @param {{ animate?: boolean }} [options]
+117:  * @returns {Promise<void>}
+118:  */
+119: async function showRoast(roast, options = {}) {
+120:   if (!roast || !roastContainer) return;
+121: 
+122:   const shouldAnimate = options.animate !== false;
+123:   currentRoast = roast;
+124: 
+125:   const category = findCategory(String(roast.category));
+126:   const built = createRoastCard(roast, category);
+127: 
+128:   clear(roastContainer);
+129:   roastContainer.append(built.element);
+130: 
+131:   const base = window.location.pathname + window.location.search;
+132:   try {
+133:     window.history.replaceState(null, '', `${base}#${encodeURIComponent(String(roast.id))}`);
+134:   } catch {
+135:     // Ignore history errors, the page still works.
+136:   }
+137: 
+138:   const animate = shouldAnimate && !prefersReducedMotion();
+139: 
+140:   if (animate) {
+141:     const pool = (Array.isArray(club?.roasts) ? club.roasts : [])
+142:       .map((entry) => String(entry.headline))
+143:       .filter((headline) => headline.length > 0);
+144:     await revealRoast({
+145:       headlineElement: built.headlineElement,
+146:       finalHeadline: String(roast.headline),
+147:       reelPool: pool,
+148:       hiddenElements: built.hiddenElements,
+149:     });
+150:   } else {
+151:     built.headlineElement.textContent = String(roast.headline);
+152:     for (const el of built.hiddenElements) {
+153:       el.classList.add('isVisible');
+154:     }
+155:   }
+156: 
+157:   if (liveRegion) {
+158:     liveRegion.textContent = String(roast.headline);
+159:   }
+160: 
+161:   if (sharePanel) {
+162:     try {
+163:       sharePanel.update(roast, category, club);
+164:     } catch (error) {
+165:       console.warn('[roastRoom] could not update the share panel', error);
+166:     }
+167:   }
+168: 
+169:   updateProgress();
+170: }
+171: 
+172: /**
+173:  * Rebuild the bag and the filter chips for the current selection.
+174:  * @returns {void}
+175:  */
+176: function rebuildBagAndFilter() {
+177:   if (!club) return;
+178: 
+179:   const filtered = getFilteredRoasts();
+180: 
+181:   if (bag) {
+182:     bag.reset(filtered);
+183:   } else {
+184:     bag = createShuffleBag(filtered);
+185:   }
+186: 
+187:   if (filterContainer) {
+188:     buildCategoryFilter({
+189:       container: filterContainer,
+190:       categories: Array.isArray(club.categories) ? club.categories : [],
+191:       roasts: Array.isArray(club.roasts) ? club.roasts : [],
+192:       selectedId: selectedCategory,
+193:       onChange: handleFilterChange,
+194:     });
+195:   }
+196: 
+197:   const isEmpty = filtered.length === 0;
+198:   if (roastButton) roastButton.disabled = isEmpty;
+199:   if (emptyEl) emptyEl.classList.toggle('hidden', !isEmpty);
+200: 
+201:   if (isEmpty) {
+202:     clear(roastContainer);
+203:     currentRoast = null;
+204:     if (progressEl) progressEl.textContent = '';
+205:     if (sharePanel) sharePanel.hide();
+206:   }
+207: }
+208: 
+209: /**
+210:  * Handle a filter chip click. Resets the current roast and the bag.
+211:  * @param {string} newId
+212:  * @returns {void}
+213:  */
+214: function handleFilterChange(newId) {
+215:   if (busy) return;
+216:   selectedCategory = newId;
+217:   currentRoast = null;
+218:   if (roastContainer) clear(roastContainer);
+219:   if (liveRegion) liveRegion.textContent = '';
+220:   if (sharePanel) sharePanel.hide();
+221:   rebuildBagAndFilter();
+222: }
+223: 
+224: /**
+225:  * Handle the Roast them button click.
+226:  * @returns {Promise<void>}
+227:  */
+228: async function handleRoastClick() {
+229:   if (busy || !bag) return;
+230:   const items = getFilteredRoasts();
+231:   if (items.length === 0) return;
+232: 
+233:   busy = true;
+234:   if (roastButton) roastButton.disabled = true;
+235: 
+236:   try {
+237:     const roast = bag.next();
+238:     if (roast) {
+239:       await showRoast(roast, { animate: true });
+240:     }
+241:   } finally {
+242:     busy = false;
+243:     if (roastButton) {
+244:       roastButton.disabled = getFilteredRoasts().length === 0;
+245:     }
+246:   }
+247: }
+248: 
+249: /**
+250:  * Boot the page. Reads the club id, loads the club, wires everything up.
+251:  * @returns {Promise<void>}
+252:  */
+253: async function init() {
+254:   showLoading();
+255: 
+256:   try {
+257:     const registry = await loadRegistry();
+258:     const clubs = Array.isArray(registry.clubs) ? registry.clubs : [];
+259:     const entry = clubs.find((candidate) => candidate && candidate.id === clubIdParam);
+260: 
+261:     if (!entry) {
+262:       showError(`That club isn't in the registry. Pick one from the picker instead.`);
+263:       return;
+264:     }
+265: 
+266:     if (entry.status !== CLUB_STATUS.LIVE) {
+267:       showError(`${entry.name} is coming soon. There isn't a roast room for it yet.`);
+268:       return;
+269:     }
+270: 
+271:     club = await loadClub(clubIdParam);
+272:     applyTheme(club.theme || {});
+273: 
+274:     if (clubBadge) clubBadge.textContent = String(club.name || 'Roast Room');
+275:     if (pageHeading) pageHeading.textContent = `${club.name || 'Roast Room'} Roast Room`;
+276:     document.title = `${club.shortName || club.name || 'Roast Room'} Roast Room | The Roast Room`;
+277: 
+278:     const hash = parseRoastHash(window.location.hash);
+279:     const deepRoast =
+280:       hash && Array.isArray(club.roasts)
+281:         ? club.roasts.find((roast) => roast && roast.id === hash) || null
+282:         : null;
+283: 
+284:     selectedCategory = 'all';
+285:     rebuildBagAndFilter();
+286:     showRoom();
+287: 
+288:     if (sharePanelEl && !sharePanel) {
+289:       try {
+290:         sharePanel = createSharePanel({ container: sharePanelEl });
+291:       } catch (error) {
+292:         console.warn('[roastRoom] could not create the share panel', error);
+293:       }
+294:     }
+295: 
+296:     if (deepRoast) {
+297:       await showRoast(deepRoast, { animate: false });
+298:     }
+299: 
+300:     if (roastButton) {
+301:       roastButton.addEventListener('click', handleRoastClick);
+302:     }
+303:   } catch (error) {
+304:     console.warn('[roastRoom] could not open the roast room', error);
+305:     showError('We could not load this club. Please try again in a moment.');
+306:   }
+307: }
+308: 
+309: init();
+
+================
+File: js/share/sharePanel.js
+================
+  1: /**
+  2:  * Builds and controls the share panel for one roast.
+  3:  */
+  4: 
+  5: import { CARD_FORMATS } from './cardFormats.js';
+  6: import { SHARE_HOST_OVERRIDE } from './shareConfig.js';
+  7: import { renderRoastCard } from './renderCard.js';
+  8: import { absoluteRoastUrl, buildFileName, buildShareText, hostLabel } from './shareText.js';
+  9: import { canvasToBlob, copyText, downloadBlob, shareImage } from './actions.js';
+ 10: import { clear, createElement } from '../utils/dom.js';
+ 11: 
+ 12: /**
+ 13:  * Create the share panel inside a container.
+ 14:  * @param {{ container: HTMLElement }} options Panel options.
+ 15:  * @returns {{
+ 16:  *   update: (roast: Record<string, unknown>, category: Record<string, unknown> | null, club: Record<string, unknown>) => void,
+ 17:  *   hide: () => void,
+ 18:  *   show: () => void
+ 19:  * }} Panel controller.
+ 20:  */
+ 21: export function createSharePanel(options) {
+ 22:   const container = options && options.container ? options.container : null;
+ 23: 
+ 24:   if (!container || typeof document === 'undefined') {
+ 25:     return {
+ 26:       update() {},
+ 27:       hide() {},
+ 28:       show() {},
+ 29:     };
+ 30:   }
+ 31: 
+ 32:   clear(container);
+ 33: 
+ 34:   const heading = createElement('h2', {
+ 35:     className: 'sharePanelHeading',
+ 36:     text: 'Share this roast',
+ 37:     attrs: { id: 'sharePanelHeading' },
+ 38:   });
+ 39: 
+ 40:   const formatToggle = createElement('div', {
+ 41:     className: 'shareFormatToggle',
+ 42:     attrs: {
+ 43:       role: 'group',
+ 44:       'aria-label': 'Card format',
+ 45:     },
+ 46:   });
+ 47: 
+ 48:   /** @type {Map<string, HTMLButtonElement>} */
+ 49:   const formatButtons = new Map();
+ 50: 
+ 51:   for (const format of Object.values(CARD_FORMATS)) {
+ 52:     const button = createElement('button', {
+ 53:       className: 'shareFormatButton',
+ 54:       text: format.label,
+ 55:       attrs: {
+ 56:         type: 'button',
+ 57:         'aria-pressed': format.id === 'post' ? 'true' : 'false',
+ 58:       },
+ 59:     });
+ 60:     button.addEventListener('click', () => {
+ 61:       currentFormatId = format.id;
+ 62:       updatePressed();
+ 63:       hideFallback();
+ 64:       setStatus('');
+ 65:       schedulePreview();
+ 66:     });
+ 67:     formatButtons.set(format.id, button);
+ 68:     formatToggle.append(button);
+ 69:   }
+ 70: 
+ 71:   const previewWrap = createElement('div', { className: 'sharePreviewWrap' });
+ 72:   const previewCanvas = createElement('canvas', {
+ 73:     className: 'sharePreviewCanvas',
+ 74:     attrs: {
+ 75:       role: 'img',
+ 76:       'aria-label': 'Roast card preview',
+ 77:     },
+ 78:   });
+ 79:   previewWrap.append(previewCanvas);
+ 80: 
+ 81:   const actions = createElement('div', { className: 'shareActions' });
+ 82: 
+ 83:   const shareButton = createElement('button', {
+ 84:     className: 'shareActionPrimary',
+ 85:     text: 'Share',
+ 86:     attrs: { type: 'button' },
+ 87:   });
+ 88: 
+ 89:   const downloadButton = createElement('button', {
+ 90:     className: 'shareActionSecondary',
+ 91:     text: 'Download image',
+ 92:     attrs: { type: 'button' },
+ 93:   });
+ 94: 
+ 95:   const copyButton = createElement('button', {
+ 96:     className: 'shareActionSecondary',
+ 97:     text: 'Copy link',
+ 98:     attrs: { type: 'button' },
+ 99:   });
+100: 
+101:   actions.append(shareButton, downloadButton, copyButton);
+102: 
+103:   const status = createElement('p', {
+104:     className: 'shareStatus',
+105:     attrs: {
+106:       role: 'status',
+107:       'aria-live': 'polite',
+108:     },
+109:   });
+110: 
+111:   const fallback = createElement('div', { className: 'shareFallback hidden' });
+112:   const fallbackLabel = createElement('label', {
+113:     className: 'tokenLabel',
+114:     text: 'Copy this link',
+115:     attrs: { for: 'shareFallbackInput' },
+116:   });
+117:   const fallbackInput = createElement('input', {
+118:     className: 'shareFallbackInput',
+119:     attrs: {
+120:       id: 'shareFallbackInput',
+121:       type: 'text',
+122:       readonly: 'readonly',
+123:       'aria-label': 'Roast link',
+124:     },
+125:   });
+126:   fallback.append(fallbackLabel, fallbackInput);
+127: 
+128:   container.append(heading, formatToggle, previewWrap, actions, status, fallback);
+129:   container.setAttribute('aria-labelledby', 'sharePanelHeading');
+130: 
+131:   if (typeof navigator === 'undefined' || typeof navigator.share !== 'function') {
+132:     shareButton.hidden = true;
+133:   }
+134: 
+135:   const workCanvas = document.createElement('canvas');
+136: 
+137:   let currentRoast = null;
+138:   let currentCategory = null;
+139:   let currentClub = null;
+140:   let currentFormatId = 'post';
+141:   let visible = false;
+142:   let lastKey = '';
+143:   let cachedBlob = null;
+144:   let renderBusy = false;
+145:   let renderPending = false;
+146: 
+147:   /**
+148:    * Set the live status message.
+149:    * @param {string} message Status text.
+150:    * @returns {void}
+151:    */
+152:   function setStatus(message) {
+153:     status.textContent = message || '';
+154:   }
+155: 
+156:   /**
+157:    * Hide the copy fallback input.
+158:    * @returns {void}
+159:    */
+160:   function hideFallback() {
+161:     fallback.classList.add('hidden');
+162:   }
+163: 
+164:   /**
+165:    * Update the format button pressed state.
+166:    * @returns {void}
+167:    */
+168:   function updatePressed() {
+169:     for (const [id, button] of formatButtons) {
+170:       button.setAttribute('aria-pressed', id === currentFormatId ? 'true' : 'false');
+171:     }
+172:   }
+173: 
+174:   /**
+175:    * Return the selected format.
+176:    * @returns {{ id: string, label: string, width: number, height: number, safeTop: number, safeBottom: number }} Format.
+177:    */
+178:   function currentFormat() {
+179:     return CARD_FORMATS[currentFormatId] || CARD_FORMATS.post;
+180:   }
+181: 
+182:   /**
+183:    * Build the absolute roast URL.
+184:    * @returns {string} Absolute URL.
+185:    */
+186:   function currentUrl() {
+187:     if (!currentRoast || !currentClub) return '';
+188:     return absoluteRoastUrl(window.location.href, currentClub.id, currentRoast.id);
+189:   }
+190: 
+191:   /**
+192:    * Draw the preview once.
+193:    * @returns {Promise<void>}
+194:    */
+195:   async function drawPreview() {
+196:     if (!visible || !currentRoast || !currentClub) return;
+197: 
+198:     const roast = currentRoast;
+199:     const category = currentCategory;
+200:     const club = currentClub;
+201:     const format = currentFormat();
+202:     const host = hostLabel(window.location.host, SHARE_HOST_OVERRIDE);
+203:     const key = `${club.id}|${roast.id}|${format.id}|${host}`;
+204: 
+205:     if (
+206:       key === lastKey &&
+207:       previewCanvas.width === format.width &&
+208:       previewCanvas.height === format.height
+209:     ) {
+210:       return;
+211:     }
+212: 
+213:     lastKey = key;
+214:     cachedBlob = null;
+215:     setStatus('Preparing image');
+216: 
+217:     const result = await renderRoastCard({
+218:       canvas: workCanvas,
+219:       roast,
+220:       category,
+221:       club,
+222:       format,
+223:       host,
+224:     });
+225: 
+226:     if (!visible) return;
+227: 
+228:     previewCanvas.width = workCanvas.width;
+229:     previewCanvas.height = workCanvas.height;
+230: 
+231:     const ctx = previewCanvas.getContext('2d');
+232:     if (ctx) {
+233:       ctx.drawImage(workCanvas, 0, 0);
+234:     }
+235: 
+236:     previewCanvas.setAttribute('role', 'img');
+237:     previewCanvas.setAttribute(
+238:       'aria-label',
+239:       `Roast card preview for ${String(roast.headline || '')} in ${format.label} format`
+240:     );
+241: 
+242:     if (result.truncated) {const renderedKey = key;
+243:     canvasToBlob(previewCanvas).then((blobResult) => {
+244:       if (blobResult.ok && lastKey === renderedKey) {
+245:         cachedBlob = blobResult.blob;
+246:       }
+247:     });
+248:     } else {
+249:       setStatus('Preview ready');
+250:     }
+251:   }
+252: 
+253:   /**
+254:    * Render the preview when the panel is visible.
+255:    * @returns {Promise<void>}
+256:    */
+257:   async function renderPreview() {
+258:     if (!visible || !currentRoast || !currentClub) return;
+259: 
+260:     if (renderBusy) {
+261:       renderPending = true;
+262:       return;
+263:     }
+264: 
+265:     renderBusy = true;
+266: 
+267:     try {
+268:       do {
+269:         renderPending = false;
+270:         await drawPreview();
+271:       } while (renderPending && visible);
+272:     } catch {
+273:       setStatus('Could not prepare the image. Try again.');
+274:     } finally {
+275:       renderBusy = false;
+276:     }
+277:   }
+278: 
+279:   /**
+280:    * Schedule a preview render.
+281:    * @returns {void}
+282:    */
+283:   function schedulePreview() {
+284:     if (!visible) return;
+285:     renderPreview().catch(() => {
+286:       setStatus('Could not prepare the image. Try again.');
+287:     });
+288:   }
+289: 
+290:   /**
+291:    * Handle the Share button.
+292:    * @returns {Promise<void>}
+293:    */
+294:   async function handleShare() {
+295:     try {
+296:       if (!currentRoast || !currentClub) return;
+297:       if (!cachedBlob) {
+298:         setStatus('The image is still being prepared. Try again in a second.');
+299:         return;
+300:       }
+301: 
+302:       const fileName = buildFileName(currentClub.id, currentRoast.id, currentFormat().id);
+303:       const url = currentUrl();
+304:       const text = buildShareText(currentRoast, url);
+305:       const result = await shareImage({
+306:         blob: cachedBlob,
+307:         fileName,
+308:         title: 'The Roast Room',
+309:         text,
+310:         url,
+311:       });
+312: 
+313:       if (result.ok) {
+314:         setStatus('Shared');
+315:       } else if (result.reason === 'cancelled') {
+316:         setStatus('Share cancelled');
+317:       } else if (result.reason === 'unsupported') {
+318:         setStatus('Sharing is not available here. Use Download image instead.');
+319:       } else {
+320:         setStatus('Could not share. Try Download image instead.');
+321:       }
+322:     } catch {
+323:       setStatus('Could not share. Try Download image instead.');
+324:     }
+325:   }
+326: 
+327:   /**
+328:    * Handle the Download image button.
+329:    * @returns {Promise<void>}
+330:    */
+331:   async function handleDownload() {
+332:     try {
+333:       if (!currentRoast || !currentClub) return;
+334: 
+335:       const blobResult = await canvasToBlob(previewCanvas);
+336:       if (!blobResult.ok) {
+337:         setStatus('Could not save the image. Use Share on your phone instead.');
+338:         return;
+339:       }
+340: 
+341:       const fileName = buildFileName(currentClub.id, currentRoast.id, currentFormat().id);
+342:       const result = downloadBlob(blobResult.blob, fileName);
+343: 
+344:       if (result.ok) {
+345:         setStatus('Image saved');
+346:       } else {
+347:         setStatus('Could not save the image. Use Share on your phone instead.');
+348:       }
+349:     } catch {
+350:       setStatus('Could not save the image. Use Share on your phone instead.');
+351:     }
+352:   }
+353: 
+354:   /**
+355:    * Handle the Copy link button.
+356:    * @returns {Promise<void>}
+357:    */
+358:   async function handleCopy() {
+359:     try {
+360:       const url = currentUrl();
+361:       if (!url) return;
+362: 
+363:       const result = await copyText(url);
+364: 
+365:       if (result.ok) {
+366:         setStatus('Link copied');
+367:         hideFallback();
+368:         return;
+369:       }
+370: 
+371:       setStatus('Could not copy, select the link below');
+372:       fallbackInput.value = url;
+373:       fallback.classList.remove('hidden');
+374:       fallbackInput.focus();
+375:       fallbackInput.select();
+376:       fallbackInput.setSelectionRange(0, fallbackInput.value.length);
+377:     } catch {
+378:       setStatus('Could not copy, select the link below');
+379:       const url = currentUrl();
+380:       fallbackInput.value = url;
+381:       fallback.classList.remove('hidden');
+382:       fallbackInput.focus();
+383:       fallbackInput.select();
+384:     }
+385:   }
+386: 
+387:   shareButton.addEventListener('click', handleShare);
+388:   downloadButton.addEventListener('click', handleDownload);
+389:   copyButton.addEventListener('click', handleCopy);
+390: 
+391:   /**
+392:    * Show the panel.
+393:    * @returns {void}
+394:    */
+395:   function show() {
+396:     visible = true;
+397:     container.classList.remove('hidden');
+398:     container.removeAttribute('aria-hidden');
+399:     schedulePreview();
+400:   }
+401: 
+402:   /**
+403:    * Hide the panel.
+404:    * @returns {void}
+405:    */
+406:   function hide() {
+407:     visible = false;
+408:     container.classList.add('hidden');
+409:     container.setAttribute('aria-hidden', 'true');
+410:     hideFallback();
+411:     setStatus('');
+412:   }
+413: 
+414:   /**
+415:    * Update the panel for a roast.
+416:    * @param {Record<string, unknown>} roast Roast data.
+417:    * @param {Record<string, unknown> | null} category Category metadata.
+418:    * @param {Record<string, unknown>} club Club data.
+419:    * @returns {void}
+420:    */
+421:   function update(roast, category, club) {
+422:     if (!roast || !club) {
+423:       hide();
+424:       return;
+425:     }
+426: 
+427:     currentRoast = roast;
+428:     currentCategory = category;
+429:     currentClub = club;
+430:     hideFallback();
+431:     setStatus('');
+432:     updatePressed();
+433:     show();
+434:   }
+435: 
+436:   updatePressed();
+437: 
+438:   return { update, hide, show };
+439: }
+
+================
 File: src/input.css
 ================
 1: @import "../css/tokens.css";
@@ -4224,6 +8163,13 @@ File: src/input.css
 5: @tailwind base;
 6: @tailwind components;
 7: @tailwind utilities;
+
+================
+File: .gitignore
+================
+1: node_modules
+2: .DS_Store
+3: .wrangler
 
 ================
 File: index.html
@@ -4365,270 +8311,73 @@ File: index.html
 135:         </p>
 136:         <div id="comingSoonClubs" class="mt-4 grid gap-3 sm:grid-cols-2 md:grid-cols-3"></div>
 137:       </section>
-138:     </main>
-139: 
-140:     <footer class="border-t border-line bg-surface">
-141:       <div class="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-4 px-4 py-8">
-142:         <p class="text-sm text-textMuted">
-143:           Built by <a href="https://fritt.org">Fritt</a>. Every roast is sourced and dated.
-144:         </p>
-145:       </div>
-146:     </footer>
-147:   </body>
-148: </html>
-
-================
-File: README.md
-================
-  1: # The Roast Room
-  2: 
-  3: The Roast Room is an interactive football banter site. Supporters pick a rival club and
-  4: read funny, embarrassing and painful facts about it. Every published roast is backed by
-  5: dated evidence that a human has checked.
-  6: 
-  7: The site launches with Manchester United live. Arsenal, Liverpool, Manchester City,
-  8: Chelsea and Tottenham Hotspur are listed as coming soon.
-  9: 
- 10: It is built by the solo web agency Fritt and doubles as a portfolio piece, so the code is
- 11: kept small, readable and easy to extend.
- 12: 
- 13: ## Project status
- 14: 
- 15: - **Stage 1 (foundations)**: done. Design tokens, theming, club registry, roast schema,
- 16:   validation, developer token preview, documentation.
- 17: - **Stage 2 (public pages)**: done. Landing page, club picker, roast generator, shuffle
- 18:   bag, reveal animation, deep links, category filter, share ready roast URL helper.
- 19: - **Stage 3 (next)**: share cards, suggestions form, branding and polish, deployment.
- 20: 
- 21: ## Pages
- 22: 
- 23: | Page | Purpose |
- 24: | --- | --- |
- 25: | `index.html` | Public landing page. Hero, recent roast ticker, how it works, club picker. |
- 26: | `room.html?club=<id>` | Roast generator for one live club. Category filter, shuffle bag, roast card with receipts. |
- 27: | `tokens.html` | Developer preview of design tokens and theming. Not linked from public pages. |
- 28: 
- 29: ## Files added in stage 2
- 30: 
- 31: ```text
- 32: index.html                   Public landing page
- 33: room.html                    Roast generator page, opened as room.html?club=manutd
- 34: tokens.html                  Developer token preview, moved from stage 1
- 35: favicon.svg                  Inline SVG favicon, flame shape in club red and yellow
- 36: css/components.css           Shared component styles in Tailwind layers
- 37: js/pages/landing.js          Landing page logic
- 38: js/pages/room.js             Roast room logic
- 39: js/ui/roastCard.js           Roast card DOM builder
- 40: js/ui/categoryFilter.js      Category filter chip builder
- 41: js/ui/shuffleBag.js          Pure shuffle bag, no DOM
- 42: js/ui/reveal.js              Slot machine reel and fade in
- 43: js/utils/dom.js              Safe DOM helpers, no innerHTML with data
- 44: js/utils/links.js            roastUrl and parseRoastHash
- 45: tests/shuffleBag.test.mjs    node:test suite for the shuffle bag
- 46: ```
- 47: 
- 48: ## Requirements
- 49: 
- 50: - Node 18 or later
- 51: - npm
- 52: 
- 53: The only development dependency is Tailwind CSS, pinned to the 3.4 line.
- 54: 
- 55: ## Run it locally
- 56: 
- 57: ```bash
- 58: npm install
- 59: npm run css
- 60: npx serve .
- 61: ```
- 62: 
- 63: Then open the URL that `serve` prints.
- 64: 
- 65: `fetch` needs an http origin, so opening the HTML files from the file system will not load
- 66: the registry. If you would rather not install `serve`, the Python standard library works:
- 67: 
- 68: ```bash
- 69: python3 -m http.server 8000
- 70: ```
- 71: 
- 72: ## Scripts
- 73: 
- 74: | Script | What it does |
- 75: | --- | --- |
- 76: | `npm run css` | Compiles `src/input.css` to `dist/styles.css` once |
- 77: | `npm run watch` | Compiles the CSS and rebuilds on every change |
- 78: | `npm run validate` | Validates the registry and every club data file, exits 1 on any problem |
- 79: | `npm test` | Runs the schema and shuffle bag tests with the Node test runner |
- 80: 
- 81: ## Folder structure
- 82: 
- 83: ```text
- 84: index.html                 Public landing page
- 85: room.html                  Roast generator page
- 86: tokens.html                Developer token preview page
- 87: favicon.svg
- 88: package.json
- 89: tailwind.config.js
- 90: README.md
- 91: src/input.css
- 92: css/tokens.css
- 93: css/base.css
- 94: css/components.css
- 95: js/config.js
- 96: js/schema.js
- 97: js/registry.js
- 98: js/theme.js
- 99: js/pages/landing.js
-100: js/pages/room.js
-101: js/ui/roastCard.js
-102: js/ui/categoryFilter.js
-103: js/ui/shuffleBag.js
-104: js/ui/reveal.js
-105: js/utils/dom.js
-106: js/utils/links.js
-107: data/clubs.json
-108: data/clubs/manutd.json
-109: scripts/validate.mjs
-110: tests/schema.test.mjs
-111: tests/shuffleBag.test.mjs
-112: tests/fixtures/
-113: dist/
-114: ```
-115: 
-116: ## Deep links
-117: 
-118: A roast has a stable hash based URL that points at the roast room for its club.
-119: 
-120: - Landing page: `/index.html`
-121: - Roast room for Manchester United: `/room.html?club=manutd`
-122: - A specific roast: `/room.html?club=manutd#trophies_last_league_title`
-123: 
-124: `js/utils/links.js` exports `roastUrl(clubId, roastId)` for building these URLs (this is
-125: what share cards will use later) and `parseRoastHash(hash)` for reading them back. When a
-126: visitor lands on `room.html` with a hash that matches a live roast, the roast is shown
-127: immediately without the reveal animation.
-128: 
-129: When the visitor presses Roast them, the hash is updated with `history.replaceState` so
-130: the URL always points at the visible roast, without pushing a new history entry and
-131: without scrolling.
-132: 
-133: ## Design tokens and theming
-134: 
-135: Every colour lives in `css/tokens.css` as a CSS custom property on `:root`. The default
-136: values are the Manchester United theme. `tailwind.config.js` maps Tailwind colour keys such
-137: as `background`, `surface` and `primary` onto those variables, so a club theme swap is a
-138: CSS variable swap, not a rebuild.
-139: 
-140: `applyTheme(theme)` clears every theme property from the root first, then sets the keys you
-141: pass, so a partial theme falls back to the defaults for the keys it does not set.
-142: `clearTheme()` does the same reset without applying anything. Both keep the `theme-color`
-143: meta tag in step.
-144: 
-145: ## Club registry
-146: 
-147: `data/clubs.json` is the single source of truth for which clubs exist. `status` is either
-148: `live` or `comingSoon`. A live club must have a `dataFile`. A coming soon club may omit
-149: `dataFile` or declare one that does not exist yet, but the file is validated the moment it
-150: exists.
+138: 
+139:               <div id="comingSoonClubs" class="mt-4 grid gap-3 sm:grid-cols-2 md:grid-cols-3"></div>
+140:       </section>
+141: 
+142:       <section
+143:         id="suggestSection"
+144:         class="hidden mx-auto max-w-5xl border-t border-line px-4 py-16"
+145:         aria-labelledby="suggestHeading"
+146:       >
+147:         <h2 id="suggestHeading" class="text-displaySm text-text">Who should we roast next?</h2>
+148:         <p class="mt-3 max-w-xl text-textMuted">
+149:           Suggest a club. The most voted club is the one we build next.
+150:         </p>
 151: 
-152: ## Roast schema
-153: 
-154: Every roast must satisfy all of the following:
-155: 
-156: | Field | Rule |
-157: | --- | --- |
-158: | `id` | Lowercase letters, digits and underscores, unique inside the club |
-159: | `clubId` | Must match the club that owns the data file |
-160: | `category` | Must exist in that club categories array |
-161: | `headline` | The joke, 90 characters or fewer |
-162: | `explanation` | Plain factual context, 280 characters or fewer |
-163: | `evidence` | At least one item |
-164: | `evidence[].claim` | A precise factual statement |
-165: | `evidence[].period` | A season such as `2013/14` or a date such as `2021/09/11` |
-166: | `evidence[].sourceName` | The publication or record the claim came from |
-167: | `evidence[].sourceUrl` | Absolute URL starting with `https` |
-168: | `evidence[].accessedOn` | Real calendar date the source was read, formatted `YYYY/MM/DD` |
-169: | `verified` | Boolean, and it must be `true` for the roast to be published |
-170: | `verifiedOn` | Required when `verified` is true, formatted `YYYY/MM/DD` |
-171: | `tags` | Optional array of strings |
-172: 
-173: Dates are validated against the real calendar, so `2024/02/31` and `2023/02/29` are
-174: rejected while `2024/02/29` is accepted.
-175: 
-176: **FAKE example. This is placeholder data that exists only to show the shape.**
-177: 
-178: ```json
-179: {
-180:   "id": "fake_example_roast",
-181:   "clubId": "fakeclub",
-182:   "category": "trophyDroughts",
-183:   "headline": "FAKE headline used to show the schema shape.",
-184:   "explanation": "FAKE explanation used to show the schema shape.",
-185:   "evidence": [
-186:     {
-187:       "claim": "FAKE claim used to show the evidence shape.",
-188:       "period": "2013/14",
-189:       "sourceName": "FAKE Source Name",
-190:       "sourceUrl": "https://example.com/fakeSource",
-191:       "accessedOn": "2024/01/15"
-192:     }
-193:   ],
-194:   "verified": true,
-195:   "verifiedOn": "2024/01/16",
-196:   "tags": ["fake"]
-197: }
-198: ```
-199: 
-200: ## Content accuracy rules
-201: 
-202: 1. Never invent a fact, a score, a statistic, a date or a URL.
-203: 2. Every claim needs a named source and a live `https` URL.
-204: 3. Every claim records the period it refers to.
-205: 4. A roast is published only when a human has set `verified` to `true` and dated it.
-206: 5. If a fact cannot be sourced, the roast is cut. It is not softened or hedged.
-207: 6. Sample and test data is labelled FAKE and is never loaded by the site.
-208: 
-209: The browser drops invalid roasts and logs a console warning with the roast id and the
-210: reasons. The data gate is strict and fails the build.
-211: 
-212: ## Adding a new club
-213: 
-214: 1. Add the club to `data/clubs.json` with `id`, `name`, `shortName`, `status` set to
-215:    `comingSoon`, `themeKey` and an optional `dataFile`.
-216: 2. Create `data/clubs/<clubid>.json` with club metadata, the full theme object, the
-217:    categories array and an empty `roasts` array. The file is validated exactly like a live
-218:    club file.
-219: 3. Run `npm run validate` and `npm test`. When both pass, change the registry status from
-220:    `comingSoon` to `live` and run `npm run validate` again.
-221: 
-222: The orphan rule is strict: every file in `data/clubs` must be referenced by a `dataFile`
-223: path on some registry entry, whatever the status of that entry.
-224: 
-225: ## Accessibility and performance
-226: 
-227: - Semantic landmarks, a skip link, a `lang` attribute and one `h1` per page
-228: - Visible focus rings driven by tokens, never colour alone
-229: - Colour contrast checked against WCAG AA
-230: - All motion runs through duration tokens and collapses under `prefers-reduced-motion`
-231: - The roast reveal animation checks `prefers-reduced-motion` in JavaScript as well as
-232:   CSS, so the reel is skipped entirely for users who ask for less motion
-233: - The intermediate reel text is `aria hidden`; only the final roast is announced through
-234:   a polite live region
-235: - Fonts load with `preconnect` and `display=swap`, and every stack has a system fallback
-236: - No frameworks, no bundlers and one development dependency
-237: 
-238: ## Validation and tests
-239: 
-240: ```bash
-241: npm run validate
-242: npm test
-243: ```
-244: 
-245: `npm run validate` fails on an invalid roast, a duplicate roast id, an unknown category,
-246: an unknown club, a live club with no data file, an unreadable live data file, an invalid
-247: data file on a coming soon club that declares one, an orphaned data file that no registry
-248: entry references, or a malformed registry. `npm test` runs both the schema tests and the
-249: shuffle bag tests with FAKE fixtures in `tests/fixtures/`.
+152:         <form id="suggestForm" class="mt-6 max-w-xl" novalidate>
+153:           <label for="suggestName" class="tokenLabel block">Club name</label>
+154:           <input
+155:             id="suggestName"
+156:             name="name"
+157:             type="text"
+158:             required
+159:             minlength="2"
+160:             maxlength="40"
+161:             autocomplete="off"
+162:             class="mt-2 w-full rounded-sharp border border-line bg-surface px-3 py-2 text-text focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
+163:           />
+164:           <div
+165:             style="position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden"
+166:             aria-hidden="true"
+167:           >
+168:             <label for="suggestWebsite">Website</label>
+169:             <input id="suggestWebsite" name="website" type="text" tabindex="-1" autocomplete="off" />
+170:           </div>
+171:           <button
+172:             id="suggestSubmit"
+173:             type="submit"
+174:             class="mt-3 rounded-sharp border-2 border-primary bg-primary px-5 py-3 font-display text-lg uppercase tracking-wide text-primaryContrast transition-colors duration-fast ease-standard hover:bg-accent hover:text-background disabled:opacity-60"
+175:           >
+176:             Suggest this club
+177:           </button>
+178:           <p class="mt-2 text-xs text-textMuted">
+179:             We store a salted hash of your network address for two days, only to rate limit
+180:             submissions. We never store the address itself.
+181:           </p>
+182:           <p id="suggestStatus" class="mt-3 text-sm text-accent" role="status" aria-live="polite"></p>
+183:         </form>
+184: 
+185:         <h3 class="mt-10 text-2xl text-text">Leaderboard</h3>
+186:         <p id="suggestLoading" class="mt-2 text-sm text-textMuted">Loading suggestions.</p>
+187:         <p id="suggestEmpty" class="hidden mt-2 text-sm text-textMuted">Be the first to suggest a club.</p>
+188:         <p id="suggestError" class="hidden mt-2 text-sm text-accent" role="alert">
+189:           Suggestions are unavailable right now.
+190:         </p>
+191:         <ul id="suggestBoard" class="mt-3 space-y-3"></ul>
+192:       </section>
+193: 
+194:     </main>
+195: 
+196:     <footer class="border-t border-line bg-surface">
+197:       <div class="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-4 px-4 py-8">
+198:         <p class="text-sm text-textMuted">
+199:           Built by <a href="https://fritt.org">Fritt</a>. Every roast is sourced and dated.
+200:         </p>
+201:       </div>
+202:     </footer>
+203:   </body>
+204: </html>
 
 ================
 File: tailwind.config.js
@@ -4757,19 +8506,198 @@ File: tailwind.config.js
 122: };
 
 ================
+File: README.md
+================
+ 1: # The Roast Room
+ 2: 
+ 3: The Roast Room is an interactive football banter site. Supporters pick a rival club and
+ 4: read funny, embarrassing and painful facts about it. Every published roast is backed by
+ 5: dated evidence that a human has checked.
+ 6: 
+ 7: The site launches with Manchester United live. Arsenal, Liverpool, Manchester City,
+ 8: Chelsea and Tottenham Hotspur are listed as coming soon.
+ 9: 
+10: It is built by the solo web agency Fritt and doubles as a portfolio piece, so the code is
+11: kept small, readable and easy to extend.
+12: 
+13: ## Project status
+14: 
+15: - **Stage 1 (foundations)**: done. Design tokens, theming, club registry, roast schema,
+16:   validation, developer token preview, documentation.
+17: - **Stage 2 (public pages)**: done. Landing page, club picker, roast generator, shuffle
+18:   bag, reveal animation, deep links, category filter, share ready roast URL helper.
+19: - **Stage 3 (share cards)**: done. Branded roast cards, Post and Story formats, canvas
+20:   rendering, system Share, Download image, Copy link, copy fallback, Card lab QA page,
+21:   tests.
+22: - **Stage 4 (next)**: suggestions form and Worker.
+23: - **Stage 5**: branding polish and deployment.
+24: 
+25: ## Pages
+26: 
+27: | Page | Purpose |
+28: | --- | --- |
+29: | `index.html` | Public landing page. Hero, recent roast ticker, how it works, club picker. |
+30: | `room.html?club=<id>` | Roast generator for one live club. Category filter, shuffle bag, roast card with receipts, share panel. |
+31: | `tokens.html` | Developer preview of design tokens and theming. Not linked from public pages. |
+32: | `cardlab.html` | Developer only QA page for share cards. Not linked from public pages. |
+33: 
+34: ## Files added in stage 3
+35: 
+36: ```text
+37: js/share/shareConfig.js      Share host override
+38: js/share/cardFormats.js      Post and Story card dimensions
+39: js/share/textLayout.js       Pure wrap, truncate and fit logic
+40: js/share/shareText.js        Share text, file name and absolute URL helpers
+41: js/share/renderCard.js       Canvas 2D roast card renderer
+42: js/share/actions.js          Blob, download, share and clipboard actions
+43: js/share/sharePanel.js       Share panel controller
+44: js/dev/cardLab.js            Card lab logic
+45: cardlab.html                 Developer only QA page
+46: tests/shareText.test.mjs     Tests for pure share logic
+
+================
+File: room.html
+================
+  1: <!DOCTYPE html>
+  2: <html lang="en">
+  3:   <head>
+  4:     <meta charset="utf-8" />
+  5:     <meta name="viewport" content="width=device-width, initial-scale=1" />
+  6:     <title>Roast Room | The Roast Room</title>
+  7:     <meta
+  8:       name="description"
+  9:       content="Pick a category and hit Roast them. Every roast is sourced and dated."
+ 10:     />
+ 11:     <meta name="color-scheme" content="dark" />
+ 12:     <meta name="theme-color" content="#0A0A0A" />
+ 13: 
+ 14:     <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
+ 15: 
+ 16:     <link rel="preconnect" href="https://fonts.googleapis.com" />
+ 17:     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+ 18:     <link
+ 19:       rel="stylesheet"
+ 20:       href="https://fonts.googleapis.com/css2?family=Anton&amp;family=Inter:wght@400;500;600;700&amp;display=swap"
+ 21:     />
+ 22:     <link rel="stylesheet" href="./dist/styles.css" />
+ 23: 
+ 24:     <script type="module" src="./js/pages/room.js" defer></script>
+ 25:   </head>
+ 26: 
+ 27:   <body class="min-h-screen bg-background text-text">
+ 28:     <a class="skipLink" href="#main">Skip to content</a>
+ 29: 
+ 30:     <header class="border-b border-line bg-surface">
+ 31:       <div class="mx-auto flex max-w-4xl flex-wrap items-center justify-between gap-3 px-4 py-4">
+ 32:         <a href="./index.html" class="font-display text-xl uppercase tracking-wide text-text no-underline">
+ 33:           The Roast Room
+ 34:         </a>
+ 35:         <div class="flex flex-wrap items-center gap-3">
+ 36:           <span
+ 37:             id="clubBadge"
+ 38:             class="rounded-pill border border-line bg-surfaceRaised px-3 py-1 text-xs text-textMuted"
+ 39:           >
+ 40:             Loading club
+ 41:           </span>
+ 42:           <a href="./index.html#pickerHeading" class="text-sm text-textMuted underline">
+ 43:             Pick a different club
+ 44:           </a>
+ 45:         </div>
+ 46:       </div>
+ 47:     </header>
+ 48: 
+ 49:     <main id="main" class="mx-auto max-w-4xl px-4 py-8">
+ 50:       <h1 id="pageHeading" class="srOnly">The Roast Room</h1>
+ 51: 
+ 52:       <section
+ 53:         id="loadingState"
+ 54:         class="rounded-sharp border border-line bg-surface p-8"
+ 55:         aria-label="Loading"
+ 56:       >
+ 57:         <p class="text-textMuted">Loading the club and its roasts.</p>
+ 58:       </section>
+ 59: 
+ 60:       <section
+ 61:         id="errorState"
+ 62:         class="hidden rounded-sharp border border-line bg-surface p-8"
+ 63:         role="alert"
+ 64:       >
+ 65:         <h2 class="text-2xl text-text">Roast room unavailable</h2>
+ 66:         <p id="errorMessage" class="mt-2 text-textMuted">We could not open this club.</p>
+ 67:         <p class="mt-4">
+ 68:           <a href="./index.html" class="text-accent underline">Back to the club picker</a>
+ 69:         </p>
+ 70:       </section>
+ 71: 
+ 72:       <section id="roomState" class="hidden">
+ 73:         <div class="mb-6">
+ 74:           <p class="tokenLabel">Filter by category</p>
+ 75:           <div id="categoryFilter" class="mt-3"></div>
+ 76:         </div>
+ 77: 
+ 78:         <div class="mb-6 flex flex-wrap items-center gap-4">
+ 79:           <button
+ 80:             id="roastButton"
+ 81:             type="button"
+ 82:             class="rounded-sharp bg-primary px-8 py-5 font-display text-2xl uppercase tracking-wide text-primaryContrast transition-colors duration-fast ease-standard hover:bg-accent hover:text-background disabled:opacity-50"
+ 83:           >
+ 84:             Roast them
+ 85:           </button>
+ 86:           <p id="progress" class="text-sm text-textMuted"></p>
+ 87:         </div>
+ 88: 
+ 89:         <div id="roastContainer"></div>
+ 90:         <section id="sharePanel" class="sharePanel hidden" aria-label="Share this roast"></section>
+ 91: 
+ 92:         <section
+ 93:           id="sharePanel"
+ 94:           class="sharePanel hidden"
+ 95:           aria-label="Share this roast"
+ 96:         ></section>
+ 97: 
+ 98:         <p
+ 99:           id="emptyState"
+100:           class="hidden mt-8 rounded-sharp border border-line bg-surface p-6 text-textMuted"
+101:         >
+102:           No roasts in this category yet. Try another category, or hit Roast them on All.
+103:         </p>
+104: 
+105:         <p id="roastLiveRegion" class="srOnly" aria-live="polite"></p>
+106:       </section>
+107:     </main>
+108: 
+109:     <footer class="mt-12 border-t border-line bg-surface">
+110:       <div class="mx-auto max-w-4xl px-4 py-8">
+111:         <p class="text-sm text-textMuted">
+112:           Built by <a href="https://fritt.org">Fritt</a>. Every roast is sourced and dated.
+113:         </p>>
+114:         <p class="mt-2 text-sm">
+115:           <a href="./index.html#pickerHeading" class="text-textMuted underline">
+116:             Back to the club picker
+117:           </a>
+118:         </p>
+119:         <p class="mt-2 text-sm">
+120:           <a href="./index.html#suggestHeading" class="text-textMuted underline">Suggest a club</a>
+121:         </p>
+122:       </div>
+123:     </footer>
+124:   </body>
+125: </html>
+
+================
 File: package.json
 ================
  1: {
  2:   "name": "theroastroom",
- 3:   "version": "1.1.0",
+ 3:   "version": "1.2.0",
  4:   "private": true,
- 5:   "description": "The Roast Room, a football banter site built by Fritt. Stage 2: landing page, club picker and roast generator.",
+ 5:   "description": "The Roast Room, a football banter site built by Fritt. Stage 3: branded share cards, download and share actions.",
  6:   "type": "module",
  7:   "scripts": {
  8:     "css": "tailwindcss -i ./src/input.css -o ./dist/styles.css --minify",
  9:     "watch": "tailwindcss -i ./src/input.css -o ./dist/styles.css --watch",
 10:     "validate": "node ./scripts/validate.mjs",
-11:     "test": "node --test ./tests/schema.test.mjs ./tests/shuffleBag.test.mjs"
+11:     "test": "node --test ./tests/schema.test.mjs ./tests/shuffleBag.test.mjs ./tests/shareText.test.mjs ./tests/suggestLogic.test.mjs"
 12:   },
 13:   "devDependencies": {
 14:     "tailwindcss": "3.4.17"

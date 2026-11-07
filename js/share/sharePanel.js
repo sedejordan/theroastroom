@@ -9,6 +9,20 @@ import { absoluteRoastUrl, buildFileName, buildShareText, hostLabel } from './sh
 import { canvasToBlob, copyText, downloadBlob, shareImage } from './actions.js';
 import { clear, createElement } from '../utils/dom.js';
 
+function canvasToBlobNow(canvas) {
+  try {
+    const dataUrl = canvas.toDataURL('image/png');
+    const binary = atob(dataUrl.split(',')[1]);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i += 1) {
+      bytes[i] = binary.charCodeAt(i);
+    }
+    return new Blob([bytes], { type: 'image/png' });
+  } catch {
+    return null;
+  }
+}
+
 /**
  * Create the share panel inside a container.
  * @param {{ container: HTMLElement }} options Panel options.
@@ -294,21 +308,24 @@ export function createSharePanel(options) {
   async function handleShare() {
     try {
       if (!currentRoast || !currentClub) return;
-      if (!cachedBlob) {
-        setStatus('The image is still being prepared. Try again in a second.');
+
+      let blob = cachedBlob;
+      if (!blob) {
+        if (previewCanvas.width < 1000) {
+          setStatus('The image is still being prepared. Try again in a second.');
+          return;
+        }
+        blob = canvasToBlobNow(previewCanvas);
+      }
+      if (!blob) {
+        setStatus('Could not prepare the image. Try Download image instead.');
         return;
       }
 
       const fileName = buildFileName(currentClub.id, currentRoast.id, currentFormat().id);
       const url = currentUrl();
       const text = buildShareText(currentRoast, url);
-      const result = await shareImage({
-        blob: cachedBlob,
-        fileName,
-        title: 'The Roast Room',
-        text,
-        url,
-      });
+      const result = await shareImage({ blob, fileName, title: 'The Roast Room', text, url });
 
       if (result.ok) {
         setStatus('Shared');

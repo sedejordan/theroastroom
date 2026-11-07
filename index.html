@@ -135,6 +135,59 @@
         </p>
         <div id="comingSoonClubs" class="mt-4 grid gap-3 sm:grid-cols-2 md:grid-cols-3"></div>
       </section>
+
+      <section
+        id="suggestSection"
+        class="hidden mx-auto max-w-5xl border-t border-line px-4 py-16"
+        aria-labelledby="suggestHeading"
+      >
+        <h2 id="suggestHeading" class="text-displaySm text-text">Who should we roast next?</h2>
+        <p class="mt-3 max-w-xl text-textMuted">
+          Suggest a club. The most voted club is the one we build next.
+        </p>
+
+        <form id="suggestForm" class="mt-6 max-w-xl" novalidate>
+          <label for="suggestName" class="tokenLabel block">Club name</label>
+          <input
+            id="suggestName"
+            name="name"
+            type="text"
+            required
+            minlength="2"
+            maxlength="40"
+            autocomplete="off"
+            class="mt-2 w-full rounded-sharp border border-line bg-surface px-3 py-2 text-text focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
+          />
+          <div
+            style="position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden"
+            aria-hidden="true"
+          >
+            <label for="suggestWebsite">Website</label>
+            <input id="suggestWebsite" name="website" type="text" tabindex="-1" autocomplete="off" />
+          </div>
+          <button
+            id="suggestSubmit"
+            type="submit"
+            class="mt-3 rounded-sharp border-2 border-primary bg-primary px-5 py-3 font-display text-lg uppercase tracking-wide text-primaryContrast transition-colors duration-fast ease-standard hover:bg-accent hover:text-background disabled:opacity-60"
+          >
+            Suggest this club
+          </button>
+          <p class="mt-2 text-xs text-textMuted">
+            We store a salted hash of your network address for two days, only to rate limit
+            submissions. We never store the address itself.
+          </p>
+          <p id="suggestStatus" class="mt-3 text-sm text-accent" role="status" aria-live="polite"></p>
+        </form>
+
+        <h3 class="mt-10 text-2xl text-text">Leaderboard</h3>
+        <p id="suggestLoading" class="mt-2 text-sm text-textMuted">Loading suggestions.</p>
+        <p id="suggestEmpty" class="hidden mt-2 text-sm text-textMuted">Be the first to suggest a club.</p>
+        <p id="suggestError" class="hidden mt-2 text-sm text-accent" role="alert">
+          Suggestions are unavailable right now.
+        </p>
+        <ul id="suggestBoard" class="mt-3 space-y-3"></ul>
+      </section>
+
     </main>
 
     <footer class="border-t border-line bg-surface">

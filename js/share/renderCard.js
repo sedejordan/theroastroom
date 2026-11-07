@@ -445,7 +445,7 @@ export async function renderRoastCard(options) {
     drawLabel(ctx, 'THE JOKE', MARGIN, contentTop, accent);
 
     const headlineTop = contentTop + 48;
-    const headlineBoxHeight = chosen.height * (chosen.id === 'story' ? 0.34 : 0.38);
+    const headlineBoxHeight = chosen.height * (chosen.id === 'story' ? 0.28 : 0.38);
     const measureAnton = (value, size) => {
       ctx.font = `400 ${size}px ${FONT_DISPLAY}`;
       return ctx.measureText(value).width;

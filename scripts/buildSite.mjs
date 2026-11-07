@@ -1,0 +1,1 @@
+const excludedPages = new Set(['tokens.html', 'cardlab.html', 'adminlab.html']);

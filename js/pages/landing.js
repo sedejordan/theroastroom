@@ -4,6 +4,7 @@
  * hero call to action target, all from data files at runtime.
  */
 
+import { initSuggestSection } from '../suggest/suggestSection.js';
 import { DEFAULT_CLUB_ID } from '../config.js';
 import { getComingSoonClubs, getLiveClubs, loadClub, loadRegistry } from '../registry.js';
 import { clear, createElement } from '../utils/dom.js';
@@ -173,11 +174,13 @@ async function init() {
       }
     }
 
-    renderTicker(roastPool);
-  } catch (error) {
-    console.warn('[roastRoom] could not load the registry', error);
-    showPickerError('Could not load the club list. Serve the site over http and reload.');
-  }
+      renderTicker(roastPool);
+    } catch (error) {
+      console.warn('[roastRoom] could not load the registry', error);
+      showPickerError('Could not load the club list. Serve the site over http and reload.');
+    }
+
+    initSuggestSection();
 }
 
 init();
