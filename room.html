@@ -105,12 +105,14 @@
           <button
             id="roastButton"
             type="button"
-            class="rounded-sharp bg-primary px-8 py-5 font-display text-2xl uppercase tracking-wide text-primaryContrast transition-colors duration-fast ease-standard hover:bg-accent hover:text-background disabled:opacity-50"
+            class="rounded-sharp bg-primary px-8 py-5 font-display text-2xl uppercase tracking-wide text-primaryContrast transition-all duration-fast ease-standard hover:bg-accent hover:text-background active:scale-95 disabled:opacity-50"
           >
             Roast them
           </button>
           <p id="progress" class="text-sm text-textMuted"></p>
         </div>
+
+        <p id="sessionCounter" class="mb-6 text-xs text-textMuted" aria-live="polite"></p>
 
         <div id="roastContainer"></div>
         <section id="sharePanel" class="sharePanel hidden" aria-label="Share this roast"></section>

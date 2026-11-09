@@ -28,8 +28,8 @@ function wrap(inner) {
   );
 }
 
-// Far layer: pitch lines and a faint "20" (United's league-title record).
-const PITCH_AND_20 = wrap(`
+// Far layer: pitch lines and a big downward arrow (decline, no numbers, no claims).
+const PITCH_AND_ARROW = wrap(`
   <g fill="none" stroke="var(--colorText)" stroke-width="2" opacity="0.18">
     <rect x="60" y="60" width="1080" height="680" />
     <line x1="600" y1="60" x2="600" y2="740" />
@@ -37,9 +37,7 @@ const PITCH_AND_20 = wrap(`
     <rect x="60" y="220" width="150" height="360" />
     <rect x="990" y="220" width="150" height="360" />
   </g>
-  <text x="600" y="480" text-anchor="middle"
-        font-family="Anton, 'Arial Narrow', Impact, sans-serif"
-        font-size="440" fill="var(--colorText)" opacity="0.06">20</text>
+  <g fill="var(--colorText)" opacity="0.06"><path d="M420 260 L600 420 L780 260 L720 260 L600 340 L480 260 Z"/><path d="M420 440 L600 600 L780 440 L720 440 L600 520 L480 440 Z"/></g>
 `);
 
 // Mid layer: a stylised broken trophy cup.
@@ -81,7 +79,7 @@ const RECEIPTS = wrap(`
 /** @type {Record<string, BackgroundLayer[]>} */
 export const BACKGROUND_LAYERS = {
   manutd: [
-    { speed: 0.05, svg: PITCH_AND_20 },
+    { speed: 0.05, svg: PITCH_AND_ARROW },
     { speed: 0.15, svg: BROKEN_TROPHY },
     { speed: 0.30, svg: RECEIPTS, fast: true },
   ],

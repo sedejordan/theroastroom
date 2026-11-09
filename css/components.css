@@ -99,7 +99,6 @@
     min-height: 1.2em;
   }
 
-  /* Ticker strip on the landing page */
   .tickerTrack {
     display: flex;
     gap: var(--space8);
@@ -108,18 +107,21 @@
     will-change: transform;
   }
 
-  .tickerTrack:hover,
+  /* Pause only on devices that actually hover, not on mobile taps. */
+  @media (hover: hover) {
+    .tickerTrack:hover {
+      animation-play-state: paused;
+    }
+  }
+
   .tickerTrack:focus-within {
     animation-play-state: paused;
   }
 
-  @media (prefers-reduced-motion: reduce) {
+  /* On a narrow screen, speed it up so the motion reads clearly. */
+  @media (max-width: 767px) {
     .tickerTrack {
-      animation: none;
-      flex-wrap: wrap;
-      width: auto;
-      transform: none;
-      will-change: auto;
+      animation-duration: 26s;
     }
   }
 
@@ -322,5 +324,39 @@
 @media (max-width: 480px) {
   .clubBackground__layer--fast {
     display: none;
+  }
+}
+
+/* ------------------------------------------------------------------
+   Micro-interactions
+   ------------------------------------------------------------------ */
+
+/* Roast card entrance */
+.roastCard {
+  animation: roastCardIn var(--durationSlow) var(--easeOut) both;
+}
+
+@keyframes roastCardIn {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Filter chip press */
+.categoryChip:active {
+  transform: scale(0.96);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .roastCard {
+    animation: none;
+  }
+  .categoryChip:active {
+    transform: none;
   }
 }

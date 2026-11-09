@@ -15,6 +15,7 @@ import { clear, prefersReducedMotion } from '../utils/dom.js';
 import { parseRoastHash } from '../utils/links.js';
 import { createSharePanel } from '../share/sharePanel.js';
 import { applyFrittLinks } from '../brand/applyFrittLinks.js';
+import { burstConfetti } from '../ui/confetti.js';
 import { initScrollBackground } from '../background/scrollBackground.js';
 import { backgroundLayersFor } from '../background/layers.js';
 
@@ -34,6 +35,7 @@ const emptyEl = document.getElementById('emptyState');
 const liveRegion = document.getElementById('roastLiveRegion');
 const pageHeading = document.getElementById('pageHeading');
 const sharePanelEl = document.getElementById('sharePanel');
+const sessionCounterEl = document.getElementById('sessionCounter');
 
 /** @type {Record<string, unknown> | null} */
 let club = null;
@@ -47,6 +49,52 @@ let busy = false;
 let sharePanel = null;
 /** @type {(() => void) | null} */
 let teardownBackground = null;
+
+const SESSION_KEY = 'roastroom_session_count';
+
+/**
+ * Read the roast count for this browser session.
+ * @returns {number}
+ */
+function readSessionCount() {
+  try {
+    return parseInt(window.sessionStorage.getItem(SESSION_KEY) || '0', 10) || 0;
+  } catch {
+    return 0;
+  }
+}
+
+/**
+ * Persist the roast count. Best effort only.
+ * @param {number} count
+ * @returns {void}
+ */
+function writeSessionCount(count) {
+  try {
+    window.sessionStorage.setItem(SESSION_KEY, String(count));
+  } catch {
+    // sessionStorage is best effort only.
+  }
+}
+
+let sessionCount = readSessionCount();
+
+/**
+ * Update the "N roasts served this session" line.
+ * @returns {void}
+ */
+function renderSessionCount() {
+  if (!sessionCounterEl) return;
+  if (sessionCount === 0) {
+    sessionCounterEl.textContent = '';
+  } else if (sessionCount === 1) {
+    sessionCounterEl.textContent = '1 roast served this session.';
+  } else {
+    sessionCounterEl.textContent = `${sessionCount} roasts served this session.`;
+  }
+}
+
+renderSessionCount();
 
 function showLoading() {
   if (loadingEl) loadingEl.classList.remove('hidden');
@@ -226,26 +274,30 @@ function handleFilterChange(newId) {
   rebuildBagAndFilter();
 }
 
-/**
- * Handle the Roast them button click.
- * @returns {Promise<void>}
- */
 async function handleRoastClick() {
   if (busy || !bag) return;
   const items = getFilteredRoasts();
   if (items.length === 0) return;
 
   busy = true;
-  if (roastButton) roastButton.disabled = true;
+  if (roastButton) {
+    roastButton.disabled = true;
+    roastButton.textContent = 'Roasting…';
+  }
 
   try {
     const roast = bag.next();
     if (roast) {
+      sessionCount += 1;
+      writeSessionCount(sessionCount);
+      renderSessionCount();
+      burstConfetti({ originX: 0.5, originY: 0.55, count: 36 });
       await showRoast(roast, { animate: true });
     }
   } finally {
     busy = false;
     if (roastButton) {
+      roastButton.textContent = 'Roast them';
       roastButton.disabled = getFilteredRoasts().length === 0;
     }
   }
@@ -313,6 +365,20 @@ async function init() {
     if (roastButton) {
       roastButton.addEventListener('click', handleRoastClick);
     }
+
+    // Press R to roast, as long as the user is not typing in a field.
+    document.addEventListener('keydown', (event) => {
+      if (event.defaultPrevented || event.metaKey || event.ctrlKey || event.altKey) return;
+      const target = event.target;
+      if (target instanceof HTMLElement) {
+        const tag = target.tagName;
+        if (tag === 'INPUT' || tag === 'TEXTAREA' || target.isContentEditable) return;
+      }
+      if (event.key === 'r' || event.key === 'R') {
+        event.preventDefault();
+        handleRoastClick();
+      }
+    });
   } catch (error) {
     console.warn('[roastRoom] could not open the roast room', error);
     showError('We could not load this club. Please try again in a moment.');
