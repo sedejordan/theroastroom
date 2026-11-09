@@ -15,6 +15,8 @@ import { clear, prefersReducedMotion } from '../utils/dom.js';
 import { parseRoastHash } from '../utils/links.js';
 import { createSharePanel } from '../share/sharePanel.js';
 import { applyFrittLinks } from '../brand/applyFrittLinks.js';
+import { initScrollBackground } from '../background/scrollBackground.js';
+import { backgroundLayersFor } from '../background/layers.js';
 
 const params = new URLSearchParams(window.location.search);
 const clubIdParam = params.get('club') || DEFAULT_CLUB_ID;
@@ -43,6 +45,8 @@ let currentRoast = null;
 let busy = false;
 /** @type {ReturnType<typeof createSharePanel> | null} */
 let sharePanel = null;
+/** @type {(() => void) | null} */
+let teardownBackground = null;
 
 function showLoading() {
   if (loadingEl) loadingEl.classList.remove('hidden');
@@ -272,6 +276,13 @@ async function init() {
 
     club = await loadClub(clubIdParam);
     applyTheme(club.theme || {});
+
+    // Mount club-specific parallax background.
+    if (teardownBackground) teardownBackground();
+    const bgEl = document.getElementById('clubBackground');
+    if (bgEl) {
+      teardownBackground = initScrollBackground(bgEl, backgroundLayersFor(clubIdParam));
+    }
 
     if (clubBadge) clubBadge.textContent = String(club.name || 'Roast Room');
     if (pageHeading) pageHeading.textContent = `${club.name || 'Roast Room'} Roast Room`;

@@ -9,6 +9,8 @@ import { applyFrittLinks } from '../brand/applyFrittLinks.js';
 import { DEFAULT_CLUB_ID } from '../config.js';
 import { getComingSoonClubs, getLiveClubs, loadClub, loadRegistry } from '../registry.js';
 import { clear, createElement } from '../utils/dom.js';
+import { initScrollBackground } from '../background/scrollBackground.js';
+import { backgroundLayersFor } from '../background/layers.js';
 
 const liveContainer = document.getElementById('liveClubs');
 const comingSoonContainer = document.getElementById('comingSoonClubs');
@@ -145,6 +147,11 @@ function showPickerError(message) {
 async function init() {
   setCallToActions();
   applyFrittLinks();
+
+  const bgEl = document.getElementById('clubBackground');
+  if (bgEl) {
+    initScrollBackground(bgEl, backgroundLayersFor('manutd'));
+  }
 
   try {
     const registry = await loadRegistry();
