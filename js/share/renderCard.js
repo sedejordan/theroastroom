@@ -9,6 +9,9 @@ import { fitText, truncateToWidth } from './textLayout.js';
 const MARGIN = 72;
 const TOP_BAND_HEIGHT = 120;
 const FOOTER_HEIGHT = 112;
+const PANEL_INSET = 36;
+const PANEL_RADIUS = 24;
+const NOTCH_RADIUS = 28;
 const FONT_DISPLAY = "Anton, 'Arial Narrow', Impact, sans-serif";
 const FONT_BODY = "Inter, 'Helvetica Neue', Arial, system-ui, sans-serif";
 
@@ -119,52 +122,118 @@ function drawPitchTexture(ctx, width, height, color) {
 }
 
 /**
- * Draw the top club band.
+ * Trace a rounded rectangle path on the context.
+ * @param {CanvasRenderingContext2D} ctx
+ * @param {number} x
+ * @param {number} y
+ * @param {number} w
+ * @param {number} h
+ * @param {number} r
+ * @returns {void}
+ */
+function roundedRectPath(ctx, x, y, w, h, r) {
+  const radius = Math.min(r, w / 2, h / 2);
+  ctx.beginPath();
+  ctx.moveTo(x + radius, y);
+  ctx.lineTo(x + w - radius, y);
+  ctx.arcTo(x + w, y, x + w, y + radius, radius);
+  ctx.lineTo(x + w, y + h - radius);
+  ctx.arcTo(x + w, y + h, x + w - radius, y + h, radius);
+  ctx.lineTo(x + radius, y + h);
+  ctx.arcTo(x, y + h, x, y + h - radius, radius);
+  ctx.lineTo(x, y + radius);
+  ctx.arcTo(x, y, x + radius, y, radius);
+  ctx.closePath();
+}
+
+/**
+ * Draw the ticket panel that carries the club band, the content and the
+ * footer.
+ * @param {CanvasRenderingContext2D} ctx
+ * @param {{ width: number, height: number, safeTop: number, safeBottom: number, theme: Record<string, string> }} options
+ * @returns {void}
+ */
+function drawTicketPanel(ctx, options) {
+  const { width, height, safeTop, safeBottom, theme } = options;
+  const surface = resolveColor(theme, 'surface');
+  const line = resolveColor(theme, 'line');
+
+  const x = PANEL_INSET;
+  const y = safeTop + PANEL_INSET;
+  const w = width - PANEL_INSET * 2;
+  const h = height - safeTop - safeBottom - PANEL_INSET * 2;
+
+  ctx.save();
+  roundedRectPath(ctx, x, y, w, h, PANEL_RADIUS);
+  if (surface) {
+    ctx.fillStyle = surface;
+    ctx.fill();
+  }
+  if (line) {
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = line;
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+/**
+ * Draw the top club band inside the panel, clipped to the panel's rounded
+ * top corners.
  * @param {CanvasRenderingContext2D} ctx Canvas context.
  * @param {{
  *   width: number,
  *   safeTop: number,
  *   theme: Record<string, string>,
  *   club: Record<string, unknown>,
- *   category: Record<string, unknown> | null
+ *   category: Record<string, unknown> | null,
+ *   panelHeight: number
  * }} options Band options.
  * @returns {void}
  */
 function drawTopBand(ctx, options) {
-  const { width, safeTop, theme, club, category } = options;
+  const { width, safeTop, theme, club, category, panelHeight } = options;
   const primary = resolveColor(theme, 'primary');
   const contrast = resolveColor(theme, 'primaryContrast');
 
-  if (primary) {
-    ctx.fillStyle = primary;
-    ctx.fillRect(0, safeTop, width, TOP_BAND_HEIGHT);
-  }
-
-  if (!contrast) return;
-
-  const baseline = safeTop + TOP_BAND_HEIGHT / 2;
-  const maxWidth = (width - MARGIN * 2) / 2 - 24;
+  const panelX = PANEL_INSET;
+  const panelY = safeTop + PANEL_INSET;
+  const panelWidth = width - PANEL_INSET * 2;
 
   ctx.save();
-  ctx.fillStyle = contrast;
-  ctx.font = `600 28px ${FONT_BODY}`;
-  ctx.textBaseline = 'middle';
-  ctx.textAlign = 'left';
+  roundedRectPath(ctx, panelX, panelY, panelWidth, panelHeight, PANEL_RADIUS);
+  ctx.clip();
 
-  const clubName = club && (club.shortName || club.name) ? String(club.shortName || club.name) : '';
-  const clubText = clubName.toUpperCase();
-  const clubLine = truncateToWidth(clubText, maxWidth, (value) => ctx.measureText(value).width);
-  ctx.fillText(clubLine, MARGIN, baseline);
+  if (primary) {
+    ctx.fillStyle = primary;
+    ctx.fillRect(panelX, panelY, panelWidth, TOP_BAND_HEIGHT);
+  }
 
-  const categoryText =
-    category && category.displayLabel ? String(category.displayLabel).toUpperCase() : '';
+  if (contrast) {
+    const baseline = panelY + TOP_BAND_HEIGHT / 2;
+    const maxWidth = (width - MARGIN * 2) / 2 - 24;
 
-  if (categoryText.length > 0) {
-    ctx.textAlign = 'right';
-    const categoryLine = truncateToWidth(categoryText, maxWidth, (value) =>
-      ctx.measureText(value).width
-    );
-    ctx.fillText(categoryLine, width - MARGIN, baseline);
+    ctx.fillStyle = contrast;
+    ctx.font = `600 28px ${FONT_BODY}`;
+    ctx.textBaseline = 'middle';
+    ctx.textAlign = 'left';
+
+    const clubName =
+      club && (club.shortName || club.name) ? String(club.shortName || club.name) : '';
+    const clubText = clubName.toUpperCase();
+    const clubLine = truncateToWidth(clubText, maxWidth, (value) => ctx.measureText(value).width);
+    ctx.fillText(clubLine, MARGIN, baseline);
+
+    const categoryText =
+      category && category.displayLabel ? String(category.displayLabel).toUpperCase() : '';
+
+    if (categoryText.length > 0) {
+      ctx.textAlign = 'right';
+      const categoryLine = truncateToWidth(categoryText, maxWidth, (value) =>
+        ctx.measureText(value).width
+      );
+      ctx.fillText(categoryLine, width - MARGIN, baseline);
+    }
   }
 
   ctx.restore();
@@ -244,7 +313,9 @@ function drawExplanation(ctx, fit, top, color) {
 }
 
 /**
- * Draw the dashed perforation and side notches.
+ * Draw the dashed perforation and the two punched notches at the panel edges.
+ * The notches are cut with the page background colour and outlined with the
+ * line colour so they read as real holes.
  * @param {CanvasRenderingContext2D} ctx Canvas context.
  * @param {number} width Canvas width.
  * @param {number} y Perforation y position.
@@ -255,30 +326,46 @@ function drawPerforation(ctx, width, y, theme) {
   const line = resolveColor(theme, 'line');
   const background = resolveColor(theme, 'background');
 
+  const panelLeft = PANEL_INSET;
+  const panelRight = width - PANEL_INSET;
+
   if (line) {
     ctx.save();
     ctx.strokeStyle = line;
     ctx.lineWidth = 2;
     ctx.setLineDash([16, 12]);
     ctx.beginPath();
-    ctx.moveTo(MARGIN, y);
-    ctx.lineTo(width - MARGIN, y);
+    ctx.moveTo(panelLeft, y);
+    ctx.lineTo(panelRight, y);
     ctx.stroke();
     ctx.restore();
   }
 
   if (background) {
     ctx.save();
+    ctx.beginPath();
+    ctx.arc(panelLeft, y, NOTCH_RADIUS, -Math.PI / 2, Math.PI / 2);
+    ctx.closePath();
     ctx.fillStyle = background;
-
-    ctx.beginPath();
-    ctx.arc(0, y, 28, 0, Math.PI * 2);
     ctx.fill();
+    if (line) {
+      ctx.strokeStyle = line;
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    }
+    ctx.restore();
 
+    ctx.save();
     ctx.beginPath();
-    ctx.arc(width, y, 28, 0, Math.PI * 2);
+    ctx.arc(panelRight, y, NOTCH_RADIUS, Math.PI / 2, (3 * Math.PI) / 2);
+    ctx.closePath();
+    ctx.fillStyle = background;
     ctx.fill();
-
+    if (line) {
+      ctx.strokeStyle = line;
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    }
     ctx.restore();
   }
 }
@@ -430,14 +517,25 @@ export async function renderRoastCard(options) {
       ctx.fillRect(0, 0, chosen.width, chosen.height);
     }
 
-    drawPitchTexture(ctx, chosen.width, chosen.height, text);
-    drawTopBand(ctx, {
-      width: chosen.width,
-      safeTop: chosen.safeTop,
-      theme,
-      club,
-      category,
-    });
+        drawPitchTexture(ctx, chosen.width, chosen.height, text);
+
+        const panelHeight =
+          chosen.height - chosen.safeTop - chosen.safeBottom - PANEL_INSET * 2;
+        drawTicketPanel(ctx, {
+          width: chosen.width,
+          height: chosen.height,
+          safeTop: chosen.safeTop,
+          safeBottom: chosen.safeBottom,
+          theme,
+        });
+        drawTopBand(ctx, {
+          width: chosen.width,
+          safeTop: chosen.safeTop,
+          theme,
+          club,
+          category,
+          panelHeight,
+        });
 
     const contentBottom = chosen.height - chosen.safeBottom - MARGIN;
     const contentTop = chosen.safeTop + TOP_BAND_HEIGHT + 48;

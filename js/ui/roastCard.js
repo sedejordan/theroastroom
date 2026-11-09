@@ -101,16 +101,35 @@ export function createRoastCard(roast, category) {
 
   receiptsGroup.append(receiptsLabel, receiptsList);
 
+    const mistakeLink = createElement('p', {
+    className: 'revealTarget mt-3 text-xs',
+    children: [
+      createElement('a', {
+        className: 'text-textMuted underline hover:text-accent',
+        text: 'Spot a mistake?',
+        attrs: { href: './about.html#corrections' },
+      }),
+    ],
+  });
+
   const verifiedEl = createElement('p', {
     className: 'revealTarget mt-4 text-xs text-textMuted',
     text: `Checked on ${roast.verifiedOn}`,
   });
 
-  card.append(categoryLine, jokeLabel, headlineElement, factsGroup, receiptsGroup, verifiedEl);
+  card.append(
+    categoryLine,
+    jokeLabel,
+    headlineElement,
+    factsGroup,
+    receiptsGroup,
+    mistakeLink,
+    verifiedEl
+  );
 
   return {
     element: card,
     headlineElement,
-    hiddenElements: [factsGroup, receiptsGroup, verifiedEl],
+    hiddenElements: [factsGroup, receiptsGroup, mistakeLink, verifiedEl],
   };
 }

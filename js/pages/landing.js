@@ -5,6 +5,7 @@
  */
 
 import { initSuggestSection } from '../suggest/suggestSection.js';
+import { applyFrittLinks } from '../brand/applyFrittLinks.js';
 import { DEFAULT_CLUB_ID } from '../config.js';
 import { getComingSoonClubs, getLiveClubs, loadClub, loadRegistry } from '../registry.js';
 import { clear, createElement } from '../utils/dom.js';
@@ -143,6 +144,7 @@ function showPickerError(message) {
  */
 async function init() {
   setCallToActions();
+  applyFrittLinks();
 
   try {
     const registry = await loadRegistry();

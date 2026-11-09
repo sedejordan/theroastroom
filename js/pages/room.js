@@ -14,6 +14,7 @@ import { revealRoast } from '../ui/reveal.js';
 import { clear, prefersReducedMotion } from '../utils/dom.js';
 import { parseRoastHash } from '../utils/links.js';
 import { createSharePanel } from '../share/sharePanel.js';
+import { applyFrittLinks } from '../brand/applyFrittLinks.js';
 
 const params = new URLSearchParams(window.location.search);
 const clubIdParam = params.get('club') || DEFAULT_CLUB_ID;
@@ -252,6 +253,7 @@ async function handleRoastClick() {
  */
 async function init() {
   showLoading();
+  applyFrittLinks();
 
   try {
     const registry = await loadRegistry();
