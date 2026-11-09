@@ -4,4 +4,4 @@
  * Set it to the final domain when the domain exists.
  * @type {string}
  */
-export const SHARE_HOST_OVERRIDE = '';
+export const SHARE_HOST_OVERRIDE = 'roastroom.fritt.org';
