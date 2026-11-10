@@ -92,15 +92,30 @@ function setupTickerToggle() {
   let running = !reduced;
 
   const apply = () => {
-    tickerTrack.classList.toggle('isPlaying', reduced && running);
-    tickerTrack.classList.toggle('isPaused', !reduced && !running);
+    const duration = window.matchMedia('(max-width: 767px)').matches ? '26s' : '40s';
+    // Inline `!important` is required: css/base.css sets
+    // `* { animation-duration: 1ms !important; animation-iteration-count: 1 !important; }`
+    // under prefers-reduced-motion, which would otherwise kill the ticker even
+    // after the user clicks Play.
+    tickerTrack.style.setProperty(
+      'animation',
+      `tickerScroll ${duration} linear infinite`,
+      'important'
+    );
+    tickerTrack.style.setProperty(
+      'animation-play-state',
+      running ? 'running' : 'paused',
+      'important'
+    );
     toggle.textContent = running ? 'Pause ticker' : 'Play ticker';
+    toggle.setAttribute('aria-pressed', running ? 'false' : 'true');
   };
 
   toggle.addEventListener('click', () => {
     running = !running;
     apply();
   });
+
   apply();
 }
 

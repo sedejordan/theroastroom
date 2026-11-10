@@ -99,7 +99,7 @@
     min-height: 1.2em;
   }
 
-  .tickerTrack {
+    .tickerTrack {
     display: flex;
     gap: var(--space8);
     width: max-content;
@@ -107,39 +107,15 @@
     will-change: transform;
   }
 
-  /* Pause only on devices that actually hover, not on mobile taps. */
-  @media (hover: hover) {
-    .tickerTrack:hover {
-      animation-play-state: paused;
-    }
-  }
-
-  .tickerTrack:focus-within {
-    animation-play-state: paused;
-  }
-
-  /* On a narrow screen, speed it up so the motion reads clearly. */
   @media (max-width: 767px) {
     .tickerTrack {
       animation-duration: 26s;
     }
   }
 
-  .tickerTrack.isPaused {
-    animation-play-state: paused;
-  }
-
   @media (prefers-reduced-motion: reduce) {
     .tickerTrack {
-      animation: none !important;
-      flex-wrap: wrap;
-      width: auto;
-      will-change: auto;
-    }
-    .tickerTrack.isPlaying {
-      animation: tickerScroll 26s linear infinite !important;
-      flex-wrap: nowrap;
-      width: max-content;
+      animation-play-state: paused;
     }
   }
 
