@@ -125,6 +125,24 @@
     }
   }
 
+  .tickerTrack.isPaused {
+    animation-play-state: paused;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .tickerTrack {
+      animation: none !important;
+      flex-wrap: wrap;
+      width: auto;
+      will-change: auto;
+    }
+    .tickerTrack.isPlaying {
+      animation: tickerScroll 26s linear infinite !important;
+      flex-wrap: nowrap;
+      width: max-content;
+    }
+  }
+
   /* Share panel */
   .sharePanel {
     margin-top: var(--space8);

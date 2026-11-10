@@ -8,7 +8,7 @@ import { initSuggestSection } from '../suggest/suggestSection.js';
 import { applyFrittLinks } from '../brand/applyFrittLinks.js';
 import { DEFAULT_CLUB_ID } from '../config.js';
 import { getComingSoonClubs, getLiveClubs, loadClub, loadRegistry } from '../registry.js';
-import { clear, createElement } from '../utils/dom.js';
+import { clear, createElement, prefersReducedMotion } from '../utils/dom.js';
 import { initScrollBackground } from '../background/scrollBackground.js';
 import { backgroundLayersFor } from '../background/layers.js';
 
@@ -83,6 +83,27 @@ function renderComingSoonClub(entry) {
   return wrap;
 }
 
+function setupTickerToggle() {
+  const toggle = document.getElementById('tickerToggle');
+  if (!toggle || !tickerTrack || toggle.dataset.ready === 'true') return;
+  toggle.dataset.ready = 'true';
+
+  const reduced = prefersReducedMotion();
+  let running = !reduced;
+
+  const apply = () => {
+    tickerTrack.classList.toggle('isPlaying', reduced && running);
+    tickerTrack.classList.toggle('isPaused', !reduced && !running);
+    toggle.textContent = running ? 'Pause ticker' : 'Play ticker';
+  };
+
+  toggle.addEventListener('click', () => {
+    running = !running;
+    apply();
+  });
+  apply();
+}
+
 /**
  * Render the ticker with the first six headlines.
  * Duplicates the items once so the CSS translate loop is seamless; only the
@@ -122,6 +143,7 @@ function renderTicker(roasts) {
   }
 
   tickerSection.classList.remove('hidden');
+  setupTickerToggle();
 }
 
 /**

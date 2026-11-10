@@ -58,11 +58,11 @@ data/
 js/
   background/
     layers.js
+    scrollBackground.js
   brand/
     applyFrittLinks.js
     frittConfig.js
     frittLinks.js
-    scrollBackground.js
   dev/
     adminLab.js
     cardLab.js
@@ -85,6 +85,7 @@ js/
     suggestSection.js
   ui/
     categoryFilter.js
+    confetti.js
     reveal.js
     roastCard.js
     shuffleBag.js
@@ -939,105 +940,80 @@ File: data/clubs.json
 68: }
 
 ================
-File: js/background/layers.js
+File: js/background/scrollBackground.js
 ================
  1: /**
- 2:  * Background SVG layers for The Roast Room.
- 3:  *
- 4:  * All artwork is original, abstract and drawn with plain SVG shapes.
- 5:  * Nothing here reproduces a club crest, player likeness, sponsor or logo.
- 6:  * Colours read from the active club theme via CSS custom properties, so the
- 7:  * same layers recolour when applyTheme() runs on the room page.
- 8:  *
- 9:  * @typedef {Object} BackgroundLayer
-10:  * @property {number} speed Parallax speed. 0 = static, 1 = scrolls with page.
-11:  * @property {string} svg Inline SVG string.
-12:  * @property {boolean} [fast] True for the nearest layer, hidden on small screens.
-13:  */
-14: 
-15: const VIEW_BOX = '0 0 1200 800';
-16: 
-17: /**
-18:  * Wrap SVG inner markup in a root svg element.
-19:  * @param {string} inner
-20:  * @returns {string}
-21:  */
-22: function wrap(inner) {
-23:   return (
-24:     `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${VIEW_BOX}" ` +
-25:     `preserveAspectRatio="xMidYMid slice" focusable="false" aria-hidden="true">` +
-26:     inner +
-27:     `</svg>`
-28:   );
-29: }
-30: 
-31: // Far layer: pitch lines and a faint "20" (United's league-title record).
-32: const PITCH_AND_20 = wrap(`
-33:   <g fill="none" stroke="var(--colorText)" stroke-width="2" opacity="0.18">
-34:     <rect x="60" y="60" width="1080" height="680" />
-35:     <line x1="600" y1="60" x2="600" y2="740" />
-36:     <circle cx="600" cy="400" r="120" />
-37:     <rect x="60" y="220" width="150" height="360" />
-38:     <rect x="990" y="220" width="150" height="360" />
-39:   </g>
-40:   <text x="600" y="480" text-anchor="middle"
-41:         font-family="Anton, 'Arial Narrow', Impact, sans-serif"
-42:         font-size="440" fill="var(--colorText)" opacity="0.06">20</text>
-43: `);
+ 2:  * Fixed parallax background controller for The Roast Room.
+ 3:  * Builds the layer DOM from a layer list, throttles scroll updates through
+ 4:  * requestAnimationFrame, and does nothing when the user prefers reduced motion.
+ 5:  */
+ 6: 
+ 7: import { prefersReducedMotion } from '../utils/dom.js';
+ 8: 
+ 9: /**
+10:  * Mount a parallax background inside a container element.
+11:  *
+12:  * @param {HTMLElement | null} container
+13:  * @param {import('./layers.js').BackgroundLayer[]} layers
+14:  * @returns {() => void} Teardown function. Safe to call at any time.
+15:  */
+16: export function initScrollBackground(container, layers) {
+17:   const noop = () => {};
+18:   if (!container || typeof document === 'undefined') return noop;
+19:   if (!Array.isArray(layers) || layers.length === 0) return noop;
+20: 
+21:   container.textContent = '';
+22: 
+23:   const scrim = document.createElement('div');
+24:   scrim.className = 'clubBackground__scrim';
+25:   container.append(scrim);
+26: 
+27:   /** @type {HTMLElement[]} */
+28:   const layerEls = [];
+29: 
+30:   for (const layer of layers) {
+31:     if (!layer || typeof layer.svg !== 'string') continue;
+32:     const el = document.createElement('div');
+33:     el.className =
+34:       'clubBackground__layer' + (layer.fast ? ' clubBackground__layer--fast' : '');
+35:     el.dataset.speed = String(layer.speed);
+36:     el.innerHTML = layer.svg; // safe: authored by us, no user data
+37:     container.append(el);
+38:     layerEls.push(el);
+39:   }
+40: 
+41:   const teardown = () => {
+42:     container.textContent = '';
+43:   };
 44: 
-45: // Mid layer: a stylised broken trophy cup.
-46: const BROKEN_TROPHY = wrap(`
-47:   <g fill="var(--colorPrimary)" opacity="0.28">
-48:     <path d="M480 160 L720 160 L700 340
-49:              C700 430 650 490 600 510
-50:              L600 590 L680 610 L680 630 L520 630 L520 610 L600 590
-51:              L600 510 C550 490 500 430 500 340 Z" />
-52:     <path d="M440 180 C400 180 390 230 410 270
-53:              C430 310 470 330 500 320"
-54:           fill="none" stroke="var(--colorPrimary)" stroke-width="14" />
-55:     <path d="M760 180 C800 180 810 230 790 270
-56:              C770 310 730 330 700 320"
-57:           fill="none" stroke="var(--colorPrimary)" stroke-width="14" />
-58:   </g>
-59:   <path d="M600 210 L558 340 L612 362 L566 480"
-60:         fill="none" stroke="var(--colorBackground)" stroke-width="8" opacity="0.9" />
-61: `);
-62: 
-63: // Near layer: floating receipt and ticket stubs (on-brand with "receipts included").
-64: const RECEIPTS = wrap(`
-65:   <g fill="var(--colorText)" opacity="0.10">
-66:     <rect x="120" y="120" width="120" height="160" rx="2" />
-67:     <rect x="900" y="240" width="140" height="180" rx="2" />
-68:     <rect x="200" y="560" width="100" height="140" rx="2" />
-69:     <rect x="820" y="560" width="160" height="120" rx="2" />
-70:   </g>
-71:   <g fill="none" stroke="var(--colorText)" stroke-width="2" opacity="0.18">
-72:     <line x1="130" y1="150" x2="230" y2="150" />
-73:     <line x1="130" y1="170" x2="220" y2="170" />
-74:     <line x1="130" y1="190" x2="200" y2="190" />
-75:     <line x1="910" y1="270" x2="1030" y2="270" />
-76:     <line x1="910" y1="290" x2="1010" y2="290" />
-77:     <line x1="910" y1="310" x2="1040" y2="310" />
-78:   </g>
-79: `);
-80: 
-81: /** @type {Record<string, BackgroundLayer[]>} */
-82: export const BACKGROUND_LAYERS = {
-83:   manutd: [
-84:     { speed: 0.05, svg: PITCH_AND_20 },
-85:     { speed: 0.15, svg: BROKEN_TROPHY },
-86:     { speed: 0.30, svg: RECEIPTS, fast: true },
-87:   ],
-88: };
-89: 
-90: /**
-91:  * Return the background layers for a club id, falling back to Man Utd.
-92:  * @param {string} [clubId]
-93:  * @returns {BackgroundLayer[]}
-94:  */
-95: export function backgroundLayersFor(clubId) {
-96:   return BACKGROUND_LAYERS[clubId] || BACKGROUND_LAYERS.manutd;
-97: }
+45:   if (layerEls.length === 0) return teardown;
+46:   if (prefersReducedMotion()) return teardown;
+47: 
+48:   let ticking = false;
+49: 
+50:   const update = () => {
+51:     const y = window.scrollY || 0;
+52:     for (const el of layerEls) {
+53:       const speed = parseFloat(el.dataset.speed) || 0;
+54:       el.style.transform = `translate3d(0, ${-y * speed}px, 0)`;
+55:     }
+56:     ticking = false;
+57:   };
+58: 
+59:   const onScroll = () => {
+60:     if (ticking) return;
+61:     ticking = true;
+62:     window.requestAnimationFrame(update);
+63:   };
+64: 
+65:   window.addEventListener('scroll', onScroll, { passive: true });
+66:   update();
+67: 
+68:   return () => {
+69:     window.removeEventListener('scroll', onScroll);
+70:     teardown();
+71:   };
+72: }
 
 ================
 File: js/brand/applyFrittLinks.js
@@ -1143,82 +1119,6 @@ File: js/brand/frittLinks.js
 29:     return baseUrl;
 30:   }
 31: }
-
-================
-File: js/brand/scrollBackground.js
-================
- 1: /**
- 2:  * Fixed parallax background controller for The Roast Room.
- 3:  * Builds the layer DOM from a layer list, throttles scroll updates through
- 4:  * requestAnimationFrame, and does nothing when the user prefers reduced motion.
- 5:  */
- 6: 
- 7: import { prefersReducedMotion } from '../utils/dom.js';
- 8: 
- 9: /**
-10:  * Mount a parallax background inside a container element.
-11:  *
-12:  * @param {HTMLElement | null} container
-13:  * @param {import('./layers.js').BackgroundLayer[]} layers
-14:  * @returns {() => void} Teardown function. Safe to call at any time.
-15:  */
-16: export function initScrollBackground(container, layers) {
-17:   const noop = () => {};
-18:   if (!container || typeof document === 'undefined') return noop;
-19:   if (!Array.isArray(layers) || layers.length === 0) return noop;
-20: 
-21:   container.textContent = '';
-22: 
-23:   const scrim = document.createElement('div');
-24:   scrim.className = 'clubBackground__scrim';
-25:   container.append(scrim);
-26: 
-27:   /** @type {HTMLElement[]} */
-28:   const layerEls = [];
-29: 
-30:   for (const layer of layers) {
-31:     if (!layer || typeof layer.svg !== 'string') continue;
-32:     const el = document.createElement('div');
-33:     el.className =
-34:       'clubBackground__layer' + (layer.fast ? ' clubBackground__layer--fast' : '');
-35:     el.dataset.speed = String(layer.speed);
-36:     el.innerHTML = layer.svg; // safe: authored by us, no user data
-37:     container.append(el);
-38:     layerEls.push(el);
-39:   }
-40: 
-41:   const teardown = () => {
-42:     container.textContent = '';
-43:   };
-44: 
-45:   if (layerEls.length === 0) return teardown;
-46:   if (prefersReducedMotion()) return teardown;
-47: 
-48:   let ticking = false;
-49: 
-50:   const update = () => {
-51:     const y = window.scrollY || 0;
-52:     for (const el of layerEls) {
-53:       const speed = parseFloat(el.dataset.speed) || 0;
-54:       el.style.transform = `translate3d(0, ${-y * speed}px, 0)`;
-55:     }
-56:     ticking = false;
-57:   };
-58: 
-59:   const onScroll = () => {
-60:     if (ticking) return;
-61:     ticking = true;
-62:     window.requestAnimationFrame(update);
-63:   };
-64: 
-65:   window.addEventListener('scroll', onScroll, { passive: true });
-66:   update();
-67: 
-68:   return () => {
-69:     window.removeEventListener('scroll', onScroll);
-70:     teardown();
-71:   };
-72: }
 
 ================
 File: js/dev/adminLab.js
@@ -2783,6 +2683,108 @@ File: js/ui/categoryFilter.js
 121: 
 122:   return button;
 123: }
+
+================
+File: js/ui/confetti.js
+================
+ 1: /**
+ 2:  * Lightweight canvas confetti burst. Fires once, cleans itself up, and is
+ 3:  * a no-op when the user prefers reduced motion. Colours come from the
+ 4:  * active club theme so the burst always matches the room.
+ 5:  */
+ 6: 
+ 7: import { prefersReducedMotion } from '../utils/dom.js';
+ 8: 
+ 9: /**
+10:  * @param {{
+11:  *   originX?: number,   // 0..1, fraction of viewport width
+12:  *   originY?: number,   // 0..1, fraction of viewport height
+13:  *   count?: number,
+14:  *   duration?: number   // ms
+15:  * }} [options]
+16:  * @returns {void}
+17:  */
+18: export function burstConfetti(options = {}) {
+19:   if (typeof document === 'undefined') return;
+20:   if (prefersReducedMotion()) return;
+21: 
+22:   const { originX = 0.5, originY = 0.55, count = 36, duration = 900 } = options;
+23: 
+24:   const styles = getComputedStyle(document.documentElement);
+25:   const colors = [
+26:     styles.getPropertyValue('--colorPrimary').trim() || '#DA291C',
+27:     styles.getPropertyValue('--colorAccent').trim() || '#FBE122',
+28:     styles.getPropertyValue('--colorText').trim() || '#F5F5F5',
+29:   ];
+30: 
+31:   const canvas = document.createElement('canvas');
+32:   canvas.width = window.innerWidth;
+33:   canvas.height = window.innerHeight;
+34:   canvas.style.cssText = 'position:fixed;inset:0;pointer-events:none;z-index:9999;';
+35:   document.body.appendChild(canvas);
+36: 
+37:   const ctx = canvas.getContext('2d');
+38:   if (!ctx) {
+39:     canvas.remove();
+40:     return;
+41:   }
+42: 
+43:   const cx = originX * canvas.width;
+44:   const cy = originY * canvas.height;
+45: 
+46:   const particles = [];
+47:   for (let i = 0; i < count; i += 1) {
+48:     const angle = Math.random() * Math.PI * 2;
+49:     const speed = 3 + Math.random() * 7;
+50:     particles.push({
+51:       x: cx,
+52:       y: cy,
+53:       vx: Math.cos(angle) * speed,
+54:       vy: Math.sin(angle) * speed - 3,
+55:       size: 4 + Math.random() * 6,
+56:       color: colors[Math.floor(Math.random() * colors.length)],
+57:       rot: Math.random() * Math.PI,
+58:       vrot: (Math.random() - 0.5) * 0.4,
+59:       life: 1,
+60:     });
+61:   }
+62: 
+63:   const start = performance.now();
+64:   const gravity = 0.22;
+65:   const friction = 0.99;
+66:   let raf = 0;
+67: 
+68:   function tick(now) {
+69:     const t = Math.min(1, (now - start) / duration);
+70:     ctx.clearRect(0, 0, canvas.width, canvas.height);
+71: 
+72:     for (const p of particles) {
+73:       p.vx *= friction;
+74:       p.vy = p.vy * friction + gravity;
+75:       p.x += p.vx;
+76:       p.y += p.vy;
+77:       p.rot += p.vrot;
+78:       p.life = 1 - t;
+79: 
+80:       ctx.save();
+81:       ctx.globalAlpha = Math.max(0, p.life);
+82:       ctx.translate(p.x, p.y);
+83:       ctx.rotate(p.rot);
+84:       ctx.fillStyle = p.color;
+85:       ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size * 0.55);
+86:       ctx.restore();
+87:     }
+88: 
+89:     if (t < 1) {
+90:       raf = requestAnimationFrame(tick);
+91:     } else {
+92:       cancelAnimationFrame(raf);
+93:       canvas.remove();
+94:     }
+95:   }
+96: 
+97:   raf = requestAnimationFrame(tick);
+98: }
 
 ================
 File: js/ui/reveal.js
@@ -7031,6 +7033,105 @@ File: css/base.css
 128: }
 
 ================
+File: js/background/layers.js
+================
+ 1: /**
+ 2:  * Background SVG layers for The Roast Room.
+ 3:  *
+ 4:  * All artwork is original, abstract and drawn with plain SVG shapes.
+ 5:  * Nothing here reproduces a club crest, player likeness, sponsor or logo.
+ 6:  * Colours read from the active club theme via CSS custom properties, so the
+ 7:  * same layers recolour when applyTheme() runs on the room page.
+ 8:  *
+ 9:  * @typedef {Object} BackgroundLayer
+10:  * @property {number} speed Parallax speed. 0 = static, 1 = scrolls with page.
+11:  * @property {string} svg Inline SVG string.
+12:  * @property {boolean} [fast] True for the nearest layer, hidden on small screens.
+13:  */
+14: 
+15: const VIEW_BOX = '0 0 1200 800';
+16: 
+17: /**
+18:  * Wrap SVG inner markup in a root svg element.
+19:  * @param {string} inner
+20:  * @returns {string}
+21:  */
+22: function wrap(inner) {
+23:   return (
+24:     `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${VIEW_BOX}" ` +
+25:     `preserveAspectRatio="xMidYMid slice" focusable="false" aria-hidden="true">` +
+26:     inner +
+27:     `</svg>`
+28:   );
+29: }
+30: 
+31: // Far layer: pitch lines and a big downward arrow (decline, no numbers, no claims).
+32: const PITCH_AND_ARROW = wrap(`
+33:   <g fill="none" stroke="var(--colorText)" stroke-width="2" opacity="0.18">
+34:     <rect x="60" y="60" width="1080" height="680" />
+35:     <line x1="600" y1="60" x2="600" y2="740" />
+36:     <circle cx="600" cy="400" r="120" />
+37:     <rect x="60" y="220" width="150" height="360" />
+38:     <rect x="990" y="220" width="150" height="360" />
+39:   </g>
+40:   <g fill="var(--colorText)" opacity="0.06"><path d="M420 260 L600 420 L780 260 L720 260 L600 340 L480 260 Z"/><path d="M420 440 L600 600 L780 440 L720 440 L600 520 L480 440 Z"/></g>
+41: `);
+42: 
+43: // Mid layer: a stylised broken trophy cup.
+44: const BROKEN_TROPHY = wrap(`
+45:   <g fill="var(--colorPrimary)" opacity="0.28">
+46:     <path d="M480 160 L720 160 L700 340
+47:              C700 430 650 490 600 510
+48:              L600 590 L680 610 L680 630 L520 630 L520 610 L600 590
+49:              L600 510 C550 490 500 430 500 340 Z" />
+50:     <path d="M440 180 C400 180 390 230 410 270
+51:              C430 310 470 330 500 320"
+52:           fill="none" stroke="var(--colorPrimary)" stroke-width="14" />
+53:     <path d="M760 180 C800 180 810 230 790 270
+54:              C770 310 730 330 700 320"
+55:           fill="none" stroke="var(--colorPrimary)" stroke-width="14" />
+56:   </g>
+57:   <path d="M600 210 L558 340 L612 362 L566 480"
+58:         fill="none" stroke="var(--colorBackground)" stroke-width="8" opacity="0.9" />
+59: `);
+60: 
+61: // Near layer: floating receipt and ticket stubs (on-brand with "receipts included").
+62: const RECEIPTS = wrap(`
+63:   <g fill="var(--colorText)" opacity="0.10">
+64:     <rect x="120" y="120" width="120" height="160" rx="2" />
+65:     <rect x="900" y="240" width="140" height="180" rx="2" />
+66:     <rect x="200" y="560" width="100" height="140" rx="2" />
+67:     <rect x="820" y="560" width="160" height="120" rx="2" />
+68:   </g>
+69:   <g fill="none" stroke="var(--colorText)" stroke-width="2" opacity="0.18">
+70:     <line x1="130" y1="150" x2="230" y2="150" />
+71:     <line x1="130" y1="170" x2="220" y2="170" />
+72:     <line x1="130" y1="190" x2="200" y2="190" />
+73:     <line x1="910" y1="270" x2="1030" y2="270" />
+74:     <line x1="910" y1="290" x2="1010" y2="290" />
+75:     <line x1="910" y1="310" x2="1040" y2="310" />
+76:   </g>
+77: `);
+78: 
+79: /** @type {Record<string, BackgroundLayer[]>} */
+80: export const BACKGROUND_LAYERS = {
+81:   manutd: [
+82:     { speed: 0.05, svg: PITCH_AND_ARROW },
+83:     { speed: 0.15, svg: BROKEN_TROPHY },
+84:     { speed: 0.30, svg: RECEIPTS, fast: true },
+85:   ],
+86: };
+87: 
+88: /**
+89:  * Return the background layers for a club id, falling back to Man Utd.
+90:  * @param {string} [clubId]
+91:  * @returns {BackgroundLayer[]}
+92:  */
+93: export function backgroundLayersFor(clubId) {
+94:   return BACKGROUND_LAYERS[clubId] || BACKGROUND_LAYERS.manutd;
+95: }
+
+================
 File: js/share/shareConfig.js
 ================
 1: /**
@@ -7968,336 +8069,6 @@ File: tailwind.config.js
 120:   },
 121:   plugins: [],
 122: };
-
-================
-File: css/components.css
-================
-  1: /*
-  2:   Shared component styles for The Roast Room.
-  3:   Imported by src/input.css after tokens.css and base.css so every rule here
-  4:   reads the design tokens and the base reset.
-  5: */
-  6: 
-  7: @layer components {
-  8:   /* Visually hidden but available to screen readers */
-  9:   .srOnly {
- 10:     position: absolute;
- 11:     width: 1px;
- 12:     height: 1px;
- 13:     padding: 0;
- 14:     margin: -1px;
- 15:     overflow: hidden;
- 16:     clip: rect(0, 0, 0, 0);
- 17:     white-space: nowrap;
- 18:     border: 0;
- 19:   }
- 20: 
- 21:   /* Roast card, styled as a matchday ticket stub with notches on both sides */
- 22:   .roastCard {
- 23:     position: relative;
- 24:     background-color: var(--colorSurface);
- 25:     border: var(--borderWidth1) solid var(--colorLine);
- 26:     border-radius: var(--radiusSharp);
- 27:     padding: var(--space6);
- 28:     margin: 0 var(--space4);
- 29:   }
- 30: 
- 31:   .ticketStub::before,
- 32:   .ticketStub::after {
- 33:     content: '';
- 34:     position: absolute;
- 35:     top: 50%;
- 36:     width: var(--space6);
- 37:     height: var(--space6);
- 38:     background-color: var(--colorBackground);
- 39:     border-radius: 50%;
- 40:     transform: translateY(-50%);
- 41:     pointer-events: none;
- 42:   }
- 43: 
- 44:   .ticketStub::before {
- 45:     left: calc(var(--space6) / -2);
- 46:   }
- 47: 
- 48:   .ticketStub::after {
- 49:     right: calc(var(--space6) / -2);
- 50:   }
- 51: 
- 52:   /* Reveal animation target for the facts and receipts */
- 53:   .revealTarget {
- 54:     opacity: 0;
- 55:     transition: opacity var(--durationSlow) var(--easeOut);
- 56:   }
- 57: 
- 58:   .revealTarget.isVisible {
- 59:     opacity: 1;
- 60:   }
- 61: 
- 62:   /* Category filter chips */
- 63:   .categoryChip {
- 64:     display: inline-flex;
- 65:     align-items: center;
- 66:     gap: var(--space2);
- 67:     border-radius: var(--radiusPill);
- 68:     border: var(--borderWidth1) solid var(--colorLine);
- 69:     background-color: var(--colorSurface);
- 70:     color: var(--colorText);
- 71:     padding: var(--space2) var(--space4);
- 72:     font-size: var(--textSm);
- 73:     transition:
- 74:       background-color var(--durationFast) var(--easeStandard),
- 75:       color var(--durationFast) var(--easeStandard),
- 76:       border-color var(--durationFast) var(--easeStandard);
- 77:   }
- 78: 
- 79:   .categoryChip:hover {
- 80:     border-color: var(--colorPrimary);
- 81:   }
- 82: 
- 83:   .categoryChip[aria-pressed='true'] {
- 84:     background-color: var(--colorPrimary);
- 85:     border-color: var(--colorPrimary);
- 86:     color: var(--colorPrimaryContrast);
- 87:   }
- 88: 
- 89:   .categoryChipCount {
- 90:     color: var(--colorTextMuted);
- 91:   }
- 92: 
- 93:   .categoryChip[aria-pressed='true'] .categoryChipCount {
- 94:     color: var(--colorPrimaryContrast);
- 95:   }
- 96: 
- 97:   /* Headline placeholder so the card does not collapse before the reel */
- 98:   .roastHeadline {
- 99:     min-height: 1.2em;
-100:   }
-101: 
-102:   /* Ticker strip on the landing page */
-103:   .tickerTrack {
-104:     display: flex;
-105:     gap: var(--space8);
-106:     width: max-content;
-107:     animation: tickerScroll 40s linear infinite;
-108:     will-change: transform;
-109:   }
-110: 
-111:   .tickerTrack:hover,
-112:   .tickerTrack:focus-within {
-113:     animation-play-state: paused;
-114:   }
-115: 
-116:   @media (prefers-reduced-motion: reduce) {
-117:     .tickerTrack {
-118:       animation: none;
-119:       flex-wrap: wrap;
-120:       width: auto;
-121:       transform: none;
-122:       will-change: auto;
-123:     }
-124:   }
-125: 
-126:   /* Share panel */
-127:   .sharePanel {
-128:     margin-top: var(--space8);
-129:     border: var(--borderWidth1) solid var(--colorLine);
-130:     border-radius: var(--radiusSharp);
-131:     background-color: var(--colorSurface);
-132:     padding: var(--space5);
-133:   }
-134: 
-135:   .sharePanelHeading {
-136:     margin: 0;
-137:     font-family: var(--fontDisplay);
-138:     font-size: var(--text2xl);
-139:     line-height: var(--leadingTight);
-140:     letter-spacing: var(--trackingTight);
-141:     text-transform: uppercase;
-142:     color: var(--colorText);
-143:   }
-144: 
-145:   .shareFormatToggle {
-146:     display: flex;
-147:     flex-wrap: wrap;
-148:     gap: var(--space2);
-149:     margin-top: var(--space4);
-150:   }
-151: 
-152:   .shareFormatButton {
-153:     border: var(--borderWidth1) solid var(--colorLine);
-154:     border-radius: var(--radiusPill);
-155:     background-color: var(--colorSurfaceRaised);
-156:     color: var(--colorText);
-157:     padding: var(--space2) var(--space4);
-158:     font-size: var(--textSm);
-159:     transition:
-160:       background-color var(--durationFast) var(--easeStandard),
-161:       color var(--durationFast) var(--easeStandard),
-162:       border-color var(--durationFast) var(--easeStandard);
-163:   }
-164: 
-165:   .shareFormatButton:hover {
-166:     border-color: var(--colorPrimary);
-167:   }
-168: 
-169:   .shareFormatButton[aria-pressed='true'] {
-170:     background-color: var(--colorPrimary);
-171:     border-color: var(--colorPrimary);
-172:     color: var(--colorPrimaryContrast);
-173:   }
-174: 
-175:   .sharePreviewWrap {
-176:     display: flex;
-177:     justify-content: center;
-178:     margin-top: var(--space4);
-179:     border: var(--borderWidth1) solid var(--colorLine);
-180:     background-color: var(--colorSurfaceRaised);
-181:     padding: var(--space3);
-182:   }
-183: 
-184:   .sharePreviewCanvas {
-185:     display: block;
-186:     width: 100%;
-187:     height: auto;
-188:     max-height: 60vh;
-189:     object-fit: contain;
-190:     background-color: var(--colorBackground);
-191:   }
-192: 
-193:   .shareActions {
-194:     display: flex;
-195:     flex-wrap: wrap;
-196:     gap: var(--space3);
-197:     margin-top: var(--space4);
-198:   }
-199: 
-200:   .shareActionPrimary,
-201:   .shareActionSecondary {
-202:     border-radius: var(--radiusSharp);
-203:     border: var(--borderWidth1) solid var(--colorLine);
-204:     padding: var(--space3) var(--space5);
-205:     font-weight: 600;
-206:     transition:
-207:       background-color var(--durationFast) var(--easeStandard),
-208:       color var(--durationFast) var(--easeStandard),
-209:       border-color var(--durationFast) var(--easeStandard);
-210:   }
-211: 
-212:   .shareActionPrimary {
-213:     background-color: var(--colorPrimary);
-214:     border-color: var(--colorPrimary);
-215:     color: var(--colorPrimaryContrast);
-216:   }
-217: 
-218:   .shareActionPrimary:hover {
-219:     background-color: var(--colorAccent);
-220:     border-color: var(--colorAccent);
-221:     color: var(--colorBackground);
-222:   }
-223: 
-224:   .shareActionSecondary {
-225:     background-color: var(--colorSurfaceRaised);
-226:     color: var(--colorText);
-227:   }
-228: 
-229:   .shareActionSecondary:hover {
-230:     border-color: var(--colorPrimary);
-231:   }
-232: 
-233:   .shareActionPrimary:disabled,
-234:   .shareActionSecondary:disabled {
-235:     opacity: 0.6;
-236:     cursor: not-allowed;
-237:   }
-238: 
-239:   .shareStatus {
-240:     min-height: 1.5em;
-241:     margin-top: var(--space3);
-242:     font-size: var(--textSm);
-243:     color: var(--colorTextMuted);
-244:   }
-245: 
-246:   .shareFallback {
-247:     margin-top: var(--space3);
-248:   }
-249: 
-250:   .shareFallbackInput {
-251:     width: 100%;
-252:     margin-top: var(--space2);
-253:     border: var(--borderWidth1) solid var(--colorLine);
-254:     border-radius: var(--radiusSharp);
-255:     background-color: var(--colorBackground);
-256:     color: var(--colorText);
-257:     padding: var(--space3);
-258:     font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-259:     font-size: var(--textSm);
-260:   }
-261: 
-262:   .shareFallbackInput:focus-visible {
-263:     outline: var(--borderWidth2) solid var(--colorAccent);
-264:     outline-offset: 2px;
-265:   }
-266: }
-267: 
-268: @keyframes tickerScroll {
-269:   from {
-270:     transform: translateX(0);
-271:   }
-272:   to {
-273:     transform: translateX(-50%);
-274:   }
-275: }
-276: 
-277: /* ------------------------------------------------------------------
-278:    Club background (fixed, parallax layers)
-279:    ------------------------------------------------------------------ */
-280: .clubBackground {
-281:   position: fixed;
-282:   inset: 0;
-283:   z-index: -1;
-284:   overflow: hidden;
-285:   pointer-events: none;
-286:   contain: layout paint;
-287: }
-288: 
-289: .clubBackground__layer {
-290:   position: absolute;
-291:   left: 0;
-292:   right: 0;
-293:   top: -50vh;
-294:   bottom: -50vh;
-295:   will-change: transform;
-296:   transform: translate3d(0, 0, 0);
-297: }
-298: 
-299: .clubBackground__layer > svg {
-300:   display: block;
-301:   width: 100%;
-302:   height: 100%;
-303: }
-304: 
-305: .clubBackground__scrim {
-306:   position: absolute;
-307:   inset: 0;
-308:   background:
-309:     linear-gradient(to bottom, rgba(10, 10, 10, 0.55), rgba(10, 10, 10, 0.55)),
-310:     radial-gradient(ellipse at center,
-311:       rgba(10, 10, 10, 0) 0%,
-312:       rgba(10, 10, 10, 0.55) 100%);
-313: }
-314: 
-315: @media (prefers-reduced-motion: reduce) {
-316:   .clubBackground__layer {
-317:     will-change: auto;
-318:     transform: none !important;
-319:   }
-320: }
-321: 
-322: @media (max-width: 480px) {
-323:   .clubBackground__layer--fast {
-324:     display: none;
-325:   }
-326: }
 
 ================
 File: js/share/renderCard.js
@@ -9386,28 +9157,6 @@ File: js/share/sharePanel.js
 456: }
 
 ================
-File: worker/wrangler.toml
-================
- 1: name = "roastroomsuggest"
- 2: main = "src/index.js"
- 3: compatibility_date = "2025-04-01"
- 4: 
- 5: [[kv_namespaces]]
- 6: binding = "SUGGESTIONS"
- 7: id = "c7d1798800ad476598ef3323f31195eb"
- 8: 
- 9: [vars]
-10: # Comma separated list of allowed origins.
-11: # Requests with an Origin header that is not on this list are rejected with 403
-12: # for POST routes and receive no CORS headers for any route.
-13: #
-14: # http://localhost:3000              local dev (any dev server on this port)
-15: # http://localhost:8000              local dev (python -m http.server)
-16: # https://paste_your_netlify_site_here   your Netlify site URL
-17: # https://roastroom.fritt.org        production site
-18: ALLOWED_ORIGINS = "http://localhost:3000,http://localhost:8000,https://deroastroom.netlify.app,https://roastroom.fritt.org"
-
-================
 File: .gitignore
 ================
 1: node_modules
@@ -9415,6 +9164,372 @@ File: .gitignore
 3: .wrangler
 4: site
 5: dist
+
+================
+File: css/components.css
+================
+  1: /*
+  2:   Shared component styles for The Roast Room.
+  3:   Imported by src/input.css after tokens.css and base.css so every rule here
+  4:   reads the design tokens and the base reset.
+  5: */
+  6: 
+  7: @layer components {
+  8:   /* Visually hidden but available to screen readers */
+  9:   .srOnly {
+ 10:     position: absolute;
+ 11:     width: 1px;
+ 12:     height: 1px;
+ 13:     padding: 0;
+ 14:     margin: -1px;
+ 15:     overflow: hidden;
+ 16:     clip: rect(0, 0, 0, 0);
+ 17:     white-space: nowrap;
+ 18:     border: 0;
+ 19:   }
+ 20: 
+ 21:   /* Roast card, styled as a matchday ticket stub with notches on both sides */
+ 22:   .roastCard {
+ 23:     position: relative;
+ 24:     background-color: var(--colorSurface);
+ 25:     border: var(--borderWidth1) solid var(--colorLine);
+ 26:     border-radius: var(--radiusSharp);
+ 27:     padding: var(--space6);
+ 28:     margin: 0 var(--space4);
+ 29:   }
+ 30: 
+ 31:   .ticketStub::before,
+ 32:   .ticketStub::after {
+ 33:     content: '';
+ 34:     position: absolute;
+ 35:     top: 50%;
+ 36:     width: var(--space6);
+ 37:     height: var(--space6);
+ 38:     background-color: var(--colorBackground);
+ 39:     border-radius: 50%;
+ 40:     transform: translateY(-50%);
+ 41:     pointer-events: none;
+ 42:   }
+ 43: 
+ 44:   .ticketStub::before {
+ 45:     left: calc(var(--space6) / -2);
+ 46:   }
+ 47: 
+ 48:   .ticketStub::after {
+ 49:     right: calc(var(--space6) / -2);
+ 50:   }
+ 51: 
+ 52:   /* Reveal animation target for the facts and receipts */
+ 53:   .revealTarget {
+ 54:     opacity: 0;
+ 55:     transition: opacity var(--durationSlow) var(--easeOut);
+ 56:   }
+ 57: 
+ 58:   .revealTarget.isVisible {
+ 59:     opacity: 1;
+ 60:   }
+ 61: 
+ 62:   /* Category filter chips */
+ 63:   .categoryChip {
+ 64:     display: inline-flex;
+ 65:     align-items: center;
+ 66:     gap: var(--space2);
+ 67:     border-radius: var(--radiusPill);
+ 68:     border: var(--borderWidth1) solid var(--colorLine);
+ 69:     background-color: var(--colorSurface);
+ 70:     color: var(--colorText);
+ 71:     padding: var(--space2) var(--space4);
+ 72:     font-size: var(--textSm);
+ 73:     transition:
+ 74:       background-color var(--durationFast) var(--easeStandard),
+ 75:       color var(--durationFast) var(--easeStandard),
+ 76:       border-color var(--durationFast) var(--easeStandard);
+ 77:   }
+ 78: 
+ 79:   .categoryChip:hover {
+ 80:     border-color: var(--colorPrimary);
+ 81:   }
+ 82: 
+ 83:   .categoryChip[aria-pressed='true'] {
+ 84:     background-color: var(--colorPrimary);
+ 85:     border-color: var(--colorPrimary);
+ 86:     color: var(--colorPrimaryContrast);
+ 87:   }
+ 88: 
+ 89:   .categoryChipCount {
+ 90:     color: var(--colorTextMuted);
+ 91:   }
+ 92: 
+ 93:   .categoryChip[aria-pressed='true'] .categoryChipCount {
+ 94:     color: var(--colorPrimaryContrast);
+ 95:   }
+ 96: 
+ 97:   /* Headline placeholder so the card does not collapse before the reel */
+ 98:   .roastHeadline {
+ 99:     min-height: 1.2em;
+100:   }
+101: 
+102:   .tickerTrack {
+103:     display: flex;
+104:     gap: var(--space8);
+105:     width: max-content;
+106:     animation: tickerScroll 40s linear infinite;
+107:     will-change: transform;
+108:   }
+109: 
+110:   /* Pause only on devices that actually hover, not on mobile taps. */
+111:   @media (hover: hover) {
+112:     .tickerTrack:hover {
+113:       animation-play-state: paused;
+114:     }
+115:   }
+116: 
+117:   .tickerTrack:focus-within {
+118:     animation-play-state: paused;
+119:   }
+120: 
+121:   /* On a narrow screen, speed it up so the motion reads clearly. */
+122:   @media (max-width: 767px) {
+123:     .tickerTrack {
+124:       animation-duration: 26s;
+125:     }
+126:   }
+127: 
+128:   /* Share panel */
+129:   .sharePanel {
+130:     margin-top: var(--space8);
+131:     border: var(--borderWidth1) solid var(--colorLine);
+132:     border-radius: var(--radiusSharp);
+133:     background-color: var(--colorSurface);
+134:     padding: var(--space5);
+135:   }
+136: 
+137:   .sharePanelHeading {
+138:     margin: 0;
+139:     font-family: var(--fontDisplay);
+140:     font-size: var(--text2xl);
+141:     line-height: var(--leadingTight);
+142:     letter-spacing: var(--trackingTight);
+143:     text-transform: uppercase;
+144:     color: var(--colorText);
+145:   }
+146: 
+147:   .shareFormatToggle {
+148:     display: flex;
+149:     flex-wrap: wrap;
+150:     gap: var(--space2);
+151:     margin-top: var(--space4);
+152:   }
+153: 
+154:   .shareFormatButton {
+155:     border: var(--borderWidth1) solid var(--colorLine);
+156:     border-radius: var(--radiusPill);
+157:     background-color: var(--colorSurfaceRaised);
+158:     color: var(--colorText);
+159:     padding: var(--space2) var(--space4);
+160:     font-size: var(--textSm);
+161:     transition:
+162:       background-color var(--durationFast) var(--easeStandard),
+163:       color var(--durationFast) var(--easeStandard),
+164:       border-color var(--durationFast) var(--easeStandard);
+165:   }
+166: 
+167:   .shareFormatButton:hover {
+168:     border-color: var(--colorPrimary);
+169:   }
+170: 
+171:   .shareFormatButton[aria-pressed='true'] {
+172:     background-color: var(--colorPrimary);
+173:     border-color: var(--colorPrimary);
+174:     color: var(--colorPrimaryContrast);
+175:   }
+176: 
+177:   .sharePreviewWrap {
+178:     display: flex;
+179:     justify-content: center;
+180:     margin-top: var(--space4);
+181:     border: var(--borderWidth1) solid var(--colorLine);
+182:     background-color: var(--colorSurfaceRaised);
+183:     padding: var(--space3);
+184:   }
+185: 
+186:   .sharePreviewCanvas {
+187:     display: block;
+188:     width: 100%;
+189:     height: auto;
+190:     max-height: 60vh;
+191:     object-fit: contain;
+192:     background-color: var(--colorBackground);
+193:   }
+194: 
+195:   .shareActions {
+196:     display: flex;
+197:     flex-wrap: wrap;
+198:     gap: var(--space3);
+199:     margin-top: var(--space4);
+200:   }
+201: 
+202:   .shareActionPrimary,
+203:   .shareActionSecondary {
+204:     border-radius: var(--radiusSharp);
+205:     border: var(--borderWidth1) solid var(--colorLine);
+206:     padding: var(--space3) var(--space5);
+207:     font-weight: 600;
+208:     transition:
+209:       background-color var(--durationFast) var(--easeStandard),
+210:       color var(--durationFast) var(--easeStandard),
+211:       border-color var(--durationFast) var(--easeStandard);
+212:   }
+213: 
+214:   .shareActionPrimary {
+215:     background-color: var(--colorPrimary);
+216:     border-color: var(--colorPrimary);
+217:     color: var(--colorPrimaryContrast);
+218:   }
+219: 
+220:   .shareActionPrimary:hover {
+221:     background-color: var(--colorAccent);
+222:     border-color: var(--colorAccent);
+223:     color: var(--colorBackground);
+224:   }
+225: 
+226:   .shareActionSecondary {
+227:     background-color: var(--colorSurfaceRaised);
+228:     color: var(--colorText);
+229:   }
+230: 
+231:   .shareActionSecondary:hover {
+232:     border-color: var(--colorPrimary);
+233:   }
+234: 
+235:   .shareActionPrimary:disabled,
+236:   .shareActionSecondary:disabled {
+237:     opacity: 0.6;
+238:     cursor: not-allowed;
+239:   }
+240: 
+241:   .shareStatus {
+242:     min-height: 1.5em;
+243:     margin-top: var(--space3);
+244:     font-size: var(--textSm);
+245:     color: var(--colorTextMuted);
+246:   }
+247: 
+248:   .shareFallback {
+249:     margin-top: var(--space3);
+250:   }
+251: 
+252:   .shareFallbackInput {
+253:     width: 100%;
+254:     margin-top: var(--space2);
+255:     border: var(--borderWidth1) solid var(--colorLine);
+256:     border-radius: var(--radiusSharp);
+257:     background-color: var(--colorBackground);
+258:     color: var(--colorText);
+259:     padding: var(--space3);
+260:     font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+261:     font-size: var(--textSm);
+262:   }
+263: 
+264:   .shareFallbackInput:focus-visible {
+265:     outline: var(--borderWidth2) solid var(--colorAccent);
+266:     outline-offset: 2px;
+267:   }
+268: }
+269: 
+270: @keyframes tickerScroll {
+271:   from {
+272:     transform: translateX(0);
+273:   }
+274:   to {
+275:     transform: translateX(-50%);
+276:   }
+277: }
+278: 
+279: /* ------------------------------------------------------------------
+280:    Club background (fixed, parallax layers)
+281:    ------------------------------------------------------------------ */
+282: .clubBackground {
+283:   position: fixed;
+284:   inset: 0;
+285:   z-index: -1;
+286:   overflow: hidden;
+287:   pointer-events: none;
+288:   contain: layout paint;
+289: }
+290: 
+291: .clubBackground__layer {
+292:   position: absolute;
+293:   left: 0;
+294:   right: 0;
+295:   top: -50vh;
+296:   bottom: -50vh;
+297:   will-change: transform;
+298:   transform: translate3d(0, 0, 0);
+299: }
+300: 
+301: .clubBackground__layer > svg {
+302:   display: block;
+303:   width: 100%;
+304:   height: 100%;
+305: }
+306: 
+307: .clubBackground__scrim {
+308:   position: absolute;
+309:   inset: 0;
+310:   background:
+311:     linear-gradient(to bottom, rgba(10, 10, 10, 0.55), rgba(10, 10, 10, 0.55)),
+312:     radial-gradient(ellipse at center,
+313:       rgba(10, 10, 10, 0) 0%,
+314:       rgba(10, 10, 10, 0.55) 100%);
+315: }
+316: 
+317: @media (prefers-reduced-motion: reduce) {
+318:   .clubBackground__layer {
+319:     will-change: auto;
+320:     transform: none !important;
+321:   }
+322: }
+323: 
+324: @media (max-width: 480px) {
+325:   .clubBackground__layer--fast {
+326:     display: none;
+327:   }
+328: }
+329: 
+330: /* ------------------------------------------------------------------
+331:    Micro-interactions
+332:    ------------------------------------------------------------------ */
+333: 
+334: /* Roast card entrance */
+335: .roastCard {
+336:   animation: roastCardIn var(--durationSlow) var(--easeOut) both;
+337: }
+338: 
+339: @keyframes roastCardIn {
+340:   from {
+341:     opacity: 0;
+342:     transform: translateY(12px) scale(0.98);
+343:   }
+344:   to {
+345:     opacity: 1;
+346:     transform: translateY(0) scale(1);
+347:   }
+348: }
+349: 
+350: /* Filter chip press */
+351: .categoryChip:active {
+352:   transform: scale(0.96);
+353: }
+354: 
+355: @media (prefers-reduced-motion: reduce) {
+356:   .roastCard {
+357:     animation: none;
+358:   }
+359:   .categoryChip:active {
+360:     transform: none;
+361:   }
+362: }
 
 ================
 File: js/pages/landing.js
@@ -9616,330 +9731,26 @@ File: js/pages/landing.js
 195: init();
 
 ================
-File: js/pages/room.js
+File: worker/wrangler.toml
 ================
-  1: /**
-  2:  * Roast room logic.
-  3:  * Reads the club id from the query string, loads the club, wires the category
-  4:  * filter and the shuffle bag, and shows roasts on demand with a short reel.
-  5:  */
-  6: 
-  7: import { CLUB_STATUS, DEFAULT_CLUB_ID } from '../config.js';
-  8: import { loadClub, loadRegistry } from '../registry.js';
-  9: import { applyTheme } from '../theme.js';
- 10: import { buildCategoryFilter } from '../ui/categoryFilter.js';
- 11: import { createRoastCard } from '../ui/roastCard.js';
- 12: import { createShuffleBag } from '../ui/shuffleBag.js';
- 13: import { revealRoast } from '../ui/reveal.js';
- 14: import { clear, prefersReducedMotion } from '../utils/dom.js';
- 15: import { parseRoastHash } from '../utils/links.js';
- 16: import { createSharePanel } from '../share/sharePanel.js';
- 17: import { applyFrittLinks } from '../brand/applyFrittLinks.js';
- 18: import { initScrollBackground } from '../background/scrollBackground.js';
- 19: import { backgroundLayersFor } from '../background/layers.js';
- 20: 
- 21: const params = new URLSearchParams(window.location.search);
- 22: const clubIdParam = params.get('club') || DEFAULT_CLUB_ID;
- 23: 
- 24: const loadingEl = document.getElementById('loadingState');
- 25: const errorEl = document.getElementById('errorState');
- 26: const errorMessageEl = document.getElementById('errorMessage');
- 27: const roomEl = document.getElementById('roomState');
- 28: const filterContainer = document.getElementById('categoryFilter');
- 29: const roastButton = document.getElementById('roastButton');
- 30: const progressEl = document.getElementById('progress');
- 31: const roastContainer = document.getElementById('roastContainer');
- 32: const clubBadge = document.getElementById('clubBadge');
- 33: const emptyEl = document.getElementById('emptyState');
- 34: const liveRegion = document.getElementById('roastLiveRegion');
- 35: const pageHeading = document.getElementById('pageHeading');
- 36: const sharePanelEl = document.getElementById('sharePanel');
- 37: 
- 38: /** @type {Record<string, unknown> | null} */
- 39: let club = null;
- 40: let selectedCategory = 'all';
- 41: /** @type {ReturnType<typeof createShuffleBag> | null} */
- 42: let bag = null;
- 43: /** @type {Record<string, unknown> | null} */
- 44: let currentRoast = null;
- 45: let busy = false;
- 46: /** @type {ReturnType<typeof createSharePanel> | null} */
- 47: let sharePanel = null;
- 48: /** @type {(() => void) | null} */
- 49: let teardownBackground = null;
- 50: 
- 51: function showLoading() {
- 52:   if (loadingEl) loadingEl.classList.remove('hidden');
- 53:   if (errorEl) errorEl.classList.add('hidden');
- 54:   if (roomEl) roomEl.classList.add('hidden');
- 55: }
- 56: 
- 57: /**
- 58:  * Show the error state with a friendly message.
- 59:  * @param {string} message
- 60:  * @returns {void}
- 61:  */
- 62: function showError(message) {
- 63:   if (loadingEl) loadingEl.classList.add('hidden');
- 64:   if (roomEl) roomEl.classList.add('hidden');
- 65:   if (errorEl) errorEl.classList.remove('hidden');
- 66:   if (errorMessageEl) errorMessageEl.textContent = message;
- 67:   if (clubBadge) clubBadge.textContent = 'Club unavailable';
- 68: }
- 69: 
- 70: function showRoom() {
- 71:   if (loadingEl) loadingEl.classList.add('hidden');
- 72:   if (errorEl) errorEl.classList.add('hidden');
- 73:   if (roomEl) roomEl.classList.remove('hidden');
- 74: }
- 75: 
- 76: /**
- 77:  * Roasts in the current filter.
- 78:  * @returns {Array<Record<string, unknown>>}
- 79:  */
- 80: function getFilteredRoasts() {
- 81:   if (!club) return [];
- 82:   const roasts = Array.isArray(club.roasts) ? club.roasts : [];
- 83:   if (selectedCategory === 'all') return roasts;
- 84:   return roasts.filter((roast) => roast.category === selectedCategory);
- 85: }
- 86: 
- 87: /**
- 88:  * Update the "Roast N of M" line. Nothing is shown before the first serve or
- 89:  * when the current cycle has already served everything once.
- 90:  * @returns {void}
- 91:  */
- 92: function updateProgress() {
- 93:   if (!progressEl) return;
- 94:   if (!bag || !currentRoast || bag.size() === 0) {
- 95:     progressEl.textContent = '';
- 96:     return;
- 97:   }
- 98:   const size = bag.size();
- 99:   const remaining = bag.remaining();
-100:   const n = size - remaining;
-101:   if (n <= 0) {
-102:     progressEl.textContent = '';
-103:     return;
-104:   }
-105:   progressEl.textContent = `Roast ${n} of ${size}`;
-106: }
-107: 
-108: /**
-109:  * Look up the category metadata for a roast.
-110:  * @param {string} id
-111:  * @returns {Record<string, unknown> | null}
-112:  */
-113: function findCategory(id) {
-114:   if (!club || !Array.isArray(club.categories)) return null;
-115:   return club.categories.find((category) => category && category.id === id) || null;
-116: }
-117: 
-118: /**
-119:  * Show a roast in the card area, reveal it, announce it and update the URL hash.
-120:  * @param {Record<string, unknown>} roast
-121:  * @param {{ animate?: boolean }} [options]
-122:  * @returns {Promise<void>}
-123:  */
-124: async function showRoast(roast, options = {}) {
-125:   if (!roast || !roastContainer) return;
-126: 
-127:   const shouldAnimate = options.animate !== false;
-128:   currentRoast = roast;
-129: 
-130:   const category = findCategory(String(roast.category));
-131:   const built = createRoastCard(roast, category);
-132: 
-133:   clear(roastContainer);
-134:   roastContainer.append(built.element);
-135: 
-136:   const base = window.location.pathname + window.location.search;
-137:   try {
-138:     window.history.replaceState(null, '', `${base}#${encodeURIComponent(String(roast.id))}`);
-139:   } catch {
-140:     // Ignore history errors, the page still works.
-141:   }
-142: 
-143:   const animate = shouldAnimate && !prefersReducedMotion();
-144: 
-145:   if (animate) {
-146:     const pool = (Array.isArray(club?.roasts) ? club.roasts : [])
-147:       .map((entry) => String(entry.headline))
-148:       .filter((headline) => headline.length > 0);
-149:     await revealRoast({
-150:       headlineElement: built.headlineElement,
-151:       finalHeadline: String(roast.headline),
-152:       reelPool: pool,
-153:       hiddenElements: built.hiddenElements,
-154:     });
-155:   } else {
-156:     built.headlineElement.textContent = String(roast.headline);
-157:     for (const el of built.hiddenElements) {
-158:       el.classList.add('isVisible');
-159:     }
-160:   }
-161: 
-162:   if (liveRegion) {
-163:     liveRegion.textContent = String(roast.headline);
-164:   }
-165: 
-166:   if (sharePanel) {
-167:     try {
-168:       sharePanel.update(roast, category, club);
-169:     } catch (error) {
-170:       console.warn('[roastRoom] could not update the share panel', error);
-171:     }
-172:   }
-173: 
-174:   updateProgress();
-175: }
-176: 
-177: /**
-178:  * Rebuild the bag and the filter chips for the current selection.
-179:  * @returns {void}
-180:  */
-181: function rebuildBagAndFilter() {
-182:   if (!club) return;
-183: 
-184:   const filtered = getFilteredRoasts();
-185: 
-186:   if (bag) {
-187:     bag.reset(filtered);
-188:   } else {
-189:     bag = createShuffleBag(filtered);
-190:   }
-191: 
-192:   if (filterContainer) {
-193:     buildCategoryFilter({
-194:       container: filterContainer,
-195:       categories: Array.isArray(club.categories) ? club.categories : [],
-196:       roasts: Array.isArray(club.roasts) ? club.roasts : [],
-197:       selectedId: selectedCategory,
-198:       onChange: handleFilterChange,
-199:     });
-200:   }
-201: 
-202:   const isEmpty = filtered.length === 0;
-203:   if (roastButton) roastButton.disabled = isEmpty;
-204:   if (emptyEl) emptyEl.classList.toggle('hidden', !isEmpty);
-205: 
-206:   if (isEmpty) {
-207:     clear(roastContainer);
-208:     currentRoast = null;
-209:     if (progressEl) progressEl.textContent = '';
-210:     if (sharePanel) sharePanel.hide();
-211:   }
-212: }
-213: 
-214: /**
-215:  * Handle a filter chip click. Resets the current roast and the bag.
-216:  * @param {string} newId
-217:  * @returns {void}
-218:  */
-219: function handleFilterChange(newId) {
-220:   if (busy) return;
-221:   selectedCategory = newId;
-222:   currentRoast = null;
-223:   if (roastContainer) clear(roastContainer);
-224:   if (liveRegion) liveRegion.textContent = '';
-225:   if (sharePanel) sharePanel.hide();
-226:   rebuildBagAndFilter();
-227: }
-228: 
-229: /**
-230:  * Handle the Roast them button click.
-231:  * @returns {Promise<void>}
-232:  */
-233: async function handleRoastClick() {
-234:   if (busy || !bag) return;
-235:   const items = getFilteredRoasts();
-236:   if (items.length === 0) return;
-237: 
-238:   busy = true;
-239:   if (roastButton) roastButton.disabled = true;
-240: 
-241:   try {
-242:     const roast = bag.next();
-243:     if (roast) {
-244:       await showRoast(roast, { animate: true });
-245:     }
-246:   } finally {
-247:     busy = false;
-248:     if (roastButton) {
-249:       roastButton.disabled = getFilteredRoasts().length === 0;
-250:     }
-251:   }
-252: }
-253: 
-254: /**
-255:  * Boot the page. Reads the club id, loads the club, wires everything up.
-256:  * @returns {Promise<void>}
-257:  */
-258: async function init() {
-259:   showLoading();
-260:   applyFrittLinks();
-261: 
-262:   try {
-263:     const registry = await loadRegistry();
-264:     const clubs = Array.isArray(registry.clubs) ? registry.clubs : [];
-265:     const entry = clubs.find((candidate) => candidate && candidate.id === clubIdParam);
-266: 
-267:     if (!entry) {
-268:       showError(`That club isn't in the registry. Pick one from the picker instead.`);
-269:       return;
-270:     }
-271: 
-272:     if (entry.status !== CLUB_STATUS.LIVE) {
-273:       showError(`${entry.name} is coming soon. There isn't a roast room for it yet.`);
-274:       return;
-275:     }
-276: 
-277:     club = await loadClub(clubIdParam);
-278:     applyTheme(club.theme || {});
-279: 
-280:     // Mount club-specific parallax background.
-281:     if (teardownBackground) teardownBackground();
-282:     const bgEl = document.getElementById('clubBackground');
-283:     if (bgEl) {
-284:       teardownBackground = initScrollBackground(bgEl, backgroundLayersFor(clubIdParam));
-285:     }
-286: 
-287:     if (clubBadge) clubBadge.textContent = String(club.name || 'Roast Room');
-288:     if (pageHeading) pageHeading.textContent = `${club.name || 'Roast Room'} Roast Room`;
-289:     document.title = `${club.shortName || club.name || 'Roast Room'} Roast Room | The Roast Room`;
-290: 
-291:     const hash = parseRoastHash(window.location.hash);
-292:     const deepRoast =
-293:       hash && Array.isArray(club.roasts)
-294:         ? club.roasts.find((roast) => roast && roast.id === hash) || null
-295:         : null;
-296: 
-297:     selectedCategory = 'all';
-298:     rebuildBagAndFilter();
-299:     showRoom();
-300: 
-301:     if (sharePanelEl && !sharePanel) {
-302:       try {
-303:         sharePanel = createSharePanel({ container: sharePanelEl });
-304:       } catch (error) {
-305:         console.warn('[roastRoom] could not create the share panel', error);
-306:       }
-307:     }
-308: 
-309:     if (deepRoast) {
-310:       await showRoast(deepRoast, { animate: false });
-311:     }
-312: 
-313:     if (roastButton) {
-314:       roastButton.addEventListener('click', handleRoastClick);
-315:     }
-316:   } catch (error) {
-317:     console.warn('[roastRoom] could not open the roast room', error);
-318:     showError('We could not load this club. Please try again in a moment.');
-319:   }
-320: }
-321: 
-322: init();
+ 1: name = "roastroomsuggest"
+ 2: main = "src/index.js"
+ 3: compatibility_date = "2025-04-01"
+ 4: 
+ 5: [[kv_namespaces]]
+ 6: binding = "SUGGESTIONS"
+ 7: id = "c7d1798800ad476598ef3323f31195eb"
+ 8: 
+ 9: [vars]
+10: # Comma separated list of allowed origins.
+11: # Requests with an Origin header that is not on this list are rejected with 403
+12: # for POST routes and receive no CORS headers for any route.
+13: #
+14: # http://localhost:3000              local dev (any dev server on this port)
+15: # http://localhost:8000              local dev (python -m http.server)
+16: # https://paste_your_netlify_site_here   your Netlify site URL
+17: # https://roastroom.fritt.org        production site
+18: ALLOWED_ORIGINS = "http://localhost:3000,http://localhost:8000,https://the-roast-room.pages.dev,https://roastroom.fritt.org"
 
 ================
 File: README.md
@@ -10070,6 +9881,398 @@ File: README.md
 124: - Share a roast URL in a chat app and confirm the social preview renders.
 125: - Submit a suggestion and vote; approve it in `adminlab.html` and reload the landing page.
 126: - Run a Lighthouse audit on a phone viewport with mobile throttling. Accessibility, best practices and SEO should each score 90 or above.
+
+================
+File: js/pages/room.js
+================
+  1: /**
+  2:  * Roast room logic.
+  3:  * Reads the club id from the query string, loads the club, wires the category
+  4:  * filter and the shuffle bag, and shows roasts on demand with a short reel.
+  5:  */
+  6: 
+  7: import { CLUB_STATUS, DEFAULT_CLUB_ID } from '../config.js';
+  8: import { loadClub, loadRegistry } from '../registry.js';
+  9: import { applyTheme } from '../theme.js';
+ 10: import { buildCategoryFilter } from '../ui/categoryFilter.js';
+ 11: import { createRoastCard } from '../ui/roastCard.js';
+ 12: import { createShuffleBag } from '../ui/shuffleBag.js';
+ 13: import { revealRoast } from '../ui/reveal.js';
+ 14: import { clear, prefersReducedMotion } from '../utils/dom.js';
+ 15: import { parseRoastHash } from '../utils/links.js';
+ 16: import { createSharePanel } from '../share/sharePanel.js';
+ 17: import { applyFrittLinks } from '../brand/applyFrittLinks.js';
+ 18: import { burstConfetti } from '../ui/confetti.js';
+ 19: import { initScrollBackground } from '../background/scrollBackground.js';
+ 20: import { backgroundLayersFor } from '../background/layers.js';
+ 21: 
+ 22: const params = new URLSearchParams(window.location.search);
+ 23: const clubIdParam = params.get('club') || DEFAULT_CLUB_ID;
+ 24: 
+ 25: const loadingEl = document.getElementById('loadingState');
+ 26: const errorEl = document.getElementById('errorState');
+ 27: const errorMessageEl = document.getElementById('errorMessage');
+ 28: const roomEl = document.getElementById('roomState');
+ 29: const filterContainer = document.getElementById('categoryFilter');
+ 30: const roastButton = document.getElementById('roastButton');
+ 31: const progressEl = document.getElementById('progress');
+ 32: const roastContainer = document.getElementById('roastContainer');
+ 33: const clubBadge = document.getElementById('clubBadge');
+ 34: const emptyEl = document.getElementById('emptyState');
+ 35: const liveRegion = document.getElementById('roastLiveRegion');
+ 36: const pageHeading = document.getElementById('pageHeading');
+ 37: const sharePanelEl = document.getElementById('sharePanel');
+ 38: const sessionCounterEl = document.getElementById('sessionCounter');
+ 39: 
+ 40: /** @type {Record<string, unknown> | null} */
+ 41: let club = null;
+ 42: let selectedCategory = 'all';
+ 43: /** @type {ReturnType<typeof createShuffleBag> | null} */
+ 44: let bag = null;
+ 45: /** @type {Record<string, unknown> | null} */
+ 46: let currentRoast = null;
+ 47: let busy = false;
+ 48: /** @type {ReturnType<typeof createSharePanel> | null} */
+ 49: let sharePanel = null;
+ 50: /** @type {(() => void) | null} */
+ 51: let teardownBackground = null;
+ 52: 
+ 53: const SESSION_KEY = 'roastroom_session_count';
+ 54: 
+ 55: /**
+ 56:  * Read the roast count for this browser session.
+ 57:  * @returns {number}
+ 58:  */
+ 59: function readSessionCount() {
+ 60:   try {
+ 61:     return parseInt(window.sessionStorage.getItem(SESSION_KEY) || '0', 10) || 0;
+ 62:   } catch {
+ 63:     return 0;
+ 64:   }
+ 65: }
+ 66: 
+ 67: /**
+ 68:  * Persist the roast count. Best effort only.
+ 69:  * @param {number} count
+ 70:  * @returns {void}
+ 71:  */
+ 72: function writeSessionCount(count) {
+ 73:   try {
+ 74:     window.sessionStorage.setItem(SESSION_KEY, String(count));
+ 75:   } catch {
+ 76:     // sessionStorage is best effort only.
+ 77:   }
+ 78: }
+ 79: 
+ 80: let sessionCount = readSessionCount();
+ 81: 
+ 82: /**
+ 83:  * Update the "N roasts served this session" line.
+ 84:  * @returns {void}
+ 85:  */
+ 86: function renderSessionCount() {
+ 87:   if (!sessionCounterEl) return;
+ 88:   if (sessionCount === 0) {
+ 89:     sessionCounterEl.textContent = '';
+ 90:   } else if (sessionCount === 1) {
+ 91:     sessionCounterEl.textContent = '1 roast served this session.';
+ 92:   } else {
+ 93:     sessionCounterEl.textContent = `${sessionCount} roasts served this session.`;
+ 94:   }
+ 95: }
+ 96: 
+ 97: renderSessionCount();
+ 98: 
+ 99: function showLoading() {
+100:   if (loadingEl) loadingEl.classList.remove('hidden');
+101:   if (errorEl) errorEl.classList.add('hidden');
+102:   if (roomEl) roomEl.classList.add('hidden');
+103: }
+104: 
+105: /**
+106:  * Show the error state with a friendly message.
+107:  * @param {string} message
+108:  * @returns {void}
+109:  */
+110: function showError(message) {
+111:   if (loadingEl) loadingEl.classList.add('hidden');
+112:   if (roomEl) roomEl.classList.add('hidden');
+113:   if (errorEl) errorEl.classList.remove('hidden');
+114:   if (errorMessageEl) errorMessageEl.textContent = message;
+115:   if (clubBadge) clubBadge.textContent = 'Club unavailable';
+116: }
+117: 
+118: function showRoom() {
+119:   if (loadingEl) loadingEl.classList.add('hidden');
+120:   if (errorEl) errorEl.classList.add('hidden');
+121:   if (roomEl) roomEl.classList.remove('hidden');
+122: }
+123: 
+124: /**
+125:  * Roasts in the current filter.
+126:  * @returns {Array<Record<string, unknown>>}
+127:  */
+128: function getFilteredRoasts() {
+129:   if (!club) return [];
+130:   const roasts = Array.isArray(club.roasts) ? club.roasts : [];
+131:   if (selectedCategory === 'all') return roasts;
+132:   return roasts.filter((roast) => roast.category === selectedCategory);
+133: }
+134: 
+135: /**
+136:  * Update the "Roast N of M" line. Nothing is shown before the first serve or
+137:  * when the current cycle has already served everything once.
+138:  * @returns {void}
+139:  */
+140: function updateProgress() {
+141:   if (!progressEl) return;
+142:   if (!bag || !currentRoast || bag.size() === 0) {
+143:     progressEl.textContent = '';
+144:     return;
+145:   }
+146:   const size = bag.size();
+147:   const remaining = bag.remaining();
+148:   const n = size - remaining;
+149:   if (n <= 0) {
+150:     progressEl.textContent = '';
+151:     return;
+152:   }
+153:   progressEl.textContent = `Roast ${n} of ${size}`;
+154: }
+155: 
+156: /**
+157:  * Look up the category metadata for a roast.
+158:  * @param {string} id
+159:  * @returns {Record<string, unknown> | null}
+160:  */
+161: function findCategory(id) {
+162:   if (!club || !Array.isArray(club.categories)) return null;
+163:   return club.categories.find((category) => category && category.id === id) || null;
+164: }
+165: 
+166: /**
+167:  * Show a roast in the card area, reveal it, announce it and update the URL hash.
+168:  * @param {Record<string, unknown>} roast
+169:  * @param {{ animate?: boolean }} [options]
+170:  * @returns {Promise<void>}
+171:  */
+172: async function showRoast(roast, options = {}) {
+173:   if (!roast || !roastContainer) return;
+174: 
+175:   const shouldAnimate = options.animate !== false;
+176:   currentRoast = roast;
+177: 
+178:   const category = findCategory(String(roast.category));
+179:   const built = createRoastCard(roast, category);
+180: 
+181:   clear(roastContainer);
+182:   roastContainer.append(built.element);
+183: 
+184:   const base = window.location.pathname + window.location.search;
+185:   try {
+186:     window.history.replaceState(null, '', `${base}#${encodeURIComponent(String(roast.id))}`);
+187:   } catch {
+188:     // Ignore history errors, the page still works.
+189:   }
+190: 
+191:   const animate = shouldAnimate && !prefersReducedMotion();
+192: 
+193:   if (animate) {
+194:     const pool = (Array.isArray(club?.roasts) ? club.roasts : [])
+195:       .map((entry) => String(entry.headline))
+196:       .filter((headline) => headline.length > 0);
+197:     await revealRoast({
+198:       headlineElement: built.headlineElement,
+199:       finalHeadline: String(roast.headline),
+200:       reelPool: pool,
+201:       hiddenElements: built.hiddenElements,
+202:     });
+203:   } else {
+204:     built.headlineElement.textContent = String(roast.headline);
+205:     for (const el of built.hiddenElements) {
+206:       el.classList.add('isVisible');
+207:     }
+208:   }
+209: 
+210:   if (liveRegion) {
+211:     liveRegion.textContent = String(roast.headline);
+212:   }
+213: 
+214:   if (sharePanel) {
+215:     try {
+216:       sharePanel.update(roast, category, club);
+217:     } catch (error) {
+218:       console.warn('[roastRoom] could not update the share panel', error);
+219:     }
+220:   }
+221: 
+222:   updateProgress();
+223: }
+224: 
+225: /**
+226:  * Rebuild the bag and the filter chips for the current selection.
+227:  * @returns {void}
+228:  */
+229: function rebuildBagAndFilter() {
+230:   if (!club) return;
+231: 
+232:   const filtered = getFilteredRoasts();
+233: 
+234:   if (bag) {
+235:     bag.reset(filtered);
+236:   } else {
+237:     bag = createShuffleBag(filtered);
+238:   }
+239: 
+240:   if (filterContainer) {
+241:     buildCategoryFilter({
+242:       container: filterContainer,
+243:       categories: Array.isArray(club.categories) ? club.categories : [],
+244:       roasts: Array.isArray(club.roasts) ? club.roasts : [],
+245:       selectedId: selectedCategory,
+246:       onChange: handleFilterChange,
+247:     });
+248:   }
+249: 
+250:   const isEmpty = filtered.length === 0;
+251:   if (roastButton) roastButton.disabled = isEmpty;
+252:   if (emptyEl) emptyEl.classList.toggle('hidden', !isEmpty);
+253: 
+254:   if (isEmpty) {
+255:     clear(roastContainer);
+256:     currentRoast = null;
+257:     if (progressEl) progressEl.textContent = '';
+258:     if (sharePanel) sharePanel.hide();
+259:   }
+260: }
+261: 
+262: /**
+263:  * Handle a filter chip click. Resets the current roast and the bag.
+264:  * @param {string} newId
+265:  * @returns {void}
+266:  */
+267: function handleFilterChange(newId) {
+268:   if (busy) return;
+269:   selectedCategory = newId;
+270:   currentRoast = null;
+271:   if (roastContainer) clear(roastContainer);
+272:   if (liveRegion) liveRegion.textContent = '';
+273:   if (sharePanel) sharePanel.hide();
+274:   rebuildBagAndFilter();
+275: }
+276: 
+277: async function handleRoastClick() {
+278:   if (busy || !bag) return;
+279:   const items = getFilteredRoasts();
+280:   if (items.length === 0) return;
+281: 
+282:   busy = true;
+283:   if (roastButton) {
+284:     roastButton.disabled = true;
+285:     roastButton.textContent = 'Roasting…';
+286:   }
+287: 
+288:   try {
+289:     const roast = bag.next();
+290:     if (roast) {
+291:       sessionCount += 1;
+292:       writeSessionCount(sessionCount);
+293:       renderSessionCount();
+294:       burstConfetti({ originX: 0.5, originY: 0.55, count: 36 });
+295:       await showRoast(roast, { animate: true });
+296:     }
+297:   } finally {
+298:     busy = false;
+299:     if (roastButton) {
+300:       roastButton.textContent = 'Roast them';
+301:       roastButton.disabled = getFilteredRoasts().length === 0;
+302:     }
+303:   }
+304: }
+305: 
+306: /**
+307:  * Boot the page. Reads the club id, loads the club, wires everything up.
+308:  * @returns {Promise<void>}
+309:  */
+310: async function init() {
+311:   showLoading();
+312:   applyFrittLinks();
+313: 
+314:   try {
+315:     const registry = await loadRegistry();
+316:     const clubs = Array.isArray(registry.clubs) ? registry.clubs : [];
+317:     const entry = clubs.find((candidate) => candidate && candidate.id === clubIdParam);
+318: 
+319:     if (!entry) {
+320:       showError(`That club isn't in the registry. Pick one from the picker instead.`);
+321:       return;
+322:     }
+323: 
+324:     if (entry.status !== CLUB_STATUS.LIVE) {
+325:       showError(`${entry.name} is coming soon. There isn't a roast room for it yet.`);
+326:       return;
+327:     }
+328: 
+329:     club = await loadClub(clubIdParam);
+330:     applyTheme(club.theme || {});
+331: 
+332:     // Mount club-specific parallax background.
+333:     if (teardownBackground) teardownBackground();
+334:     const bgEl = document.getElementById('clubBackground');
+335:     if (bgEl) {
+336:       teardownBackground = initScrollBackground(bgEl, backgroundLayersFor(clubIdParam));
+337:     }
+338: 
+339:     if (clubBadge) clubBadge.textContent = String(club.name || 'Roast Room');
+340:     if (pageHeading) pageHeading.textContent = `${club.name || 'Roast Room'} Roast Room`;
+341:     document.title = `${club.shortName || club.name || 'Roast Room'} Roast Room | The Roast Room`;
+342: 
+343:     const hash = parseRoastHash(window.location.hash);
+344:     const deepRoast =
+345:       hash && Array.isArray(club.roasts)
+346:         ? club.roasts.find((roast) => roast && roast.id === hash) || null
+347:         : null;
+348: 
+349:     selectedCategory = 'all';
+350:     rebuildBagAndFilter();
+351:     showRoom();
+352: 
+353:     if (sharePanelEl && !sharePanel) {
+354:       try {
+355:         sharePanel = createSharePanel({ container: sharePanelEl });
+356:       } catch (error) {
+357:         console.warn('[roastRoom] could not create the share panel', error);
+358:       }
+359:     }
+360: 
+361:     if (deepRoast) {
+362:       await showRoast(deepRoast, { animate: false });
+363:     }
+364: 
+365:     if (roastButton) {
+366:       roastButton.addEventListener('click', handleRoastClick);
+367:     }
+368: 
+369:     // Press R to roast, as long as the user is not typing in a field.
+370:     document.addEventListener('keydown', (event) => {
+371:       if (event.defaultPrevented || event.metaKey || event.ctrlKey || event.altKey) return;
+372:       const target = event.target;
+373:       if (target instanceof HTMLElement) {
+374:         const tag = target.tagName;
+375:         if (tag === 'INPUT' || tag === 'TEXTAREA' || target.isContentEditable) return;
+376:       }
+377:       if (event.key === 'r' || event.key === 'R') {
+378:         event.preventDefault();
+379:         handleRoastClick();
+380:       }
+381:     });
+382:   } catch (error) {
+383:     console.warn('[roastRoom] could not open the roast room', error);
+384:     showError('We could not load this club. Please try again in a moment.');
+385:   }
+386: }
+387: 
+388: init();
 
 ================
 File: index.html
@@ -10351,6 +10554,27 @@ File: index.html
 275: </html>
 
 ================
+File: package.json
+================
+ 1: {
+ 2:   "name": "theroastroom",
+ 3:   "version": "1.2.0",
+ 4:   "private": true,
+ 5:   "description": "The Roast Room, a football banter site built by Fritt. Stage 3: branded share cards, download and share actions.",
+ 6:   "type": "module",
+ 7:   "scripts": {
+ 8:     "css": "tailwindcss -i ./src/input.css -o ./dist/styles.css --minify",
+ 9:     "watch": "tailwindcss -i ./src/input.css -o ./dist/styles.css --watch",
+10:     "build": "npm run validate && node ./scripts/buildSite.mjs",    
+11:     "validate": "node ./scripts/validate.mjs",
+12:     "test": "node --test ./tests/schema.test.mjs ./tests/shuffleBag.test.mjs ./tests/shareText.test.mjs ./tests/suggestLogic.test.mjs ./tests/siteTools.test.mjs"
+13:   },
+14:   "devDependencies": {
+15:     "tailwindcss": "3.4.17"
+16:   }
+17: }
+
+================
 File: room.html
 ================
   1: <!DOCTYPE html>
@@ -10460,93 +10684,68 @@ File: room.html
 105:           <button
 106:             id="roastButton"
 107:             type="button"
-108:             class="rounded-sharp bg-primary px-8 py-5 font-display text-2xl uppercase tracking-wide text-primaryContrast transition-colors duration-fast ease-standard hover:bg-accent hover:text-background disabled:opacity-50"
+108:             class="rounded-sharp bg-primary px-8 py-5 font-display text-2xl uppercase tracking-wide text-primaryContrast transition-all duration-fast ease-standard hover:bg-accent hover:text-background active:scale-95 disabled:opacity-50"
 109:           >
 110:             Roast them
 111:           </button>
 112:           <p id="progress" class="text-sm text-textMuted"></p>
 113:         </div>
 114: 
-115:         <div id="roastContainer"></div>
-116:         <section id="sharePanel" class="sharePanel hidden" aria-label="Share this roast"></section>
-117: 
-118:         <section
-119:           id="sharePanel"
-120:           class="sharePanel hidden"
-121:           aria-label="Share this roast"
-122:         ></section>
-123: 
-124:         <p
-125:           id="emptyState"
-126:           class="hidden mt-8 rounded-sharp border border-line bg-surface p-6 text-textMuted"
-127:         >
-128:           No roasts in this category yet. Try another category, or hit Roast them on All.
-129:         </p>
+115:         <p id="sessionCounter" class="mb-6 text-xs text-textMuted" aria-live="polite"></p>
+116: 
+117:         <div id="roastContainer"></div>
+118:         <section id="sharePanel" class="sharePanel hidden" aria-label="Share this roast"></section>
+119: 
+120:         <p
+121:           id="emptyState"
+122:           class="hidden mt-8 rounded-sharp border border-line bg-surface p-6 text-textMuted"
+123:         >
+124:           No roasts in this category yet. Try another category, or hit Roast them on All.
+125:         </p>
+126: 
+127:         <p id="roastLiveRegion" class="srOnly" aria-live="polite"></p>
+128:       </section>
+129:     </main>
 130: 
-131:         <p id="roastLiveRegion" class="srOnly" aria-live="polite"></p>
-132:       </section>
-133:     </main>
-134: 
-135:     <footer class="mt-12 border-t border-line bg-surface">
-136:       <div class="mx-auto max-w-4xl px-4 py-8">
-137:         <p class="text-sm text-textMuted">
-138:           Built by <a href="https://fritt.org" rel="noopener">Fritt</a>.
-139:           <a href="./about.html" class="text-textMuted underline">About and privacy</a>.
-140:         </p>
-141:         <p class="mt-2 text-sm">
-142:           <a href="./index.html#pickerHeading" class="text-textMuted underline">
-143:             Back to the club picker
-144:           </a>
-145:         </p>
-146:         <p class="mt-2 text-sm">
-147:           <a href="./index.html#suggestHeading" class="text-textMuted underline">Suggest a club</a>
-148:         </p>
-149:         <p class="mt-2 text-sm text-textMuted">
-150:           <a
-151:             href="https://fritt.org"
-152:             data-fritt-target="contact"
-153:             data-fritt-placement="roomFooter"
-154:             rel="noopener"
-155:             class="text-textMuted underline"
-156:           >
-157:             Talk to Fritt
-158:           </a>
-159:           ·
-160:           <a
-161:             href="https://fritt.org"
-162:             data-fritt-target="portfolio"
-163:             data-fritt-placement="roomFooter"
-164:             rel="noopener"
-165:             class="text-textMuted underline"
-166:           >
-167:             See Fritt's work
-168:           </a>
-169:         </p>
-170:       </div>
-171:     </footer>
-172:   </body>
-173: </html>
-
-================
-File: package.json
-================
- 1: {
- 2:   "name": "theroastroom",
- 3:   "version": "1.2.0",
- 4:   "private": true,
- 5:   "description": "The Roast Room, a football banter site built by Fritt. Stage 3: branded share cards, download and share actions.",
- 6:   "type": "module",
- 7:   "scripts": {
- 8:     "css": "tailwindcss -i ./src/input.css -o ./dist/styles.css --minify",
- 9:     "watch": "tailwindcss -i ./src/input.css -o ./dist/styles.css --watch",
-10:     "build": "npm run validate && node ./scripts/buildSite.mjs",    
-11:     "validate": "node ./scripts/validate.mjs",
-12:     "test": "node --test ./tests/schema.test.mjs ./tests/shuffleBag.test.mjs ./tests/shareText.test.mjs ./tests/suggestLogic.test.mjs ./tests/siteTools.test.mjs"
-13:   },
-14:   "devDependencies": {
-15:     "tailwindcss": "3.4.17"
-16:   }
-17: }
+131:     <footer class="mt-12 border-t border-line bg-surface">
+132:       <div class="mx-auto max-w-4xl px-4 py-8">
+133:         <p class="text-sm text-textMuted">
+134:           Built by <a href="https://fritt.org" rel="noopener">Fritt</a>.
+135:           <a href="./about.html" class="text-textMuted underline">About and privacy</a>.
+136:         </p>
+137:         <p class="mt-2 text-sm">
+138:           <a href="./index.html#pickerHeading" class="text-textMuted underline">
+139:             Back to the club picker
+140:           </a>
+141:         </p>
+142:         <p class="mt-2 text-sm">
+143:           <a href="./index.html#suggestHeading" class="text-textMuted underline">Suggest a club</a>
+144:         </p>
+145:         <p class="mt-2 text-sm text-textMuted">
+146:           <a
+147:             href="https://fritt.org"
+148:             data-fritt-target="contact"
+149:             data-fritt-placement="roomFooter"
+150:             rel="noopener"
+151:             class="text-textMuted underline"
+152:           >
+153:             Talk to Fritt
+154:           </a>
+155:           ·
+156:           <a
+157:             href="https://fritt.org"
+158:             data-fritt-target="portfolio"
+159:             data-fritt-placement="roomFooter"
+160:             rel="noopener"
+161:             class="text-textMuted underline"
+162:           >
+163:             See Fritt's work
+164:           </a>
+165:         </p>
+166:       </div>
+167:     </footer>
+168:   </body>
+169: </html>
 
 
 

@@ -114,7 +114,10 @@
         aria-label="Recent roast headlines"
       >
         <div class="mx-auto max-w-5xl px-4 py-3">
-          <p class="tokenLabel mb-2">Recent roasts</p>
+          <div class="mb-2 flex items-center justify-between gap-3">
+            <p class="tokenLabel">Recent roasts</p>
+            <button id="tickerToggle" type="button" class="rounded-sharp border border-line px-3 py-2 text-xs text-textMuted">Pause ticker</button>
+          </div>
           <div id="tickerTrack" class="tickerTrack"></div>
         </div>
       </section>
