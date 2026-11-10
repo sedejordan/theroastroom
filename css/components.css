@@ -181,7 +181,7 @@
     display: block;
     width: 100%;
     height: auto;
-    max-height: 60vh;
+    max-height: 40vh;
     object-fit: contain;
     background-color: var(--colorBackground);
   }

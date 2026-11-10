@@ -7563,424 +7563,6 @@ File: js/share/shareConfig.js
 7: export const SHARE_HOST_OVERRIDE = 'roastroom.fritt.org';
 
 ================
-File: scripts/lib/siteTools.mjs
-================
-  1: /**
-  2:  * Pure helpers for the site build. No file system, no process access, no
-  3:  * fetch. Everything here is deterministic and testable in isolation.
-  4:  */
-  5: 
-  6: /**
-  7:  * Escape a value for use as XML text.
-  8:  * @param {unknown} value
-  9:  * @returns {string}
- 10:  */
- 11: function escapeXml(value) {
- 12:   return String(value === undefined || value === null ? '' : value)
- 13:     .replace(/&/g, '&amp;')
- 14:     .replace(/</g, '&lt;')
- 15:     .replace(/>/g, '&gt;')
- 16:     .replace(/"/g, '&quot;')
- 17:     .replace(/'/g, '&apos;');
- 18: }
- 19: 
- 20: /**
- 21:  * Trim and normalise a site URL. Only https URLs and http URLs on localhost
- 22:  * or 127.0.0.1 are accepted, so the production build can never publish an
- 23:  * insecure origin. A trailing slash is stripped. Invalid input becomes an
- 24:  * empty string.
- 25:  * @param {string} raw
- 26:  * @returns {string}
- 27:  */
- 28: export function normaliseSiteUrl(raw) {
- 29:   if (typeof raw !== 'string') return '';
- 30:   const trimmed = raw.trim();
- 31:   if (trimmed.length === 0) return '';
- 32: 
- 33:   let parsed;
- 34:   try {
- 35:     parsed = new URL(trimmed);
- 36:   } catch {
- 37:     return '';
- 38:   }
- 39: 
- 40:   const isHttps = parsed.protocol === 'https:';
- 41:   const isLocalhost =
- 42:     parsed.protocol === 'http:' &&
- 43:     (parsed.hostname === 'localhost' || parsed.hostname === '127.0.0.1');
- 44: 
- 45:   if (!isHttps && !isLocalhost) return '';
- 46: 
- 47:   return parsed.href.replace(/\/+$/, '');
- 48: }
- 49: 
- 50: /**
- 51:  * Replace every __SITE_URL__ token in a string. When siteUrl is empty the
- 52:  * token is replaced with an empty string, so the placeholder can never
- 53:  * survive to production. The build is expected to warn in that case.
- 54:  * @param {string} html
- 55:  * @param {string} siteUrl
- 56:  * @returns {string}
- 57:  */
- 58: export function replaceSiteUrl(html, siteUrl) {
- 59:   if (typeof html !== 'string') return '';
- 60:   const replacement = typeof siteUrl === 'string' ? siteUrl : '';
- 61:   return html.split('__SITE_URL__').join(replacement);
- 62: }
- 63: 
- 64: /**
- 65:  * Return the origin of a URL, or an empty string. Never throws.
- 66:  * @param {string} url
- 67:  * @returns {string}
- 68:  */
- 69: export function originOf(url) {
- 70:   if (typeof url !== 'string' || url.length === 0) return '';
- 71:   try {
- 72:     return new URL(url).origin;
- 73:   } catch {
- 74:     return '';
- 75:   }
- 76: }
- 77: 
- 78: /**
- 79:  * Build a sitemap.xml body.
- 80:  * @param {{ siteUrl: string, paths: string[] }} options
- 81:  * @returns {string}
- 82:  */
- 83: export function buildSitemap(options) {
- 84:   const { siteUrl, paths } = options || {};
- 85:   const safeSite = typeof siteUrl === 'string' ? siteUrl : '';
- 86:   const list = Array.isArray(paths) ? paths : [];
- 87: 
- 88:   const entries = list
- 89:     .map((path) => `  <url>\n    <loc>${escapeXml(`${safeSite}${path}`)}</loc>\n  </url>`)
- 90:     .join('\n');
- 91: 
- 92:   return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${entries}\n</urlset>\n`;
- 93: }
- 94: 
- 95: /**
- 96:  * Build a robots.txt body. The Sitemap line is included only when siteUrl is
- 97:  * known.
- 98:  * @param {string} siteUrl
- 99:  * @returns {string}
-100:  */
-101: export function buildRobots(siteUrl) {
-102:   const safeSite = typeof siteUrl === 'string' ? siteUrl : '';
-103:   const lines = ['User-agent: *', 'Allow: /'];
-104:   if (safeSite.length > 0) {
-105:     lines.push('');
-106:     lines.push(`Sitemap: ${safeSite}/sitemap.xml`);
-107:   }
-108:   return `${lines.join('\n')}\n`;
-109: }
-110: 
-111: /**
-112:  * Build the contents of a _headers file. The format is shared by Netlify and
-113:  * Cloudflare Pages.
-114:  *
-115:  * style-src carries 'unsafe-inline' because the markup uses inline style
-116:  * attributes (for example the hero card and the honeypot wrapper). No
-117:  * inline scripts are used and no eval is used, so script-src stays at
-118:  * 'self' with no 'unsafe-eval'.
-119:  *
-120:  * @param {{ workerOrigin: string }} options
-121:  * @returns {string}
-122:  */
-123: export function buildHeaders(options) {
-124:   const { workerOrigin } = options || {};
-125:   const safeWorker = typeof workerOrigin === 'string' ? workerOrigin.trim() : '';
-126: 
-127:   const connectSrc = safeWorker.length > 0
-128:     ? `connect-src 'self' ${safeWorker}`
-129:     : `connect-src 'self'`;
-130: 
-131:   const csp =
-132:     `default-src 'self'; ` +
-133:     `script-src 'self'; ` +
-134:     `style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; ` +
-135:     `font-src https://fonts.gstatic.com; ` +
-136:     `img-src 'self' data:; ` +
-137:     `${connectSrc}; ` +
-138:     `frame-ancestors 'none'; ` +
-139:     `base-uri 'self'; ` +
-140:     `form-action 'self'; ` +
-141:     `object-src 'none'`;
-142: 
-143:   return [
-144:     '/*',
-145:     '  X-Content-Type-Options: nosniff',
-146:     '  Referrer-Policy: strict-origin-when-cross-origin',
-147:     '  Permissions-Policy: camera=(), microphone=(), geolocation=()',
-148:     '  X-Frame-Options: DENY',
-149:     `  Content-Security-Policy: ${csp}`,
-150:     '',
-151:     '/dist/*',
-152:     '  Cache-Control: public, max-age=300',
-153:     '',
-154:     '/js/*',
-155:     '  Cache-Control: public, max-age=300',
-156:     '',
-157:     '/data/*',
-158:     '  Cache-Control: public, max-age=300',
-159:     '',
-160:     '/favicon.svg',
-161:     '  Cache-Control: public, max-age=86400',
-162:     '',
-163:     '/og.png',
-164:     '  Cache-Control: public, max-age=86400',
-165:     '',
-166:     '/apple_touch_icon.png',
-167:     '  Cache-Control: public, max-age=86400',
-168:     '',
-169:   ].join('\n');
-170: }
-
-================
-File: scripts/buildSite.mjs
-================
-  1: /**
-  2:  * Production build for The Roast Room.
-  3:  *
-  4:  * 1. Compiles the Tailwind CSS into dist/styles.css via npm run css.
-  5:  * 2. Copies the public pages, the javascript, the json data, the compiled
-  6:  *    styles, the favicon and (when present) the social preview images into
-  7:  *    a fresh site/ folder.
-  8:  * 3. Excludes the developer pages from the deploy.
-  9:  * 4. Replaces every __SITE_URL__ token with the detected site URL.
- 10:  * 5. Writes sitemap.xml, robots.txt and _headers.
- 11:  * 6. Prints a summary and clear WARNINGS (no failures) for a missing site
- 12:  *    URL, a missing og.png or apple_touch_icon.png, or an empty
- 13:  *    SUGGEST_API_BASE.
- 14:  */
- 15: 
- 16: import { copyFile, mkdir, readFile, readdir, rm, stat, writeFile } from 'node:fs/promises';
- 17: import { execSync } from 'node:child_process';
- 18: import { join, resolve } from 'node:path';
- 19: import { fileURLToPath } from 'node:url';
- 20: 
- 21: import { SUGGEST_API_BASE } from '../js/suggest/suggestConfig.js';
- 22: import {
- 23:   buildHeaders,
- 24:   buildRobots,
- 25:   buildSitemap,
- 26:   normaliseSiteUrl,
- 27:   originOf,
- 28:   replaceSiteUrl,
- 29: } from './lib/siteTools.mjs';
- 30: 
- 31: const excludedPages = new Set(['tokens.html', 'cardlab.html', 'adminlab.html', 'ogimage.html']);
- 32: 
- 33: const rootDirectory = resolve(fileURLToPath(new URL('..', import.meta.url)));
- 34: const siteDirectory = join(rootDirectory, 'site');
- 35: 
- 36: /**
- 37:  * Run the Tailwind CSS build.
- 38:  * @returns {void}
- 39:  */
- 40: function buildCss() {
- 41:   console.log('[build] running npm run css');
- 42:   execSync('npm run css', { cwd: rootDirectory, stdio: 'inherit' });
- 43: }
- 44: 
- 45: /**
- 46:  * Copy a folder recursively, skipping the given file names.
- 47:  * @param {string} source
- 48:  * @param {string} destination
- 49:  * @param {Set<string>} skip
- 50:  * @returns {Promise<void>}
- 51:  */
- 52: async function copyFolder(source, destination, skip) {
- 53:   await mkdir(destination, { recursive: true });
- 54:   const entries = await readdir(source, { withFileTypes: true });
- 55:   for (const entry of entries) {
- 56:     const from = join(source, entry.name);
- 57:     const to = join(destination, entry.name);
- 58:     if (entry.isDirectory()) {
- 59:       await copyFolder(from, to, skip);
- 60:     } else if (!skip.has(entry.name)) {
- 61:       await copyFile(from, to);
- 62:     }
- 63:   }
- 64: }
- 65: 
- 66: /**
- 67:  * Check whether a file exists.
- 68:  * @param {string} path
- 69:  * @returns {Promise<boolean>}
- 70:  */
- 71: async function fileExists(path) {
- 72:   try {
- 73:     const info = await stat(path);
- 74:     return info.isFile();
- 75:   } catch {
- 76:     return false;
- 77:   }
- 78: }
- 79: 
- 80: /**
- 81:  * Recursively list files ending in .html inside a folder.
- 82:  * @param {string} directory
- 83:  * @returns {Promise<string[]>}
- 84:  */
- 85: async function listHtmlFiles(directory) {
- 86:   const results = [];
- 87:   const entries = await readdir(directory, { withFileTypes: true });
- 88:   for (const entry of entries) {
- 89:     const full = join(directory, entry.name);
- 90:     if (entry.isDirectory()) {
- 91:       results.push(...(await listHtmlFiles(full)));
- 92:     } else if (entry.name.endsWith('.html')) {
- 93:       results.push(full);
- 94:     }
- 95:   }
- 96:   return results;
- 97: }
- 98: 
- 99: /**
-100:  * Main build.
-101:  * @returns {Promise<number>} Exit code.
-102:  */
-103: async function main() {
-104:   const warnings = [];
-105: 
-106:   // 1. CSS build.
-107:   buildCss();
-108: 
-109:   // 2. Site URL from environment.
-110:   const rawSiteUrl =
-111:     process.env.SITE_URL || process.env.URL || process.env.CF_PAGES_URL || '';
-112:   const siteUrl = normaliseSiteUrl(rawSiteUrl);
-113:   if (siteUrl.length === 0) {
-114:     warnings.push(
-115:       'No site URL found (checked SITE_URL, URL and CF_PAGES_URL). Absolute URLs will be empty and sitemap.xml will be skipped.'
-116:     );
-117:   } else {
-118:     console.log(`[build] site URL: ${siteUrl}`);
-119:   }
-120: 
-121:   // 3. Fresh site folder.
-122:   await rm(siteDirectory, { recursive: true, force: true });
-123:   await mkdir(siteDirectory, { recursive: true });
-124: 
-125:   // 4. Copy the compiled styles, the scripts, the data.
-126:   await copyFolder(join(rootDirectory, 'dist'), join(siteDirectory, 'dist'), new Set());
-127:   await copyFolder(join(rootDirectory, 'js'), join(siteDirectory, 'js'), new Set());
-128:   await copyFolder(join(rootDirectory, 'data'), join(siteDirectory, 'data'), new Set());
-129: 
-130:   // 5. Copy the public pages, skipping the developer pages.
-131:   const rootEntries = await readdir(rootDirectory, { withFileTypes: true });
-132:   for (const entry of rootEntries) {
-133:     if (!entry.isFile()) continue;
-134:     if (!entry.name.endsWith('.html')) continue;
-135:     if (excludedPages.has(entry.name)) continue;
-136:     await copyFile(join(rootDirectory, entry.name), join(siteDirectory, entry.name));
-137:   }
-138: 
-139:   // 6. Copy the static assets.
-140:   const faviconSource = join(rootDirectory, 'favicon.svg');
-141:   if (await fileExists(faviconSource)) {
-142:     await copyFile(faviconSource, join(siteDirectory, 'favicon.svg'));
-143:   }
-144: 
-145:   const ogSource = join(rootDirectory, 'og.png');
-146:   if (await fileExists(ogSource)) {
-147:     await copyFile(ogSource, join(siteDirectory, 'og.png'));
-148:   } else {
-149:     warnings.push('og.png not found in the repository root. Social previews will 404.');
-150:   }
-151: 
-152:   const iconSource = join(rootDirectory, 'apple_touch_icon.png');
-153:   if (await fileExists(iconSource)) {
-154:     await copyFile(iconSource, join(siteDirectory, 'apple_touch_icon.png'));
-155:   } else {
-156:     warnings.push(
-157:       'apple_touch_icon.png not found in the repository root. The apple-touch-icon link will 404.'
-158:     );
-159:   }
-160: 
-161:   // 7. Replace the __SITE_URL__ token in every HTML file in site/.
-162:   const htmlFiles = await listHtmlFiles(siteDirectory);
-163:   let survivingTokens = 0;
-164:   for (const file of htmlFiles) {
-165:     const html = await readFile(file, 'utf8');
-166:     const replaced = replaceSiteUrl(html, siteUrl);
-167:     await writeFile(file, replaced, 'utf8');
-168:     if (replaced.includes('__SITE_URL__')) {
-169:       survivingTokens += 1;
-170:     }
-171:   }
-172: 
-173:   // 8. Read the registry so sitemap.xml lists one room URL per live club.
-174:   let liveClubs = [];
-175:   try {
-176:     const registry = JSON.parse(
-177:       await readFile(join(rootDirectory, 'data/clubs.json'), 'utf8')
-178:     );
-179:     liveClubs = Array.isArray(registry.clubs)
-180:       ? registry.clubs.filter((club) => club && club.status === 'live')
-181:       : [];
-182:   } catch (error) {
-183:     warnings.push(`Could not read data/clubs.json for the sitemap: ${String(error.message)}`);
-184:   }
-185: 
-186:   // 9. Write sitemap.xml (only when a site URL is known), robots.txt and _headers.
-187:   if (siteUrl.length > 0) {
-188:     const paths = ['/', '/about.html'];
-189:     for (const club of liveClubs) {
-190:       if (typeof club.id === 'string' && club.id.length > 0) {
-191:         paths.push(`/room.html?club=${encodeURIComponent(club.id)}`);
-192:       }
-193:     }
-194:     const sitemap = buildSitemap({ siteUrl, paths });
-195:     await writeFile(join(siteDirectory, 'sitemap.xml'), sitemap, 'utf8');
-196:   }
-197: 
-198:   const robots = buildRobots(siteUrl);
-199:   await writeFile(join(siteDirectory, 'robots.txt'), robots, 'utf8');
-200: 
-201:   const workerOrigin = SUGGEST_API_BASE ? originOf(SUGGEST_API_BASE) : '';
-202:   if (!SUGGEST_API_BASE) {
-203:     warnings.push(
-204:       'SUGGEST_API_BASE is empty, so the suggestion section is hidden and the Worker origin is not added to connect-src.'
-205:     );
-206:   }
-207: 
-208:   const headers = buildHeaders({ workerOrigin });
-209:   await writeFile(join(siteDirectory, '_headers'), headers, 'utf8');
-210: 
-211:   // 10. Fail loudly if any token survived.
-212:   if (survivingTokens > 0) {
-213:     console.error(
-214:       `[build] ${survivingTokens} html file(s) still contain the __SITE_URL__ token. This should not happen.`
-215:     );
-216:     return 1;
-217:   }
-218: 
-219:   // 11. Summary and warnings.
-220:   console.log('');
-221:   console.log(`[build] site/ written with ${htmlFiles.length} html file(s).`);
-222:   if (siteUrl.length > 0) {
-223:     console.log(`[build] sitemap.xml, robots.txt and _headers written for ${siteUrl}`);
-224:   } else {
-225:     console.log('[build] robots.txt and _headers written, sitemap.xml skipped.');
-226:   }
-227: 
-228:   if (warnings.length > 0) {
-229:     console.log('');
-230:     console.log('[build] WARNINGS:');
-231:     for (const warning of warnings) {
-232:       console.log(`  - ${warning}`);
-233:     }
-234:   }
-235: 
-236:   return 0;
-237: }
-238: 
-239: const exitCode = await main();
-240: process.exitCode = exitCode;
-
-================
 File: src/input.css
 ================
 1: @import "../css/tokens.css";
@@ -7990,146 +7572,6 @@ File: src/input.css
 5: @tailwind base;
 6: @tailwind components;
 7: @tailwind utilities;
-
-================
-File: tests/siteTools.test.mjs
-================
-  1: /**
-  2:  * Tests for the pure build and branding helpers. Node test runner only, no
-  3:  * extra dependencies.
-  4:  */
-  5: 
-  6: import test from 'node:test';
-  7: import assert from 'node:assert/strict';
-  8: 
-  9: import {
- 10:   buildHeaders,
- 11:   buildRobots,
- 12:   buildSitemap,
- 13:   normaliseSiteUrl,
- 14:   originOf,
- 15:   replaceSiteUrl,
- 16: } from '../scripts/lib/siteTools.mjs';
- 17: import { frittLink } from '../js/brand/frittLinks.js';
- 18: 
- 19: test('normaliseSiteUrl accepts https and strips a trailing slash', () => {
- 20:   assert.equal(normaliseSiteUrl('https://example.com/'), 'https://example.com');
- 21:   assert.equal(normaliseSiteUrl('https://example.com'), 'https://example.com');
- 22: });
- 23: 
- 24: test('normaliseSiteUrl accepts http on localhost only', () => {
- 25:   assert.equal(normaliseSiteUrl('http://localhost:3000'), 'http://localhost:3000');
- 26:   assert.equal(normaliseSiteUrl('http://127.0.0.1:8000'), 'http://127.0.0.1:8000');
- 27:   assert.equal(normaliseSiteUrl('http://example.com'), '');
- 28: });
- 29: 
- 30: test('normaliseSiteUrl rejects garbage', () => {
- 31:   assert.equal(normaliseSiteUrl(''), '');
- 32:   assert.equal(normaliseSiteUrl('not a url'), '');
- 33:   assert.equal(normaliseSiteUrl(null), '');
- 34:   assert.equal(normaliseSiteUrl('ftp://example.com'), '');
- 35: });
- 36: 
- 37: test('replaceSiteUrl replaces every occurrence and leaves other text alone', () => {
- 38:   const html = '<a href="__SITE_URL__/about.html">__SITE_URL__</a>';
- 39:   assert.equal(
- 40:     replaceSiteUrl(html, 'https://example.com'),
- 41:     '<a href="https://example.com/about.html">https://example.com</a>'
- 42:   );
- 43: });
- 44: 
- 45: test('replaceSiteUrl uses an empty replacement when no site URL is known', () => {
- 46:   assert.equal(replaceSiteUrl('a __SITE_URL__ b', ''), 'a  b');
- 47: });
- 48: 
- 49: test('originOf returns the origin or an empty string', () => {
- 50:   assert.equal(originOf('https://example.com/path'), 'https://example.com');
- 51:   assert.equal(originOf('https://example.com'), 'https://example.com');
- 52:   assert.equal(originOf('not a url'), '');
- 53:   assert.equal(originOf(''), '');
- 54: });
- 55: 
- 56: test('buildSitemap produces a valid structure with one url per path', () => {
- 57:   const xml = buildSitemap({
- 58:     siteUrl: 'https://example.com',
- 59:     paths: ['/', '/about.html', '/room.html?club=manutd'],
- 60:   });
- 61:   assert.match(xml, /^<\?xml version="1\.0" encoding="UTF-8"\?>/);
- 62:   assert.match(xml, /<urlset xmlns="http:\/\/www\.sitemaps\.org\/schemas\/sitemap\/0\.9">/);
- 63:   assert.match(xml, /<loc>https:\/\/example\.com\/<\/loc>/);
- 64:   assert.match(xml, /<loc>https:\/\/example\.com\/about\.html<\/loc>/);
- 65:   assert.match(xml, /<loc>https:\/\/example\.com\/room\.html\?club=manutd<\/loc>/);
- 66:   const urlCount = (xml.match(/<url>/g) || []).length;
- 67:   assert.equal(urlCount, 3);
- 68: });
- 69: 
- 70: test('buildSitemap escapes XML metacharacters in the loc value', () => {
- 71:   const xml = buildSitemap({
- 72:     siteUrl: 'https://example.com',
- 73:     paths: ['/room.html?club=manutd&ref=foo'],
- 74:   });
- 75:   assert.match(xml, /&amp;ref=foo/);
- 76:   assert.ok(!xml.includes('&ref=foo'));
- 77: });
- 78: 
- 79: test('buildRobots includes a Sitemap line only when the site URL is known', () => {
- 80:   const withUrl = buildRobots('https://example.com');
- 81:   assert.match(withUrl, /^User-agent: \*$/m);
- 82:   assert.match(withUrl, /^Allow: \/$/m);
- 83:   assert.match(withUrl, /^Sitemap: https:\/\/example\.com\/sitemap\.xml$/m);
- 84: 
- 85:   const withoutUrl = buildRobots('');
- 86:   assert.match(withoutUrl, /^User-agent: \*$/m);
- 87:   assert.ok(!withoutUrl.includes('Sitemap:'));
- 88: });
- 89: 
- 90: test('buildHeaders adds the worker origin to connect-src when given', () => {
- 91:   const headers = buildHeaders({ workerOrigin: 'https://worker.example.com' });
- 92:   assert.match(headers, /connect-src 'self' https:\/\/worker\.example\.com/);
- 93:   assert.match(headers, /X-Content-Type-Options: nosniff/);
- 94:   assert.match(headers, /Referrer-Policy: strict-origin-when-cross-origin/);
- 95:   assert.match(headers, /X-Frame-Options: DENY/);
- 96:   assert.match(headers, /\/dist\/\*/);
- 97:   assert.match(headers, /Cache-Control: public, max-age=300/);
- 98: });
- 99: 
-100: test('buildHeaders omits the worker origin when none is given', () => {
-101:   const headers = buildHeaders({ workerOrigin: '' });
-102:   assert.match(headers, /connect-src 'self';/);
-103:   assert.ok(!headers.includes('https://worker.example.com'));
-104: });
-105: 
-106: test('buildHeaders never contains unsafe-eval', () => {
-107:   assert.ok(!buildHeaders({ workerOrigin: '' }).includes('unsafe-eval'));
-108:   assert.ok(!buildHeaders({ workerOrigin: 'https://w.example.com' }).includes('unsafe-eval'));
-109: });
-110: 
-111: test('frittLink adds the three utm parameters', () => {
-112:   const href = frittLink('https://fritt.org', 'landingCta');
-113:   assert.match(href, /utm_source=roastroom/);
-114:   assert.match(href, /utm_medium=site/);
-115:   assert.match(href, /utm_campaign=landingCta/);
-116: });
-117: 
-118: test('frittLink preserves an existing query string and hash', () => {
-119:   const withQuery = frittLink('https://fritt.org/?ref=foo', 'landingCta');
-120:   assert.match(withQuery, /ref=foo/);
-121:   assert.match(withQuery, /utm_source=roastroom/);
-122: 
-123:   const withHash = frittLink('https://fritt.org/#contact', 'landingCta');
-124:   assert.match(withHash, /#contact$/);
-125:   assert.match(withHash, /utm_source=roastroom/);
-126: });
-127: 
-128: test('frittLink leaves mailto and other non http links unchanged', () => {
-129:   assert.equal(frittLink('mailto:hello@fritt.org', 'x'), 'mailto:hello@fritt.org');
-130:   assert.equal(frittLink('tel:+1234567890', 'x'), 'tel:+1234567890');
-131: });
-132: 
-133: test('frittLink returns invalid input unchanged', () => {
-134:   assert.equal(frittLink('', 'x'), '');
-135:   assert.equal(frittLink('not a url', 'x'), 'not a url');
-136: });
 
 ================
 File: worker/src/logic.js
@@ -10407,6 +9849,695 @@ File: js/ui/roastCard.js
 144:     hiddenElements: [factsGroup, receiptsGroup, mistakeLink, verifiedEl],
 145:   };
 146: }
+
+================
+File: scripts/lib/siteTools.mjs
+================
+  1: import { createHash } from 'node:crypto';
+  2: import { readFile, readdir } from 'node:fs/promises';
+  3: import { join } from 'node:path';
+  4: 
+  5: /**
+  6:  * Pure helpers for the site build. No file system, no process access, no
+  7:  * fetch. Everything here is deterministic and testable in isolation.
+  8:  */
+  9: 
+ 10: /**
+ 11:  * Escape a value for use as XML text.
+ 12:  * @param {unknown} value
+ 13:  * @returns {string}
+ 14:  */
+ 15: function escapeXml(value) {
+ 16:   return String(value === undefined || value === null ? '' : value)
+ 17:     .replace(/&/g, '&amp;')
+ 18:     .replace(/</g, '&lt;')
+ 19:     .replace(/>/g, '&gt;')
+ 20:     .replace(/"/g, '&quot;')
+ 21:     .replace(/'/g, '&apos;');
+ 22: }
+ 23: 
+ 24: /**
+ 25:  * Trim and normalise a site URL. Only https URLs and http URLs on localhost
+ 26:  * or 127.0.0.1 are accepted, so the production build can never publish an
+ 27:  * insecure origin. A trailing slash is stripped. Invalid input becomes an
+ 28:  * empty string.
+ 29:  * @param {string} raw
+ 30:  * @returns {string}
+ 31:  */
+ 32: export function normaliseSiteUrl(raw) {
+ 33:   if (typeof raw !== 'string') return '';
+ 34:   const trimmed = raw.trim();
+ 35:   if (trimmed.length === 0) return '';
+ 36: 
+ 37:   let parsed;
+ 38:   try {
+ 39:     parsed = new URL(trimmed);
+ 40:   } catch {
+ 41:     return '';
+ 42:   }
+ 43: 
+ 44:   const isHttps = parsed.protocol === 'https:';
+ 45:   const isLocalhost =
+ 46:     parsed.protocol === 'http:' &&
+ 47:     (parsed.hostname === 'localhost' || parsed.hostname === '127.0.0.1');
+ 48: 
+ 49:   if (!isHttps && !isLocalhost) return '';
+ 50: 
+ 51:   return parsed.href.replace(/\/+$/, '');
+ 52: }
+ 53: 
+ 54: /**
+ 55:  * Replace every __SITE_URL__ token in a string. When siteUrl is empty the
+ 56:  * token is replaced with an empty string, so the placeholder can never
+ 57:  * survive to production. The build is expected to warn in that case.
+ 58:  * @param {string} html
+ 59:  * @param {string} siteUrl
+ 60:  * @returns {string}
+ 61:  */
+ 62: export function replaceSiteUrl(html, siteUrl) {
+ 63:   if (typeof html !== 'string') return '';
+ 64:   const replacement = typeof siteUrl === 'string' ? siteUrl : '';
+ 65:   return html.split('__SITE_URL__').join(replacement);
+ 66: }
+ 67: 
+ 68: /**
+ 69:  * Return the origin of a URL, or an empty string. Never throws.
+ 70:  * @param {string} url
+ 71:  * @returns {string}
+ 72:  */
+ 73: export function originOf(url) {
+ 74:   if (typeof url !== 'string' || url.length === 0) return '';
+ 75:   try {
+ 76:     return new URL(url).origin;
+ 77:   } catch {
+ 78:     return '';
+ 79:   }
+ 80: }
+ 81: 
+ 82: /**
+ 83:  * Recursively collect file paths and contents under a directory. `.DS_Store`
+ 84:  * is skipped. The output is unsorted; the caller sorts it.
+ 85:  * @param {string} base Base directory.
+ 86:  * @param {string} [rel] Current relative subdirectory.
+ 87:  * @param {Array<{ path: string, content: Buffer }>} [out]
+ 88:  * @returns {Promise<Array<{ path: string, content: Buffer }>>}
+ 89:  */
+ 90: async function collectDirectoryFiles(base, rel = '', out = []) {
+ 91:   const entries = await readdir(join(base, rel), { withFileTypes: true });
+ 92:   for (const entry of entries) {
+ 93:     const relPath = rel ? `${rel}/${entry.name}` : entry.name;
+ 94:     if (entry.isDirectory()) {
+ 95:       await collectDirectoryFiles(base, relPath, out);
+ 96:     } else if (entry.isFile()) {
+ 97:       if (entry.name === '.DS_Store') continue;
+ 98:       const content = await readFile(join(base, relPath));
+ 99:       out.push({ path: relPath, content });
+100:     }
+101:   }
+102:   return out;
+103: }
+104: 
+105: /**
+106:  * Hash every file under a directory into a short hex digest. Both the file
+107:  * path and the file content are hashed, and files are sorted first, so the
+108:  * digest is deterministic: any change to any file (added, removed, renamed,
+109:  * edited) produces a new digest. Suitable as a cache-busting directory
+110:  * suffix.
+111:  * @param {string} directory
+112:  * @returns {Promise<string>} Short hex digest, eight characters.
+113:  */
+114: export async function hashDirectory(directory) {
+115:   const files = await collectDirectoryFiles(directory);
+116:   files.sort((a, b) => a.path.localeCompare(b.path));
+117:   const hash = createHash('sha256');
+118:   for (const file of files) {
+119:     hash.update(file.path);
+120:     hash.update('\0');
+121:     hash.update(file.content);
+122:     hash.update('\0');
+123:   }
+124:   return hash.digest('hex').slice(0, 8);
+125: }
+126: 
+127: /**
+128:  * Build a sitemap.xml body.
+129:  * @param {{ siteUrl: string, paths: string[] }} options
+130:  * @returns {string}
+131:  */
+132: export function buildSitemap(options) {
+133:   const { siteUrl, paths } = options || {};
+134:   const safeSite = typeof siteUrl === 'string' ? siteUrl : '';
+135:   const list = Array.isArray(paths) ? paths : [];
+136: 
+137:   const entries = list
+138:     .map((path) => `  <url>\n    <loc>${escapeXml(`${safeSite}${path}`)}</loc>\n  </url>`)
+139:     .join('\n');
+140: 
+141:   return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${entries}\n</urlset>\n`;
+142: }
+143: 
+144: /**
+145:  * Build a robots.txt body. The Sitemap line is included only when siteUrl is
+146:  * known.
+147:  * @param {string} siteUrl
+148:  * @returns {string}
+149:  */
+150: export function buildRobots(siteUrl) {
+151:   const safeSite = typeof siteUrl === 'string' ? siteUrl : '';
+152:   const lines = ['User-agent: *', 'Allow: /'];
+153:   if (safeSite.length > 0) {
+154:     lines.push('');
+155:     lines.push(`Sitemap: ${safeSite}/sitemap.xml`);
+156:   }
+157:   return `${lines.join('\n')}\n`;
+158: }
+159: 
+160: /**
+161:  * Build the contents of a _headers file. The format is shared by Netlify and
+162:  * Cloudflare Pages.
+163:  *
+164:  * style-src carries 'unsafe-inline' because the markup uses inline style
+165:  * attributes (for example the hero card and the honeypot wrapper). No
+166:  * inline scripts are used and no eval is used, so script-src stays at
+167:  * 'self' with no 'unsafe-eval'.
+168:  *
+169:  * @param {{ workerOrigin: string }} options
+170:  * @returns {string}
+171:  */
+172: export function buildHeaders(options) {
+173:   const { workerOrigin } = options || {};
+174:   const safeWorker = typeof workerOrigin === 'string' ? workerOrigin.trim() : '';
+175: 
+176:   const connectSrc = safeWorker.length > 0
+177:     ? `connect-src 'self' ${safeWorker}`
+178:     : `connect-src 'self'`;
+179: 
+180:   const csp =
+181:     `default-src 'self'; ` +
+182:     `script-src 'self'; ` +
+183:     `style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; ` +
+184:     `font-src https://fonts.gstatic.com; ` +
+185:     `img-src 'self' data:; ` +
+186:     `${connectSrc}; ` +
+187:     `frame-ancestors 'none'; ` +
+188:     `base-uri 'self'; ` +
+189:     `form-action 'self'; ` +
+190:     `object-src 'none'`;
+191: 
+192:   return [
+193:     '/*',
+194:     '  X-Content-Type-Options: nosniff',
+195:     '  Referrer-Policy: strict-origin-when-cross-origin',
+196:     '  Permissions-Policy: camera=(), microphone=(), geolocation=()',
+197:     '  X-Frame-Options: DENY',
+198:     `  Content-Security-Policy: ${csp}`,
+199:     '  Cache-Control: public, max-age=0, must-revalidate',
+200:     '',
+201:     '/js.*',
+202:     '  Cache-Control: public, max-age=31536000, immutable',
+203:     '',
+204:     '/dist.*',
+205:     '  Cache-Control: public, max-age=31536000, immutable',
+206:     '',
+207:     '/data/*',
+208:     '  Cache-Control: public, max-age=0, must-revalidate',
+209:     '',
+210:     '/favicon.svg',
+211:     '  Cache-Control: public, max-age=86400',
+212:     '',
+213:     '/og.png',
+214:     '  Cache-Control: public, max-age=86400',
+215:     '',
+216:     '/apple_touch_icon.png',
+217:     '  Cache-Control: public, max-age=86400',
+218:     '',
+219:   ].join('\n');
+220: }
+
+================
+File: scripts/buildSite.mjs
+================
+  1: /**
+  2:  * Production build for The Roast Room.
+  3:  *
+  4:  * 1. Compiles the Tailwind CSS into dist/styles.css via npm run css.
+  5:  * 2. Copies the public pages, the javascript, the json data, the compiled
+  6:  *    styles, the favicon and (when present) the social preview images into
+  7:  *    a fresh site/ folder.
+  8:  * 3. Excludes the developer pages from the deploy.
+  9:  * 4. Replaces every __SITE_URL__ token with the detected site URL.
+ 10:  * 5. Writes sitemap.xml, robots.txt and _headers.
+ 11:  * 6. Prints a summary and clear WARNINGS (no failures) for a missing site
+ 12:  *    URL, a missing og.png or apple_touch_icon.png, or an empty
+ 13:  *    SUGGEST_API_BASE.
+ 14:  */
+ 15: 
+ 16: import { copyFile, mkdir, readFile, readdir, rename, rm, stat, writeFile } from 'node:fs/promises';
+ 17: import { execSync } from 'node:child_process';
+ 18: import { join, resolve } from 'node:path';
+ 19: import { fileURLToPath } from 'node:url';
+ 20: 
+ 21: import { SUGGEST_API_BASE } from '../js/suggest/suggestConfig.js';
+ 22: import {
+ 23:   buildHeaders,
+ 24:   buildRobots,
+ 25:   buildSitemap,
+ 26:   hashDirectory,
+ 27:   normaliseSiteUrl,
+ 28:   originOf,
+ 29:   replaceSiteUrl,
+ 30: } from './lib/siteTools.mjs';
+ 31: 
+ 32: const excludedPages = new Set(['tokens.html', 'cardlab.html', 'adminlab.html', 'ogimage.html']);
+ 33: 
+ 34: const rootDirectory = resolve(fileURLToPath(new URL('..', import.meta.url)));
+ 35: const siteDirectory = join(rootDirectory, 'site');
+ 36: 
+ 37: /**
+ 38:  * Run the Tailwind CSS build.
+ 39:  * @returns {void}
+ 40:  */
+ 41: function buildCss() {
+ 42:   console.log('[build] running npm run css');
+ 43:   execSync('npm run css', { cwd: rootDirectory, stdio: 'inherit' });
+ 44: }
+ 45: 
+ 46: /**
+ 47:  * Copy a folder recursively, skipping the given file names.
+ 48:  * @param {string} source
+ 49:  * @param {string} destination
+ 50:  * @param {Set<string>} skip
+ 51:  * @returns {Promise<void>}
+ 52:  */
+ 53: async function copyFolder(source, destination, skip, skipDirs) {
+ 54:   await mkdir(destination, { recursive: true });
+ 55:   const entries = await readdir(source, { withFileTypes: true });
+ 56:   for (const entry of entries) {
+ 57:     const from = join(source, entry.name);
+ 58:     const to = join(destination, entry.name);
+ 59:     if (entry.isDirectory()) {
+ 60:       if (skipDirs && skipDirs.has(entry.name)) continue;
+ 61:       await copyFolder(from, to, skip, skipDirs);
+ 62:     } else if (!skip.has(entry.name)) {
+ 63:       await copyFile(from, to);
+ 64:     }
+ 65:   }
+ 66: }
+ 67: 
+ 68: /**
+ 69:  * Check whether a file exists.
+ 70:  * @param {string} path
+ 71:  * @returns {Promise<boolean>}
+ 72:  */
+ 73: async function fileExists(path) {
+ 74:   try {
+ 75:     const info = await stat(path);
+ 76:     return info.isFile();
+ 77:   } catch {
+ 78:     return false;
+ 79:   }
+ 80: }
+ 81: 
+ 82: /**
+ 83:  * Recursively list files ending in .html inside a folder.
+ 84:  * @param {string} directory
+ 85:  * @returns {Promise<string[]>}
+ 86:  */
+ 87: async function listHtmlFiles(directory) {
+ 88:   const results = [];
+ 89:   const entries = await readdir(directory, { withFileTypes: true });
+ 90:   for (const entry of entries) {
+ 91:     const full = join(directory, entry.name);
+ 92:     if (entry.isDirectory()) {
+ 93:       results.push(...(await listHtmlFiles(full)));
+ 94:     } else if (entry.name.endsWith('.html')) {
+ 95:       results.push(full);
+ 96:     }
+ 97:   }
+ 98:   return results;
+ 99: }
+100: 
+101: /**
+102:  * Main build.
+103:  * @returns {Promise<number>} Exit code.
+104:  */
+105: async function main() {
+106:   const warnings = [];
+107: 
+108:   // 1. CSS build.
+109:   buildCss();
+110: 
+111:   // 2. Site URL from environment.
+112:   const rawSiteUrl =
+113:     process.env.SITE_URL || process.env.URL || process.env.CF_PAGES_URL || '';
+114:   const siteUrl = normaliseSiteUrl(rawSiteUrl);
+115:   if (siteUrl.length === 0) {
+116:     warnings.push(
+117:       'No site URL found (checked SITE_URL, URL and CF_PAGES_URL). Absolute URLs will be empty and sitemap.xml will be skipped.'
+118:     );
+119:   } else {
+120:     console.log(`[build] site URL: ${siteUrl}`);
+121:   }
+122: 
+123:   // 3. Fresh site folder.
+124:   await rm(siteDirectory, { recursive: true, force: true });
+125:   await mkdir(siteDirectory, { recursive: true });
+126: 
+127:   // 4. Copy the compiled styles, the scripts, the data.
+128:   await copyFolder(join(rootDirectory, 'dist'), join(siteDirectory, 'dist'), new Set());
+129:   await copyFolder(
+130:     join(rootDirectory, 'js'),
+131:     join(siteDirectory, 'js'),
+132:     new Set(),
+133:     new Set(['dev'])
+134:   );
+135:   await copyFolder(join(rootDirectory, 'data'), join(siteDirectory, 'data'), new Set());
+136: 
+137:   // 5. Copy the public pages, skipping the developer pages.
+138:   const rootEntries = await readdir(rootDirectory, { withFileTypes: true });
+139:   for (const entry of rootEntries) {
+140:     if (!entry.isFile()) continue;
+141:     if (!entry.name.endsWith('.html')) continue;
+142:     if (excludedPages.has(entry.name)) continue;
+143:     await copyFile(join(rootDirectory, entry.name), join(siteDirectory, entry.name));
+144:   }
+145: 
+146:   // 6. Copy the static assets.
+147:   const faviconSource = join(rootDirectory, 'favicon.svg');
+148:   if (await fileExists(faviconSource)) {
+149:     await copyFile(faviconSource, join(siteDirectory, 'favicon.svg'));
+150:   }
+151: 
+152:   const ogSource = join(rootDirectory, 'og.png');
+153:   if (await fileExists(ogSource)) {
+154:     await copyFile(ogSource, join(siteDirectory, 'og.png'));
+155:   } else {
+156:     warnings.push('og.png not found in the repository root. Social previews will 404.');
+157:   }
+158: 
+159:   const iconSource = join(rootDirectory, 'apple_touch_icon.png');
+160:   if (await fileExists(iconSource)) {
+161:     await copyFile(iconSource, join(siteDirectory, 'apple_touch_icon.png'));
+162:   } else {
+163:     warnings.push(
+164:       'apple_touch_icon.png not found in the repository root. The apple-touch-icon link will 404.'
+165:     );
+166:   }
+167: 
+168:   // 6b. Hash the JS and CSS directories and rename them. Any change to a
+169:   // file inside produces a new directory name, so browsers treat the files
+170:   // as new assets and fetch them fresh.
+171:   const jsHash = await hashDirectory(join(siteDirectory, 'js'));
+172:   const distHash = await hashDirectory(join(siteDirectory, 'dist'));
+173: 
+174:   await rename(join(siteDirectory, 'js'), join(siteDirectory, `js.${jsHash}`));
+175:   await rename(join(siteDirectory, 'dist'), join(siteDirectory, `dist.${distHash}`));
+176: 
+177:   console.log(`[build] js hash: ${jsHash}`);
+178:   console.log(`[build] dist hash: ${distHash}`);
+179: 
+180:   // 7. Replace the __SITE_URL__ token in every HTML file in site/.
+181:   const htmlFiles = await listHtmlFiles(siteDirectory);
+182:   let survivingTokens = 0;
+183:   for (const file of htmlFiles) {
+184:     let html = await readFile(file, 'utf8');
+185:     html = replaceSiteUrl(html, siteUrl);
+186:     html = html.split('js/pages/').join(`js.${jsHash}/pages/`);
+187:     html = html.split('dist/styles.css').join(`dist.${distHash}/styles.css`);
+188:     await writeFile(file, html, 'utf8');
+189:     if (html.includes('__SITE_URL__')) {
+190:       survivingTokens += 1;
+191:     }
+192:   }
+193: 
+194:   // 8. Read the registry so sitemap.xml lists one room URL per live club.
+195:   let liveClubs = [];
+196:   try {
+197:     const registry = JSON.parse(
+198:       await readFile(join(rootDirectory, 'data/clubs.json'), 'utf8')
+199:     );
+200:     liveClubs = Array.isArray(registry.clubs)
+201:       ? registry.clubs.filter((club) => club && club.status === 'live')
+202:       : [];
+203:   } catch (error) {
+204:     warnings.push(`Could not read data/clubs.json for the sitemap: ${String(error.message)}`);
+205:   }
+206: 
+207:   // 9. Write sitemap.xml (only when a site URL is known), robots.txt and _headers.
+208:   if (siteUrl.length > 0) {
+209:     const paths = ['/', '/about.html'];
+210:     for (const club of liveClubs) {
+211:       if (typeof club.id === 'string' && club.id.length > 0) {
+212:         paths.push(`/room.html?club=${encodeURIComponent(club.id)}`);
+213:       }
+214:     }
+215:     const sitemap = buildSitemap({ siteUrl, paths });
+216:     await writeFile(join(siteDirectory, 'sitemap.xml'), sitemap, 'utf8');
+217:   }
+218: 
+219:   const robots = buildRobots(siteUrl);
+220:   await writeFile(join(siteDirectory, 'robots.txt'), robots, 'utf8');
+221: 
+222:   const workerOrigin = SUGGEST_API_BASE ? originOf(SUGGEST_API_BASE) : '';
+223:   if (!SUGGEST_API_BASE) {
+224:     warnings.push(
+225:       'SUGGEST_API_BASE is empty, so the suggestion section is hidden and the Worker origin is not added to connect-src.'
+226:     );
+227:   }
+228: 
+229:   const headers = buildHeaders({ workerOrigin });
+230:   await writeFile(join(siteDirectory, '_headers'), headers, 'utf8');
+231: 
+232:   // 10. Fail loudly if any token survived.
+233:   if (survivingTokens > 0) {
+234:     console.error(
+235:       `[build] ${survivingTokens} html file(s) still contain the __SITE_URL__ token. This should not happen.`
+236:     );
+237:     return 1;
+238:   }
+239: 
+240:   // 11. Summary and warnings.
+241:   console.log('');
+242:   console.log(`[build] site/ written with ${htmlFiles.length} html file(s).`);
+243:   if (siteUrl.length > 0) {
+244:     console.log(`[build] sitemap.xml, robots.txt and _headers written for ${siteUrl}`);
+245:   } else {
+246:     console.log('[build] robots.txt and _headers written, sitemap.xml skipped.');
+247:   }
+248: 
+249:   if (warnings.length > 0) {
+250:     console.log('');
+251:     console.log('[build] WARNINGS:');
+252:     for (const warning of warnings) {
+253:       console.log(`  - ${warning}`);
+254:     }
+255:   }
+256: 
+257:   return 0;
+258: }
+259: 
+260: const exitCode = await main();
+261: process.exitCode = exitCode;
+
+================
+File: tests/siteTools.test.mjs
+================
+  1: /**
+  2:  * Tests for the pure build and branding helpers. Node test runner only, no
+  3:  * extra dependencies.
+  4:  */
+  5: 
+  6: import test from 'node:test';
+  7: import assert from 'node:assert/strict';
+  8: import { mkdtemp, rm, writeFile } from 'node:fs/promises';
+  9: import { tmpdir } from 'node:os';
+ 10: import { join } from 'node:path';
+ 11: 
+ 12: import {
+ 13:   buildHeaders,
+ 14:   buildRobots,
+ 15:   buildSitemap,
+ 16:   hashDirectory,
+ 17:   normaliseSiteUrl,
+ 18:   originOf,
+ 19:   replaceSiteUrl,
+ 20: } from '../scripts/lib/siteTools.mjs';
+ 21: import { frittLink } from '../js/brand/frittLinks.js';
+ 22: 
+ 23: test('normaliseSiteUrl accepts https and strips a trailing slash', () => {
+ 24:   assert.equal(normaliseSiteUrl('https://example.com/'), 'https://example.com');
+ 25:   assert.equal(normaliseSiteUrl('https://example.com'), 'https://example.com');
+ 26: });
+ 27: 
+ 28: test('normaliseSiteUrl accepts http on localhost only', () => {
+ 29:   assert.equal(normaliseSiteUrl('http://localhost:3000'), 'http://localhost:3000');
+ 30:   assert.equal(normaliseSiteUrl('http://127.0.0.1:8000'), 'http://127.0.0.1:8000');
+ 31:   assert.equal(normaliseSiteUrl('http://example.com'), '');
+ 32: });
+ 33: 
+ 34: test('normaliseSiteUrl rejects garbage', () => {
+ 35:   assert.equal(normaliseSiteUrl(''), '');
+ 36:   assert.equal(normaliseSiteUrl('not a url'), '');
+ 37:   assert.equal(normaliseSiteUrl(null), '');
+ 38:   assert.equal(normaliseSiteUrl('ftp://example.com'), '');
+ 39: });
+ 40: 
+ 41: test('replaceSiteUrl replaces every occurrence and leaves other text alone', () => {
+ 42:   const html = '<a href="__SITE_URL__/about.html">__SITE_URL__</a>';
+ 43:   assert.equal(
+ 44:     replaceSiteUrl(html, 'https://example.com'),
+ 45:     '<a href="https://example.com/about.html">https://example.com</a>'
+ 46:   );
+ 47: });
+ 48: 
+ 49: test('replaceSiteUrl uses an empty replacement when no site URL is known', () => {
+ 50:   assert.equal(replaceSiteUrl('a __SITE_URL__ b', ''), 'a  b');
+ 51: });
+ 52: 
+ 53: test('originOf returns the origin or an empty string', () => {
+ 54:   assert.equal(originOf('https://example.com/path'), 'https://example.com');
+ 55:   assert.equal(originOf('https://example.com'), 'https://example.com');
+ 56:   assert.equal(originOf('not a url'), '');
+ 57:   assert.equal(originOf(''), '');
+ 58: });
+ 59: 
+ 60: test('buildSitemap produces a valid structure with one url per path', () => {
+ 61:   const xml = buildSitemap({
+ 62:     siteUrl: 'https://example.com',
+ 63:     paths: ['/', '/about.html', '/room.html?club=manutd'],
+ 64:   });
+ 65:   assert.match(xml, /^<\?xml version="1\.0" encoding="UTF-8"\?>/);
+ 66:   assert.match(xml, /<urlset xmlns="http:\/\/www\.sitemaps\.org\/schemas\/sitemap\/0\.9">/);
+ 67:   assert.match(xml, /<loc>https:\/\/example\.com\/<\/loc>/);
+ 68:   assert.match(xml, /<loc>https:\/\/example\.com\/about\.html<\/loc>/);
+ 69:   assert.match(xml, /<loc>https:\/\/example\.com\/room\.html\?club=manutd<\/loc>/);
+ 70:   const urlCount = (xml.match(/<url>/g) || []).length;
+ 71:   assert.equal(urlCount, 3);
+ 72: });
+ 73: 
+ 74: test('buildSitemap escapes XML metacharacters in the loc value', () => {
+ 75:   const xml = buildSitemap({
+ 76:     siteUrl: 'https://example.com',
+ 77:     paths: ['/room.html?club=manutd&ref=foo'],
+ 78:   });
+ 79:   assert.match(xml, /&amp;ref=foo/);
+ 80:   assert.ok(!xml.includes('&ref=foo'));
+ 81: });
+ 82: 
+ 83: test('buildRobots includes a Sitemap line only when the site URL is known', () => {
+ 84:   const withUrl = buildRobots('https://example.com');
+ 85:   assert.match(withUrl, /^User-agent: \*$/m);
+ 86:   assert.match(withUrl, /^Allow: \/$/m);
+ 87:   assert.match(withUrl, /^Sitemap: https:\/\/example\.com\/sitemap\.xml$/m);
+ 88: 
+ 89:   const withoutUrl = buildRobots('');
+ 90:   assert.match(withoutUrl, /^User-agent: \*$/m);
+ 91:   assert.ok(!withoutUrl.includes('Sitemap:'));
+ 92: });
+ 93: 
+ 94: test('buildHeaders uses hashed asset patterns with immutable caching', () => {
+ 95:   const headers = buildHeaders({ workerOrigin: 'https://worker.example.com' });
+ 96:   assert.match(headers, /connect-src 'self' https:\/\/worker\.example\.com/);
+ 97:   assert.match(headers, /X-Content-Type-Options: nosniff/);
+ 98:   assert.match(headers, /Referrer-Policy: strict-origin-when-cross-origin/);
+ 99:   assert.match(headers, /X-Frame-Options: DENY/);
+100:   assert.match(headers, /\/js\.\*/);
+101:   assert.match(headers, /\/dist\.\*/);
+102:   assert.match(headers, /Cache-Control: public, max-age=31536000, immutable/);
+103: });
+104: 
+105: test('buildHeaders revalidates HTML on every request', () => {
+106:   const headers = buildHeaders({ workerOrigin: '' });
+107:   const firstBlock = headers.split('\n\n')[0];
+108:   assert.match(firstBlock, /Cache-Control: public, max-age=0, must-revalidate/);
+109: });
+110: 
+111: test('buildHeaders revalidates data on every request', () => {
+112:   const headers = buildHeaders({ workerOrigin: '' });
+113:   const dataBlock = headers.split('/data/*')[1].split('\n')[1];
+114:   assert.match(dataBlock, /Cache-Control: public, max-age=0, must-revalidate/);
+115: });
+116: 
+117: test('frittLink adds the three utm parameters', () => {
+118:   const href = frittLink('https://fritt.org', 'landingCta');
+119:   assert.match(href, /utm_source=roastroom/);
+120:   assert.match(href, /utm_medium=site/);
+121:   assert.match(href, /utm_campaign=landingCta/);
+122: });
+123: 
+124: test('frittLink preserves an existing query string and hash', () => {
+125:   const withQuery = frittLink('https://fritt.org/?ref=foo', 'landingCta');
+126:   assert.match(withQuery, /ref=foo/);
+127:   assert.match(withQuery, /utm_source=roastroom/);
+128: 
+129:   const withHash = frittLink('https://fritt.org/#contact', 'landingCta');
+130:   assert.match(withHash, /#contact$/);
+131:   assert.match(withHash, /utm_source=roastroom/);
+132: });
+133: 
+134: test('frittLink leaves mailto and other non http links unchanged', () => {
+135:   assert.equal(frittLink('mailto:hello@fritt.org', 'x'), 'mailto:hello@fritt.org');
+136:   assert.equal(frittLink('tel:+1234567890', 'x'), 'tel:+1234567890');
+137: });
+138: 
+139: test('frittLink returns invalid input unchanged', () => {
+140:   assert.equal(frittLink('', 'x'), '');
+141:   assert.equal(frittLink('not a url', 'x'), 'not a url');
+142: });
+143: 
+144: test('hashDirectory returns a stable 8 character hex digest', async () => {
+145:   const dir = await mkdtemp(join(tmpdir(), 'roastroom-hash-'));
+146:   try {
+147:     await writeFile(join(dir, 'a.js'), 'hello');
+148:     await writeFile(join(dir, 'b.js'), 'world');
+149:     const h1 = await hashDirectory(dir);
+150:     const h2 = await hashDirectory(dir);
+151:     assert.match(h1, /^[0-9a-f]{8}$/);
+152:     assert.equal(h1, h2);
+153:   } finally {
+154:     await rm(dir, { recursive: true, force: true });
+155:   }
+156: });
+157: 
+158: test('hashDirectory changes when file content changes', async () => {
+159:   const dir = await mkdtemp(join(tmpdir(), 'roastroom-hash-'));
+160:   try {
+161:     await writeFile(join(dir, 'a.js'), 'hello');
+162:     const h1 = await hashDirectory(dir);
+163:     await writeFile(join(dir, 'a.js'), 'hello!');
+164:     const h2 = await hashDirectory(dir);
+165:     assert.notEqual(h1, h2);
+166:   } finally {
+167:     await rm(dir, { recursive: true, force: true });
+168:   }
+169: });
+170: 
+171: test('hashDirectory changes when a file is added', async () => {
+172:   const dir = await mkdtemp(join(tmpdir(), 'roastroom-hash-'));
+173:   try {
+174:     await writeFile(join(dir, 'a.js'), 'hello');
+175:     const h1 = await hashDirectory(dir);
+176:     await writeFile(join(dir, 'b.js'), 'world');
+177:     const h2 = await hashDirectory(dir);
+178:     assert.notEqual(h1, h2);
+179:   } finally {
+180:     await rm(dir, { recursive: true, force: true });
+181:   }
+182: });
+183: 
+184: test('hashDirectory changes when a file is renamed', async () => {
+185:   const dir = await mkdtemp(join(tmpdir(), 'roastroom-hash-'));
+186:   try {
+187:     await writeFile(join(dir, 'a.js'), 'hello');
+188:     const h1 = await hashDirectory(dir);
+189:     await writeFile(join(dir, 'b.js'), 'hello');
+190:     await rm(join(dir, 'a.js'));
+191:     const h2 = await hashDirectory(dir);
+192:     assert.notEqual(h1, h2);
+193:   } finally {
+194:     await rm(dir, { recursive: true, force: true });
+195:   }
+196: });
 
 ================
 File: worker/src/index.js

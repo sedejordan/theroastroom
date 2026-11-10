@@ -139,7 +139,7 @@ export function createSharePanel(options) {
   });
   fallback.append(fallbackLabel, fallbackInput);
 
-  container.append(heading, formatToggle, previewWrap, actions, status, fallback);
+  container.append(heading, formatToggle, actions, previewWrap, status, fallback);
   container.setAttribute('aria-labelledby', 'sharePanelHeading');
 
   if (typeof navigator === 'undefined' || typeof navigator.share !== 'function') {
@@ -253,12 +253,14 @@ export function createSharePanel(options) {
       `Roast card preview for ${String(roast.headline || '')} in ${format.label} format`
     );
 
-    if (result.truncated) {const renderedKey = key;
-    canvasToBlob(previewCanvas).then((blobResult) => {
-      if (blobResult.ok && lastKey === renderedKey) {
-        cachedBlob = blobResult.blob;
-      }
-    });
+    if (result.truncated) {
+      setStatus('Preview ready (some text was shortened)');
+      const renderedKey = key;
+      canvasToBlob(previewCanvas).then((blobResult) => {
+        if (blobResult.ok && lastKey === renderedKey) {
+          cachedBlob = blobResult.blob;
+        }
+      });
     } else {
       setStatus('Preview ready');
     }
