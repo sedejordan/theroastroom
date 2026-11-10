@@ -27,7 +27,7 @@ const REEL_INTERVAL_MS = 80;
  * @returns {Promise<void>}
  */
 export async function revealRoast(options) {
-  const { headlineElement, finalHeadline, reelPool, hiddenElements } = options;
+  const { headlineElement, finalHeadline, reelPool, hiddenElements, forceAnimate } = options;
 
   if (!headlineElement) return;
 
@@ -41,7 +41,7 @@ export async function revealRoast(options) {
     }
   };
 
-  if (prefersReducedMotion() || pool.length < 2) {
+  if (pool.length < 2 || (prefersReducedMotion() && !forceAnimate)) {
     finish();
     return;
   }
