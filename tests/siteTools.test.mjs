@@ -93,7 +93,6 @@ test('buildHeaders adds the worker origin to connect-src when given', () => {
   assert.match(headers, /X-Content-Type-Options: nosniff/);
   assert.match(headers, /Referrer-Policy: strict-origin-when-cross-origin/);
   assert.match(headers, /X-Frame-Options: DENY/);
-  assert.match(headers, /Cache-Control: public, max-age=0, must-revalidate/);
   assert.match(headers, /\/dist\/\*/);
   assert.match(headers, /Cache-Control: public, max-age=300/);
 });

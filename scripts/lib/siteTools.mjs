@@ -147,7 +147,6 @@ export function buildHeaders(options) {
     '  Permissions-Policy: camera=(), microphone=(), geolocation=()',
     '  X-Frame-Options: DENY',
     `  Content-Security-Policy: ${csp}`,
-    '  Cache-Control: public, max-age=0, must-revalidate',
     '',
     '/dist/*',
     '  Cache-Control: public, max-age=300',
