@@ -242,8 +242,12 @@ export function createSharePanel(options) {
     previewCanvas.width = workCanvas.width;
     previewCanvas.height = workCanvas.height;
 
+    // iOS Safari sometimes needs a layout flush between resize and draw.
+    void previewCanvas.offsetWidth;
+
     const ctx = previewCanvas.getContext('2d');
     if (ctx) {
+      ctx.clearRect(0, 0, previewCanvas.width, previewCanvas.height);
       ctx.drawImage(workCanvas, 0, 0);
     }
 
@@ -415,7 +419,11 @@ export function createSharePanel(options) {
     visible = true;
     container.classList.remove('hidden');
     container.removeAttribute('aria-hidden');
-    schedulePreview();
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        schedulePreview();
+      });
+    });
   }
 
   /**
