@@ -32,10 +32,21 @@ export function createRoastCard(roast, category) {
 
   const categoryLine = createElement('p', {
     className: 'tokenLabel',
-    text: category
-      ? `${category.emoji}  ${category.displayLabel}`
-      : 'Roast',
   });
+  categoryLine.textContent = category
+    ? `${category.emoji}  ${category.displayLabel}`
+    : 'Roast';
+  const isFan = Array.isArray(roast.tags) && roast.tags.includes('fan');
+  if (isFan) {
+    categoryLine.append(
+      document.createTextNode(' '),
+      createElement('span', {
+        className:
+          'ml-2 inline-block rounded-sharp border border-primary px-2 py-0.5 text-xs font-bold uppercase tracking-wider text-primary',
+        text: 'Fan roast',
+      })
+    );
+  }
 
   const jokeLabel = createElement('p', {
     className: 'tokenLabel mt-4',
@@ -86,7 +97,7 @@ export function createRoastCard(roast, category) {
       attrs: {
         href: evidence.sourceUrl,
         target: '_blank',
-        rel: 'noopener noreferrer',
+        rel: 'noopener noreferrer nofollow ugc',
       },
     });
 

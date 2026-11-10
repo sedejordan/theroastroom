@@ -61,6 +61,36 @@ The Workers KV free plan allows about 1000 writes per day. Because every
 accepted action is two writes, that is about 500 accepted actions per day on
 the free plan. Plan accordingly.
 
+## Roast submissions
+
+Fan roast submissions use a second KV key, `roastboard`, holding
+`{ version: 1, submissions: { [id]: { ... } } }`. Ids are `fan_` plus a short
+lowercase base 36 string. The board is capped at 200 submissions.
+
+Each submission records `status` as `pending`, `approved` or `rejected`. Only
+approved submissions are returned by `GET /api/roasts`, and only after the
+admin ticked the source check. Approved submissions become roasts that pass
+`validateRoast` from `js/schema.js` on the client.
+
+Endpoints:
+
+| Method | Path | Auth | Purpose |
+| --- | --- | --- | --- |
+| POST | /api/roast_submissions | origin | Submit a roast. Body `{ clubId, category, headline, explanation, claim, period, sourceName, sourceUrl, website }`. |
+| GET | /api/roasts?club=<id> | none | Approved roasts for one club, cached for 60 seconds. |
+| GET | /api/admin/roast_submissions | Bearer | Every submission, pending first. |
+| POST | /api/admin/roast_submissions/update | Bearer | Edit the text fields of one submission. |
+| POST | /api/admin/roast_submissions/approve | Bearer | Body `{ id, checkedSource: true }`. |
+| POST | /api/admin/roast_submissions/reject | Bearer | Body `{ id }`. |
+| POST | /api/admin/roast_submissions/remove | Bearer | Body `{ id }`. |
+
+Rate limit: at most 2 roast submissions per client per UTC day, and roast
+submissions also count toward the existing 6 actions per day limit. An accepted
+submission performs exactly two KV writes (rate record and `roastboard`).
+
+`LIVE_CLUB_IDS` in `wrangler.toml` is a comma separated list of club ids that
+accept submissions. It defaults to `manutd` when unset.
+
 ## Consistency
 
 KV is eventually consistent. Two simultaneous writes can lose a vote. This is

@@ -71,6 +71,21 @@
           <tbody id="adminBody"></tbody>
         </table>
       </div>
+      <section aria-labelledby="roastAdminHeading" class="mt-12">
+        <h2 id="roastAdminHeading" class="text-2xl text-text">Roast submissions</h2>
+        <p class="mt-2 max-w-2xl text-sm text-textMuted">
+          Pending submissions are listed first. Approve only after the source link has
+          been checked.
+          <span class="ml-2">Pending: <strong id="roastPendingCount">0</strong></span>
+        </p>
+        <p
+          id="roastAdminStatus"
+          class="mt-3 text-sm text-accent"
+          role="status"
+          aria-live="polite"
+        ></p>
+        <div id="roastAdminBody"></div>
+      </section>
     </main>
   </body>
 </html>

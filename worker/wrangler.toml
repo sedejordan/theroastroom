@@ -16,3 +16,5 @@ id = "c7d1798800ad476598ef3323f31195eb"
 # https://paste_your_netlify_site_here   your Netlify site URL
 # https://roastroom.fritt.org        production site
 ALLOWED_ORIGINS = "http://localhost:3000,http://localhost:8000,https://the-roast-room.pages.dev,https://roastroom.fritt.org"
+# Comma separated list of clubs that accept fan roast submissions.
+LIVE_CLUB_IDS = "manutd"

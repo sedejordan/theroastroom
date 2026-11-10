@@ -77,17 +77,18 @@ export function slugify(name) {
 /**
  * Read a rate record safely. Missing or malformed records become empty.
  * @param {unknown} record
- * @returns {{ actions: number, voted: string[] }}
+ * @returns {{ actions: number, voted: string[], roasts: number }}
  */
 export function normaliseRateRecord(record) {
   if (!record || typeof record !== 'object') {
-    return { actions: 0, voted: [] };
+    return { actions: 0, voted: [], roasts: 0 };
   }
   const actions = Number.isInteger(record.actions) && record.actions >= 0 ? record.actions : 0;
   const voted = Array.isArray(record.voted)
     ? record.voted.filter((entry) => typeof entry === 'string')
     : [];
-  return { actions, voted };
+  const roasts = Number.isInteger(record.roasts) && record.roasts >= 0 ? record.roasts : 0;
+  return { actions, voted, roasts };
 }
 
 /**
@@ -226,6 +227,7 @@ export function applySuggestion(options) {
     const nextRate = {
       actions: safeRate.actions + 1,
       voted: safeRate.voted.concat(slug),
+      roasts: safeRate.roasts,
     };
     return { outcome: 'voted', board: nextBoard, rateRecord: nextRate, slug, errors: [] };
   }
@@ -333,6 +335,7 @@ export function applyVote(options) {
   const nextRate = {
     actions: safeRate.actions + 1,
     voted: safeRate.voted.concat(safeSlug),
+    roasts: safeRate.roasts,
   };
   return { outcome: 'voted', board: nextBoard, rateRecord: nextRate, errors: [] };
 }

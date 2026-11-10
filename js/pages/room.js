@@ -18,6 +18,8 @@ import { applyFrittLinks } from '../brand/applyFrittLinks.js';
 import { burstConfetti } from '../ui/confetti.js';
 import { initScrollBackground } from '../background/scrollBackground.js';
 import { backgroundLayersFor } from '../background/layers.js';
+import { createRoastForm } from '../roasts/roastForm.js';
+import { loadFanRoasts } from '../roasts/fanRoasts.js';
 
 const params = new URLSearchParams(window.location.search);
 const clubIdParam = params.get('club') || DEFAULT_CLUB_ID;
@@ -327,6 +329,26 @@ async function init() {
     }
 
     club = await loadClub(clubIdParam);
+
+    // Merge approved fan roasts without mutating the cached club object.
+    const cachedClub = club;
+    const existingIds = (Array.isArray(cachedClub.roasts) ? cachedClub.roasts : [])
+      .map((roast) => (roast && typeof roast.id === 'string' ? roast.id : ''))
+      .filter((id) => id.length > 0);
+    const fanRoasts = await loadFanRoasts(
+      clubIdParam,
+      cachedClub.categories,
+      existingIds
+    );
+    if (fanRoasts.length > 0) {
+      club = {
+        ...cachedClub,
+        roasts: [
+          ...(Array.isArray(cachedClub.roasts) ? cachedClub.roasts : []),
+          ...fanRoasts,
+        ],
+      };
+    }
     applyTheme(club.theme || {});
 
     // Mount club-specific parallax background.
@@ -349,6 +371,22 @@ async function init() {
     selectedCategory = 'all';
     rebuildBagAndFilter();
     showRoom();
+
+    // Fan roast submission form.
+    const submitSection = document.getElementById('roastSubmitSection');
+    const submitForm = document.getElementById('roastSubmitForm');
+    if (submitSection && submitForm) {
+      try {
+        createRoastForm({
+          section: submitSection,
+          container: submitForm,
+          clubId: clubIdParam,
+          categories: Array.isArray(club.categories) ? club.categories : [],
+        });
+      } catch (error) {
+        console.warn('[roastRoom] could not build the roast form', error);
+      }
+    }
 
     if (sharePanelEl && !sharePanel) {
       try {
