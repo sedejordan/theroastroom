@@ -11275,6 +11275,30 @@ File: README.md
 126: - Run a Lighthouse audit on a phone viewport with mobile throttling. Accessibility, best practices and SEO should each score 90 or above.
 
 ================
+File: worker/wrangler.toml
+================
+ 1: name = "roastroomsuggest"
+ 2: main = "src/index.js"
+ 3: compatibility_date = "2025-04-01"
+ 4: 
+ 5: [[kv_namespaces]]
+ 6: binding = "SUGGESTIONS"
+ 7: id = "c7d1798800ad476598ef3323f31195eb"
+ 8: 
+ 9: [vars]
+10: # Comma separated list of allowed origins.
+11: # Requests with an Origin header that is not on this list are rejected with 403
+12: # for POST routes and receive no CORS headers for any route.
+13: #
+14: # http://localhost:3000              local dev (any dev server on this port)
+15: # http://localhost:8000              local dev (python -m http.server)
+16: # https://paste_your_netlify_site_here   your Netlify site URL
+17: # https://roastroom.fritt.org        production site
+18: ALLOWED_ORIGINS = "http://localhost:3000,http://localhost:8000,https://the-roast-room.pages.dev,https://roastroom.fritt.org"
+19: # Comma separated list of clubs that accept fan roast submissions.
+20: LIVE_CLUB_IDS = "manutd"
+
+================
 File: css/components.css
 ================
   1: /*
@@ -11378,7 +11402,7 @@ File: css/components.css
  99:     min-height: 1.2em;
 100:   }
 101: 
-102:   .tickerTrack {
+102:     .tickerTrack {
 103:     display: flex;
 104:     gap: var(--space8);
 105:     width: max-content;
@@ -11386,277 +11410,253 @@ File: css/components.css
 107:     will-change: transform;
 108:   }
 109: 
-110:   /* Pause only on devices that actually hover, not on mobile taps. */
-111:   @media (hover: hover) {
-112:     .tickerTrack:hover {
-113:       animation-play-state: paused;
-114:     }
-115:   }
-116: 
-117:   .tickerTrack:focus-within {
-118:     animation-play-state: paused;
-119:   }
-120: 
-121:   /* On a narrow screen, speed it up so the motion reads clearly. */
-122:   @media (max-width: 767px) {
-123:     .tickerTrack {
-124:       animation-duration: 26s;
-125:     }
-126:   }
-127: 
-128:   .tickerTrack.isPaused {
-129:     animation-play-state: paused;
-130:   }
-131: 
-132:   @media (prefers-reduced-motion: reduce) {
-133:     .tickerTrack {
-134:       animation: none !important;
-135:       flex-wrap: wrap;
-136:       width: auto;
-137:       will-change: auto;
-138:     }
-139:     .tickerTrack.isPlaying {
-140:       animation: tickerScroll 26s linear infinite !important;
-141:       flex-wrap: nowrap;
-142:       width: max-content;
-143:     }
-144:   }
-145: 
-146:   /* Share panel */
-147:   .sharePanel {
-148:     margin-top: var(--space8);
+110:   @media (max-width: 767px) {
+111:     .tickerTrack {
+112:       animation-duration: 26s;
+113:     }
+114:   }
+115: 
+116:   @media (prefers-reduced-motion: reduce) {
+117:     .tickerTrack {
+118:       animation-play-state: paused;
+119:     }
+120:   }
+121: 
+122:   /* Share panel */
+123:   .sharePanel {
+124:     margin-top: var(--space8);
+125:     border: var(--borderWidth1) solid var(--colorLine);
+126:     border-radius: var(--radiusSharp);
+127:     background-color: var(--colorSurface);
+128:     padding: var(--space5);
+129:   }
+130: 
+131:   .sharePanelHeading {
+132:     margin: 0;
+133:     font-family: var(--fontDisplay);
+134:     font-size: var(--text2xl);
+135:     line-height: var(--leadingTight);
+136:     letter-spacing: var(--trackingTight);
+137:     text-transform: uppercase;
+138:     color: var(--colorText);
+139:   }
+140: 
+141:   .shareFormatToggle {
+142:     display: flex;
+143:     flex-wrap: wrap;
+144:     gap: var(--space2);
+145:     margin-top: var(--space4);
+146:   }
+147: 
+148:   .shareFormatButton {
 149:     border: var(--borderWidth1) solid var(--colorLine);
-150:     border-radius: var(--radiusSharp);
-151:     background-color: var(--colorSurface);
-152:     padding: var(--space5);
-153:   }
-154: 
-155:   .sharePanelHeading {
-156:     margin: 0;
-157:     font-family: var(--fontDisplay);
-158:     font-size: var(--text2xl);
-159:     line-height: var(--leadingTight);
-160:     letter-spacing: var(--trackingTight);
-161:     text-transform: uppercase;
-162:     color: var(--colorText);
+150:     border-radius: var(--radiusPill);
+151:     background-color: var(--colorSurfaceRaised);
+152:     color: var(--colorText);
+153:     padding: var(--space2) var(--space4);
+154:     font-size: var(--textSm);
+155:     transition:
+156:       background-color var(--durationFast) var(--easeStandard),
+157:       color var(--durationFast) var(--easeStandard),
+158:       border-color var(--durationFast) var(--easeStandard);
+159:   }
+160: 
+161:   .shareFormatButton:hover {
+162:     border-color: var(--colorPrimary);
 163:   }
 164: 
-165:   .shareFormatToggle {
-166:     display: flex;
-167:     flex-wrap: wrap;
-168:     gap: var(--space2);
-169:     margin-top: var(--space4);
-170:   }
-171: 
-172:   .shareFormatButton {
-173:     border: var(--borderWidth1) solid var(--colorLine);
-174:     border-radius: var(--radiusPill);
-175:     background-color: var(--colorSurfaceRaised);
-176:     color: var(--colorText);
-177:     padding: var(--space2) var(--space4);
-178:     font-size: var(--textSm);
-179:     transition:
-180:       background-color var(--durationFast) var(--easeStandard),
-181:       color var(--durationFast) var(--easeStandard),
-182:       border-color var(--durationFast) var(--easeStandard);
-183:   }
-184: 
-185:   .shareFormatButton:hover {
-186:     border-color: var(--colorPrimary);
+165:   .shareFormatButton[aria-pressed='true'] {
+166:     background-color: var(--colorPrimary);
+167:     border-color: var(--colorPrimary);
+168:     color: var(--colorPrimaryContrast);
+169:   }
+170: 
+171:   .sharePreviewWrap {
+172:     display: flex;
+173:     justify-content: center;
+174:     margin-top: var(--space4);
+175:     border: var(--borderWidth1) solid var(--colorLine);
+176:     background-color: var(--colorSurfaceRaised);
+177:     padding: var(--space3);
+178:   }
+179: 
+180:   .sharePreviewCanvas {
+181:     display: block;
+182:     width: 100%;
+183:     height: auto;
+184:     max-height: 60vh;
+185:     object-fit: contain;
+186:     background-color: var(--colorBackground);
 187:   }
 188: 
-189:   .shareFormatButton[aria-pressed='true'] {
-190:     background-color: var(--colorPrimary);
-191:     border-color: var(--colorPrimary);
-192:     color: var(--colorPrimaryContrast);
-193:   }
-194: 
-195:   .sharePreviewWrap {
-196:     display: flex;
-197:     justify-content: center;
-198:     margin-top: var(--space4);
+189:   .shareActions {
+190:     display: flex;
+191:     flex-wrap: wrap;
+192:     gap: var(--space3);
+193:     margin-top: var(--space4);
+194:   }
+195: 
+196:   .shareActionPrimary,
+197:   .shareActionSecondary {
+198:     border-radius: var(--radiusSharp);
 199:     border: var(--borderWidth1) solid var(--colorLine);
-200:     background-color: var(--colorSurfaceRaised);
-201:     padding: var(--space3);
-202:   }
-203: 
-204:   .sharePreviewCanvas {
-205:     display: block;
-206:     width: 100%;
-207:     height: auto;
-208:     max-height: 60vh;
-209:     object-fit: contain;
-210:     background-color: var(--colorBackground);
-211:   }
-212: 
-213:   .shareActions {
-214:     display: flex;
-215:     flex-wrap: wrap;
-216:     gap: var(--space3);
-217:     margin-top: var(--space4);
+200:     padding: var(--space3) var(--space5);
+201:     font-weight: 600;
+202:     transition:
+203:       background-color var(--durationFast) var(--easeStandard),
+204:       color var(--durationFast) var(--easeStandard),
+205:       border-color var(--durationFast) var(--easeStandard);
+206:   }
+207: 
+208:   .shareActionPrimary {
+209:     background-color: var(--colorPrimary);
+210:     border-color: var(--colorPrimary);
+211:     color: var(--colorPrimaryContrast);
+212:   }
+213: 
+214:   .shareActionPrimary:hover {
+215:     background-color: var(--colorAccent);
+216:     border-color: var(--colorAccent);
+217:     color: var(--colorBackground);
 218:   }
 219: 
-220:   .shareActionPrimary,
-221:   .shareActionSecondary {
-222:     border-radius: var(--radiusSharp);
-223:     border: var(--borderWidth1) solid var(--colorLine);
-224:     padding: var(--space3) var(--space5);
-225:     font-weight: 600;
-226:     transition:
-227:       background-color var(--durationFast) var(--easeStandard),
-228:       color var(--durationFast) var(--easeStandard),
-229:       border-color var(--durationFast) var(--easeStandard);
-230:   }
-231: 
-232:   .shareActionPrimary {
-233:     background-color: var(--colorPrimary);
-234:     border-color: var(--colorPrimary);
-235:     color: var(--colorPrimaryContrast);
-236:   }
-237: 
-238:   .shareActionPrimary:hover {
-239:     background-color: var(--colorAccent);
-240:     border-color: var(--colorAccent);
-241:     color: var(--colorBackground);
-242:   }
-243: 
-244:   .shareActionSecondary {
-245:     background-color: var(--colorSurfaceRaised);
-246:     color: var(--colorText);
-247:   }
-248: 
-249:   .shareActionSecondary:hover {
-250:     border-color: var(--colorPrimary);
-251:   }
-252: 
-253:   .shareActionPrimary:disabled,
-254:   .shareActionSecondary:disabled {
-255:     opacity: 0.6;
-256:     cursor: not-allowed;
-257:   }
-258: 
-259:   .shareStatus {
-260:     min-height: 1.5em;
-261:     margin-top: var(--space3);
-262:     font-size: var(--textSm);
-263:     color: var(--colorTextMuted);
-264:   }
-265: 
-266:   .shareFallback {
-267:     margin-top: var(--space3);
-268:   }
-269: 
-270:   .shareFallbackInput {
-271:     width: 100%;
-272:     margin-top: var(--space2);
-273:     border: var(--borderWidth1) solid var(--colorLine);
-274:     border-radius: var(--radiusSharp);
-275:     background-color: var(--colorBackground);
-276:     color: var(--colorText);
-277:     padding: var(--space3);
-278:     font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-279:     font-size: var(--textSm);
-280:   }
-281: 
-282:   .shareFallbackInput:focus-visible {
-283:     outline: var(--borderWidth2) solid var(--colorAccent);
-284:     outline-offset: 2px;
-285:   }
-286: }
-287: 
-288: @keyframes tickerScroll {
-289:   from {
-290:     transform: translateX(0);
-291:   }
-292:   to {
-293:     transform: translateX(-50%);
-294:   }
-295: }
-296: 
-297: /* ------------------------------------------------------------------
-298:    Club background (fixed, parallax layers)
-299:    ------------------------------------------------------------------ */
-300: .clubBackground {
-301:   position: fixed;
-302:   inset: 0;
-303:   z-index: -1;
-304:   overflow: hidden;
-305:   pointer-events: none;
-306:   contain: layout paint;
-307: }
-308: 
-309: .clubBackground__layer {
-310:   position: absolute;
-311:   left: 0;
-312:   right: 0;
-313:   top: -50vh;
-314:   bottom: -50vh;
-315:   will-change: transform;
-316:   transform: translate3d(0, 0, 0);
-317: }
-318: 
-319: .clubBackground__layer > svg {
-320:   display: block;
-321:   width: 100%;
-322:   height: 100%;
-323: }
-324: 
-325: .clubBackground__scrim {
-326:   position: absolute;
-327:   inset: 0;
-328:   background:
-329:     linear-gradient(to bottom, rgba(10, 10, 10, 0.55), rgba(10, 10, 10, 0.55)),
-330:     radial-gradient(ellipse at center,
-331:       rgba(10, 10, 10, 0) 0%,
-332:       rgba(10, 10, 10, 0.55) 100%);
-333: }
-334: 
-335: @media (prefers-reduced-motion: reduce) {
-336:   .clubBackground__layer {
-337:     will-change: auto;
-338:     transform: none !important;
-339:   }
-340: }
-341: 
-342: @media (max-width: 480px) {
-343:   .clubBackground__layer--fast {
-344:     display: none;
-345:   }
-346: }
-347: 
-348: /* ------------------------------------------------------------------
-349:    Micro-interactions
-350:    ------------------------------------------------------------------ */
-351: 
-352: /* Roast card entrance */
-353: .roastCard {
-354:   animation: roastCardIn var(--durationSlow) var(--easeOut) both;
-355: }
-356: 
-357: @keyframes roastCardIn {
-358:   from {
-359:     opacity: 0;
-360:     transform: translateY(12px) scale(0.98);
-361:   }
-362:   to {
-363:     opacity: 1;
-364:     transform: translateY(0) scale(1);
-365:   }
-366: }
-367: 
-368: /* Filter chip press */
-369: .categoryChip:active {
-370:   transform: scale(0.96);
-371: }
-372: 
-373: @media (prefers-reduced-motion: reduce) {
-374:   .roastCard {
-375:     animation: none;
-376:   }
-377:   .categoryChip:active {
-378:     transform: none;
-379:   }
-380: }
+220:   .shareActionSecondary {
+221:     background-color: var(--colorSurfaceRaised);
+222:     color: var(--colorText);
+223:   }
+224: 
+225:   .shareActionSecondary:hover {
+226:     border-color: var(--colorPrimary);
+227:   }
+228: 
+229:   .shareActionPrimary:disabled,
+230:   .shareActionSecondary:disabled {
+231:     opacity: 0.6;
+232:     cursor: not-allowed;
+233:   }
+234: 
+235:   .shareStatus {
+236:     min-height: 1.5em;
+237:     margin-top: var(--space3);
+238:     font-size: var(--textSm);
+239:     color: var(--colorTextMuted);
+240:   }
+241: 
+242:   .shareFallback {
+243:     margin-top: var(--space3);
+244:   }
+245: 
+246:   .shareFallbackInput {
+247:     width: 100%;
+248:     margin-top: var(--space2);
+249:     border: var(--borderWidth1) solid var(--colorLine);
+250:     border-radius: var(--radiusSharp);
+251:     background-color: var(--colorBackground);
+252:     color: var(--colorText);
+253:     padding: var(--space3);
+254:     font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+255:     font-size: var(--textSm);
+256:   }
+257: 
+258:   .shareFallbackInput:focus-visible {
+259:     outline: var(--borderWidth2) solid var(--colorAccent);
+260:     outline-offset: 2px;
+261:   }
+262: }
+263: 
+264: @keyframes tickerScroll {
+265:   from {
+266:     transform: translateX(0);
+267:   }
+268:   to {
+269:     transform: translateX(-50%);
+270:   }
+271: }
+272: 
+273: /* ------------------------------------------------------------------
+274:    Club background (fixed, parallax layers)
+275:    ------------------------------------------------------------------ */
+276: .clubBackground {
+277:   position: fixed;
+278:   inset: 0;
+279:   z-index: -1;
+280:   overflow: hidden;
+281:   pointer-events: none;
+282:   contain: layout paint;
+283: }
+284: 
+285: .clubBackground__layer {
+286:   position: absolute;
+287:   left: 0;
+288:   right: 0;
+289:   top: -50vh;
+290:   bottom: -50vh;
+291:   will-change: transform;
+292:   transform: translate3d(0, 0, 0);
+293: }
+294: 
+295: .clubBackground__layer > svg {
+296:   display: block;
+297:   width: 100%;
+298:   height: 100%;
+299: }
+300: 
+301: .clubBackground__scrim {
+302:   position: absolute;
+303:   inset: 0;
+304:   background:
+305:     linear-gradient(to bottom, rgba(10, 10, 10, 0.55), rgba(10, 10, 10, 0.55)),
+306:     radial-gradient(ellipse at center,
+307:       rgba(10, 10, 10, 0) 0%,
+308:       rgba(10, 10, 10, 0.55) 100%);
+309: }
+310: 
+311: @media (prefers-reduced-motion: reduce) {
+312:   .clubBackground__layer {
+313:     will-change: auto;
+314:     transform: none !important;
+315:   }
+316: }
+317: 
+318: @media (max-width: 480px) {
+319:   .clubBackground__layer--fast {
+320:     display: none;
+321:   }
+322: }
+323: 
+324: /* ------------------------------------------------------------------
+325:    Micro-interactions
+326:    ------------------------------------------------------------------ */
+327: 
+328: /* Roast card entrance */
+329: .roastCard {
+330:   animation: roastCardIn var(--durationSlow) var(--easeOut) both;
+331: }
+332: 
+333: @keyframes roastCardIn {
+334:   from {
+335:     opacity: 0;
+336:     transform: translateY(12px) scale(0.98);
+337:   }
+338:   to {
+339:     opacity: 1;
+340:     transform: translateY(0) scale(1);
+341:   }
+342: }
+343: 
+344: /* Filter chip press */
+345: .categoryChip:active {
+346:   transform: scale(0.96);
+347: }
+348: 
+349: @media (prefers-reduced-motion: reduce) {
+350:   .roastCard {
+351:     animation: none;
+352:   }
+353:   .categoryChip:active {
+354:     transform: none;
+355:   }
+356: }
 
 ================
 File: js/pages/landing.js
@@ -11755,153 +11755,144 @@ File: js/pages/landing.js
  92:   let running = !reduced;
  93: 
  94:   const apply = () => {
- 95:     tickerTrack.classList.toggle('isPlaying', reduced && running);
- 96:     tickerTrack.classList.toggle('isPaused', !reduced && !running);
- 97:     toggle.textContent = running ? 'Pause ticker' : 'Play ticker';
- 98:   };
- 99: 
-100:   toggle.addEventListener('click', () => {
-101:     running = !running;
-102:     apply();
-103:   });
-104:   apply();
-105: }
-106: 
-107: /**
-108:  * Render the ticker with the first six headlines.
-109:  * Duplicates the items once so the CSS translate loop is seamless; only the
-110:  * first copy is exposed to screen readers.
-111:  * @param {Array<{ headline: string, clubShortName: string }>} roasts
-112:  * @returns {void}
-113:  */
-114: function renderTicker(roasts) {
-115:   if (!tickerTrack || !tickerSection) return;
-116: 
-117:   clear(tickerTrack);
+ 95:     const duration = window.matchMedia('(max-width: 767px)').matches ? '26s' : '40s';
+ 96:     // Inline `!important` is required: css/base.css sets
+ 97:     // `* { animation-duration: 1ms !important; animation-iteration-count: 1 !important; }`
+ 98:     // under prefers-reduced-motion, which would otherwise kill the ticker even
+ 99:     // after the user clicks Play.
+100:     tickerTrack.style.setProperty(
+101:       'animation',
+102:       `tickerScroll ${duration} linear infinite`,
+103:       'important'
+104:     );
+105:     tickerTrack.style.setProperty(
+106:       'animation-play-state',
+107:       running ? 'running' : 'paused',
+108:       'important'
+109:     );
+110:     toggle.textContent = running ? 'Pause ticker' : 'Play ticker';
+111:     toggle.setAttribute('aria-pressed', running ? 'false' : 'true');
+112:   };
+113: 
+114:   toggle.addEventListener('click', () => {
+115:     running = !running;
+116:     apply();
+117:   });
 118: 
-119:   if (!Array.isArray(roasts) || roasts.length === 0) {
-120:     tickerSection.classList.add('hidden');
-121:     return;
-122:   }
-123: 
-124:   const items = roasts.slice(0, 6);
-125: 
-126:   for (const roast of items) {
-127:     tickerTrack.append(
-128:       createElement('span', {
-129:         className: 'whitespace-nowrap text-sm text-textMuted',
-130:         text: `${roast.clubShortName}: ${roast.headline}`,
-131:       })
-132:     );
-133:   }
-134: 
-135:   for (const roast of items) {
-136:     tickerTrack.append(
-137:       createElement('span', {
-138:         className: 'whitespace-nowrap text-sm text-textMuted',
-139:         text: `${roast.clubShortName}: ${roast.headline}`,
-140:         attrs: { 'aria-hidden': 'true' },
-141:       })
-142:     );
-143:   }
-144: 
-145:   tickerSection.classList.remove('hidden');
-146:   setupTickerToggle();
-147: }
-148: 
-149: /**
-150:  * Show a friendly error inside the picker when the registry cannot load.
-151:  * @param {string} message
-152:  * @returns {void}
-153:  */
-154: function showPickerError(message) {
-155:   if (!liveContainer) return;
-156:   clear(liveContainer);
-157:   liveContainer.append(
-158:     createElement('p', {
-159:       className: 'text-textMuted',
-160:       text: message,
-161:     })
-162:   );
-163: }
-164: 
-165: /**
-166:  * Load the registry and render every section of the page.
-167:  * @returns {Promise<void>}
+119:   apply();
+120: }
+121: 
+122: /**
+123:  * Render the ticker with the first six headlines.
+124:  * Duplicates the items once so the CSS translate loop is seamless; only the
+125:  * first copy is exposed to screen readers.
+126:  * @param {Array<{ headline: string, clubShortName: string }>} roasts
+127:  * @returns {void}
+128:  */
+129: function renderTicker(roasts) {
+130:   if (!tickerTrack || !tickerSection) return;
+131: 
+132:   clear(tickerTrack);
+133: 
+134:   if (!Array.isArray(roasts) || roasts.length === 0) {
+135:     tickerSection.classList.add('hidden');
+136:     return;
+137:   }
+138: 
+139:   const items = roasts.slice(0, 6);
+140: 
+141:   for (const roast of items) {
+142:     tickerTrack.append(
+143:       createElement('span', {
+144:         className: 'whitespace-nowrap text-sm text-textMuted',
+145:         text: `${roast.clubShortName}: ${roast.headline}`,
+146:       })
+147:     );
+148:   }
+149: 
+150:   for (const roast of items) {
+151:     tickerTrack.append(
+152:       createElement('span', {
+153:         className: 'whitespace-nowrap text-sm text-textMuted',
+154:         text: `${roast.clubShortName}: ${roast.headline}`,
+155:         attrs: { 'aria-hidden': 'true' },
+156:       })
+157:     );
+158:   }
+159: 
+160:   tickerSection.classList.remove('hidden');
+161:   setupTickerToggle();
+162: }
+163: 
+164: /**
+165:  * Show a friendly error inside the picker when the registry cannot load.
+166:  * @param {string} message
+167:  * @returns {void}
 168:  */
-169: async function init() {
-170:   setCallToActions();
-171:   applyFrittLinks();
-172: 
-173:   const bgEl = document.getElementById('clubBackground');
-174:   if (bgEl) {
-175:     initScrollBackground(bgEl, backgroundLayersFor('manutd'));
-176:   }
-177: 
-178:   try {
-179:     const registry = await loadRegistry();
-180:     const live = getLiveClubs(registry);
-181:     const comingSoon = getComingSoonClubs(registry);
-182: 
-183:     /** @type {Array<{ headline: string, clubShortName: string }>} */
-184:     const roastPool = [];
-185: 
-186:     for (const entry of live) {
-187:       try {
-188:         const club = await loadClub(entry.id);
-189:         if (liveContainer) {
-190:           liveContainer.append(renderLiveClub(entry, Array.isArray(club.roasts) ? club.roasts.length : 0));
-191:         }
-192:         if (Array.isArray(club.roasts)) {
-193:           for (const roast of club.roasts) {
-194:             roastPool.push({ headline: roast.headline, clubShortName: String(entry.shortName) });
-195:           }
-196:         }
-197:       } catch (error) {
-198:         console.warn('[roastRoom] could not load live club', entry.id, error);
-199:       }
-200:     }
-201: 
-202:     if (comingSoonContainer) {
-203:       for (const entry of comingSoon) {
-204:         comingSoonContainer.append(renderComingSoonClub(entry));
-205:       }
-206:     }
-207: 
-208:       renderTicker(roastPool);
-209:     } catch (error) {
-210:       console.warn('[roastRoom] could not load the registry', error);
-211:       showPickerError('Could not load the club list. Serve the site over http and reload.');
-212:     }
-213: 
-214:     initSuggestSection();
-215: }
+169: function showPickerError(message) {
+170:   if (!liveContainer) return;
+171:   clear(liveContainer);
+172:   liveContainer.append(
+173:     createElement('p', {
+174:       className: 'text-textMuted',
+175:       text: message,
+176:     })
+177:   );
+178: }
+179: 
+180: /**
+181:  * Load the registry and render every section of the page.
+182:  * @returns {Promise<void>}
+183:  */
+184: async function init() {
+185:   setCallToActions();
+186:   applyFrittLinks();
+187: 
+188:   const bgEl = document.getElementById('clubBackground');
+189:   if (bgEl) {
+190:     initScrollBackground(bgEl, backgroundLayersFor('manutd'));
+191:   }
+192: 
+193:   try {
+194:     const registry = await loadRegistry();
+195:     const live = getLiveClubs(registry);
+196:     const comingSoon = getComingSoonClubs(registry);
+197: 
+198:     /** @type {Array<{ headline: string, clubShortName: string }>} */
+199:     const roastPool = [];
+200: 
+201:     for (const entry of live) {
+202:       try {
+203:         const club = await loadClub(entry.id);
+204:         if (liveContainer) {
+205:           liveContainer.append(renderLiveClub(entry, Array.isArray(club.roasts) ? club.roasts.length : 0));
+206:         }
+207:         if (Array.isArray(club.roasts)) {
+208:           for (const roast of club.roasts) {
+209:             roastPool.push({ headline: roast.headline, clubShortName: String(entry.shortName) });
+210:           }
+211:         }
+212:       } catch (error) {
+213:         console.warn('[roastRoom] could not load live club', entry.id, error);
+214:       }
+215:     }
 216: 
-217: init();
-
-================
-File: worker/wrangler.toml
-================
- 1: name = "roastroomsuggest"
- 2: main = "src/index.js"
- 3: compatibility_date = "2025-04-01"
- 4: 
- 5: [[kv_namespaces]]
- 6: binding = "SUGGESTIONS"
- 7: id = "c7d1798800ad476598ef3323f31195eb"
- 8: 
- 9: [vars]
-10: # Comma separated list of allowed origins.
-11: # Requests with an Origin header that is not on this list are rejected with 403
-12: # for POST routes and receive no CORS headers for any route.
-13: #
-14: # http://localhost:3000              local dev (any dev server on this port)
-15: # http://localhost:8000              local dev (python -m http.server)
-16: # https://paste_your_netlify_site_here   your Netlify site URL
-17: # https://roastroom.fritt.org        production site
-18: ALLOWED_ORIGINS = "http://localhost:3000,http://localhost:8000,https://the-roast-room.pages.dev,https://roastroom.fritt.org"
-19: # Comma separated list of clubs that accept fan roast submissions.
-20: LIVE_CLUB_IDS = "manutd"
+217:     if (comingSoonContainer) {
+218:       for (const entry of comingSoon) {
+219:         comingSoonContainer.append(renderComingSoonClub(entry));
+220:       }
+221:     }
+222: 
+223:       renderTicker(roastPool);
+224:     } catch (error) {
+225:       console.warn('[roastRoom] could not load the registry', error);
+226:       showPickerError('Could not load the club list. Serve the site over http and reload.');
+227:     }
+228: 
+229:     initSuggestSection();
+230: }
+231: 
+232: init();
 
 ================
 File: js/pages/room.js

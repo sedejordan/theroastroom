@@ -13,7 +13,7 @@
  *    SUGGEST_API_BASE.
  */
 
-import { copyFile, mkdir, readFile, readdir, rm, stat, writeFile } from 'node:fs/promises';
+import { copyFile, mkdir, readFile, readdir, rename, rm, stat, writeFile } from 'node:fs/promises';
 import { execSync } from 'node:child_process';
 import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -23,6 +23,7 @@ import {
   buildHeaders,
   buildRobots,
   buildSitemap,
+  hashDirectory,
   normaliseSiteUrl,
   originOf,
   replaceSiteUrl,
@@ -49,14 +50,15 @@ function buildCss() {
  * @param {Set<string>} skip
  * @returns {Promise<void>}
  */
-async function copyFolder(source, destination, skip) {
+async function copyFolder(source, destination, skip, skipDirs) {
   await mkdir(destination, { recursive: true });
   const entries = await readdir(source, { withFileTypes: true });
   for (const entry of entries) {
     const from = join(source, entry.name);
     const to = join(destination, entry.name);
     if (entry.isDirectory()) {
-      await copyFolder(from, to, skip);
+      if (skipDirs && skipDirs.has(entry.name)) continue;
+      await copyFolder(from, to, skip, skipDirs);
     } else if (!skip.has(entry.name)) {
       await copyFile(from, to);
     }
@@ -124,7 +126,12 @@ async function main() {
 
   // 4. Copy the compiled styles, the scripts, the data.
   await copyFolder(join(rootDirectory, 'dist'), join(siteDirectory, 'dist'), new Set());
-  await copyFolder(join(rootDirectory, 'js'), join(siteDirectory, 'js'), new Set());
+  await copyFolder(
+    join(rootDirectory, 'js'),
+    join(siteDirectory, 'js'),
+    new Set(),
+    new Set(['dev'])
+  );
   await copyFolder(join(rootDirectory, 'data'), join(siteDirectory, 'data'), new Set());
 
   // 5. Copy the public pages, skipping the developer pages.
@@ -158,14 +165,28 @@ async function main() {
     );
   }
 
+  // 6b. Hash the JS and CSS directories and rename them. Any change to a
+  // file inside produces a new directory name, so browsers treat the files
+  // as new assets and fetch them fresh.
+  const jsHash = await hashDirectory(join(siteDirectory, 'js'));
+  const distHash = await hashDirectory(join(siteDirectory, 'dist'));
+
+  await rename(join(siteDirectory, 'js'), join(siteDirectory, `js.${jsHash}`));
+  await rename(join(siteDirectory, 'dist'), join(siteDirectory, `dist.${distHash}`));
+
+  console.log(`[build] js hash: ${jsHash}`);
+  console.log(`[build] dist hash: ${distHash}`);
+
   // 7. Replace the __SITE_URL__ token in every HTML file in site/.
   const htmlFiles = await listHtmlFiles(siteDirectory);
   let survivingTokens = 0;
   for (const file of htmlFiles) {
-    const html = await readFile(file, 'utf8');
-    const replaced = replaceSiteUrl(html, siteUrl);
-    await writeFile(file, replaced, 'utf8');
-    if (replaced.includes('__SITE_URL__')) {
+    let html = await readFile(file, 'utf8');
+    html = replaceSiteUrl(html, siteUrl);
+    html = html.split('js/pages/').join(`js.${jsHash}/pages/`);
+    html = html.split('dist/styles.css').join(`dist.${distHash}/styles.css`);
+    await writeFile(file, html, 'utf8');
+    if (html.includes('__SITE_URL__')) {
       survivingTokens += 1;
     }
   }

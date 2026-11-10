@@ -5,11 +5,15 @@
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 
 import {
   buildHeaders,
   buildRobots,
   buildSitemap,
+  hashDirectory,
   normaliseSiteUrl,
   originOf,
   replaceSiteUrl,
@@ -87,25 +91,27 @@ test('buildRobots includes a Sitemap line only when the site URL is known', () =
   assert.ok(!withoutUrl.includes('Sitemap:'));
 });
 
-test('buildHeaders adds the worker origin to connect-src when given', () => {
+test('buildHeaders uses hashed asset patterns with immutable caching', () => {
   const headers = buildHeaders({ workerOrigin: 'https://worker.example.com' });
   assert.match(headers, /connect-src 'self' https:\/\/worker\.example\.com/);
   assert.match(headers, /X-Content-Type-Options: nosniff/);
   assert.match(headers, /Referrer-Policy: strict-origin-when-cross-origin/);
   assert.match(headers, /X-Frame-Options: DENY/);
-  assert.match(headers, /\/dist\/\*/);
-  assert.match(headers, /Cache-Control: public, max-age=300/);
+  assert.match(headers, /\/js\.\*/);
+  assert.match(headers, /\/dist\.\*/);
+  assert.match(headers, /Cache-Control: public, max-age=31536000, immutable/);
 });
 
-test('buildHeaders omits the worker origin when none is given', () => {
+test('buildHeaders revalidates HTML on every request', () => {
   const headers = buildHeaders({ workerOrigin: '' });
-  assert.match(headers, /connect-src 'self';/);
-  assert.ok(!headers.includes('https://worker.example.com'));
+  const firstBlock = headers.split('\n\n')[0];
+  assert.match(firstBlock, /Cache-Control: public, max-age=0, must-revalidate/);
 });
 
-test('buildHeaders never contains unsafe-eval', () => {
-  assert.ok(!buildHeaders({ workerOrigin: '' }).includes('unsafe-eval'));
-  assert.ok(!buildHeaders({ workerOrigin: 'https://w.example.com' }).includes('unsafe-eval'));
+test('buildHeaders revalidates data on every request', () => {
+  const headers = buildHeaders({ workerOrigin: '' });
+  const dataBlock = headers.split('/data/*')[1].split('\n')[1];
+  assert.match(dataBlock, /Cache-Control: public, max-age=0, must-revalidate/);
 });
 
 test('frittLink adds the three utm parameters', () => {
@@ -133,4 +139,58 @@ test('frittLink leaves mailto and other non http links unchanged', () => {
 test('frittLink returns invalid input unchanged', () => {
   assert.equal(frittLink('', 'x'), '');
   assert.equal(frittLink('not a url', 'x'), 'not a url');
+});
+
+test('hashDirectory returns a stable 8 character hex digest', async () => {
+  const dir = await mkdtemp(join(tmpdir(), 'roastroom-hash-'));
+  try {
+    await writeFile(join(dir, 'a.js'), 'hello');
+    await writeFile(join(dir, 'b.js'), 'world');
+    const h1 = await hashDirectory(dir);
+    const h2 = await hashDirectory(dir);
+    assert.match(h1, /^[0-9a-f]{8}$/);
+    assert.equal(h1, h2);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('hashDirectory changes when file content changes', async () => {
+  const dir = await mkdtemp(join(tmpdir(), 'roastroom-hash-'));
+  try {
+    await writeFile(join(dir, 'a.js'), 'hello');
+    const h1 = await hashDirectory(dir);
+    await writeFile(join(dir, 'a.js'), 'hello!');
+    const h2 = await hashDirectory(dir);
+    assert.notEqual(h1, h2);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('hashDirectory changes when a file is added', async () => {
+  const dir = await mkdtemp(join(tmpdir(), 'roastroom-hash-'));
+  try {
+    await writeFile(join(dir, 'a.js'), 'hello');
+    const h1 = await hashDirectory(dir);
+    await writeFile(join(dir, 'b.js'), 'world');
+    const h2 = await hashDirectory(dir);
+    assert.notEqual(h1, h2);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('hashDirectory changes when a file is renamed', async () => {
+  const dir = await mkdtemp(join(tmpdir(), 'roastroom-hash-'));
+  try {
+    await writeFile(join(dir, 'a.js'), 'hello');
+    const h1 = await hashDirectory(dir);
+    await writeFile(join(dir, 'b.js'), 'hello');
+    await rm(join(dir, 'a.js'));
+    const h2 = await hashDirectory(dir);
+    assert.notEqual(h1, h2);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
 });

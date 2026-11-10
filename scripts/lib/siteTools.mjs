@@ -1,3 +1,7 @@
+import { createHash } from 'node:crypto';
+import { readFile, readdir } from 'node:fs/promises';
+import { join } from 'node:path';
+
 /**
  * Pure helpers for the site build. No file system, no process access, no
  * fetch. Everything here is deterministic and testable in isolation.
@@ -76,6 +80,51 @@ export function originOf(url) {
 }
 
 /**
+ * Recursively collect file paths and contents under a directory. `.DS_Store`
+ * is skipped. The output is unsorted; the caller sorts it.
+ * @param {string} base Base directory.
+ * @param {string} [rel] Current relative subdirectory.
+ * @param {Array<{ path: string, content: Buffer }>} [out]
+ * @returns {Promise<Array<{ path: string, content: Buffer }>>}
+ */
+async function collectDirectoryFiles(base, rel = '', out = []) {
+  const entries = await readdir(join(base, rel), { withFileTypes: true });
+  for (const entry of entries) {
+    const relPath = rel ? `${rel}/${entry.name}` : entry.name;
+    if (entry.isDirectory()) {
+      await collectDirectoryFiles(base, relPath, out);
+    } else if (entry.isFile()) {
+      if (entry.name === '.DS_Store') continue;
+      const content = await readFile(join(base, relPath));
+      out.push({ path: relPath, content });
+    }
+  }
+  return out;
+}
+
+/**
+ * Hash every file under a directory into a short hex digest. Both the file
+ * path and the file content are hashed, and files are sorted first, so the
+ * digest is deterministic: any change to any file (added, removed, renamed,
+ * edited) produces a new digest. Suitable as a cache-busting directory
+ * suffix.
+ * @param {string} directory
+ * @returns {Promise<string>} Short hex digest, eight characters.
+ */
+export async function hashDirectory(directory) {
+  const files = await collectDirectoryFiles(directory);
+  files.sort((a, b) => a.path.localeCompare(b.path));
+  const hash = createHash('sha256');
+  for (const file of files) {
+    hash.update(file.path);
+    hash.update('\0');
+    hash.update(file.content);
+    hash.update('\0');
+  }
+  return hash.digest('hex').slice(0, 8);
+}
+
+/**
  * Build a sitemap.xml body.
  * @param {{ siteUrl: string, paths: string[] }} options
  * @returns {string}
@@ -147,15 +196,16 @@ export function buildHeaders(options) {
     '  Permissions-Policy: camera=(), microphone=(), geolocation=()',
     '  X-Frame-Options: DENY',
     `  Content-Security-Policy: ${csp}`,
+    '  Cache-Control: public, max-age=0, must-revalidate',
     '',
-    '/dist/*',
-    '  Cache-Control: public, max-age=300',
+    '/js.*',
+    '  Cache-Control: public, max-age=31536000, immutable',
     '',
-    '/js/*',
-    '  Cache-Control: public, max-age=300',
+    '/dist.*',
+    '  Cache-Control: public, max-age=31536000, immutable',
     '',
     '/data/*',
-    '  Cache-Control: public, max-age=300',
+    '  Cache-Control: public, max-age=0, must-revalidate',
     '',
     '/favicon.svg',
     '  Cache-Control: public, max-age=86400',
