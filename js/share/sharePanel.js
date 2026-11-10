@@ -262,9 +262,9 @@ export function createSharePanel(options) {
         }
       });
     } else {
-      setStatus('Preview ready');
+        setStatus('Preview ready');
     }
-  }
+}
 
   /**
    * Render the preview when the panel is visible.
