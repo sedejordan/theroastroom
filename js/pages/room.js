@@ -38,6 +38,7 @@ const liveRegion = document.getElementById('roastLiveRegion');
 const pageHeading = document.getElementById('pageHeading');
 const sharePanelEl = document.getElementById('sharePanel');
 const sessionCounterEl = document.getElementById('sessionCounter');
+const reelToggleEl = document.getElementById('reelToggle');
 
 /** @type {Record<string, unknown> | null} */
 let club = null;
@@ -190,9 +191,9 @@ async function showRoast(roast, options = {}) {
     // Ignore history errors, the page still works.
   }
 
-  const animate = shouldAnimate && !prefersReducedMotion();
+  const reelOn = reelToggleEl ? reelToggleEl.checked : !prefersReducedMotion();
 
-  if (animate) {
+  if (shouldAnimate && reelOn) {
     const pool = (Array.isArray(club?.roasts) ? club.roasts : [])
       .map((entry) => String(entry.headline))
       .filter((headline) => headline.length > 0);
@@ -201,6 +202,7 @@ async function showRoast(roast, options = {}) {
       finalHeadline: String(roast.headline),
       reelPool: pool,
       hiddenElements: built.hiddenElements,
+      forceAnimate: true,
     });
   } else {
     built.headlineElement.textContent = String(roast.headline);
@@ -371,6 +373,10 @@ async function init() {
     selectedCategory = 'all';
     rebuildBagAndFilter();
     showRoom();
+
+    if (reelToggleEl) {
+      reelToggleEl.checked = !prefersReducedMotion();
+    }
 
     // Fan roast submission form.
     const submitSection = document.getElementById('roastSubmitSection');
