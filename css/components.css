@@ -49,6 +49,14 @@
     right: calc(var(--space6) / -2);
   }
 
+  .heroCopy h1,
+  .heroCopy p,
+  main [data-bg] h2 {
+    text-shadow:
+      0 2px 24px rgba(0, 0, 0, 0.7),
+      0 1px 2px rgba(0, 0, 0, 0.85);
+  }
+
   /* Reveal animation target for the facts and receipts */
   .revealTarget {
     opacity: 0;
@@ -271,8 +279,9 @@
 }
 
 /* ------------------------------------------------------------------
-   Club background (fixed, parallax layers)
+   Club background (fixed, photo layer + SVG fallback)
    ------------------------------------------------------------------ */
+
 .clubBackground {
   position: fixed;
   inset: 0;
@@ -280,6 +289,65 @@
   overflow: hidden;
   pointer-events: none;
   contain: layout paint;
+
+  --bgScrimTop: 0.55;
+  --bgScrimBottom: 0.55;
+  --bgVignetteInner: 0;
+  --bgVignetteOuter: 0.55;
+}
+
+.clubBackground.hasPhoto {
+  --bgScrimTop: 0.45;
+  --bgScrimBottom: 0.7;
+  --bgVignetteInner: 0.15;
+  --bgVignetteOuter: 0.6;
+}
+
+.clubBackground__images {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+}
+
+.clubBackground__photo {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: var(--bgFocalDesktop, 50% 50%);
+  opacity: 0;
+  transition: opacity 700ms var(--easeOut);
+  will-change: opacity, transform;
+  pointer-events: none;
+  user-select: none;
+}
+
+.clubBackground__photo.isActive {
+  animation: bgSlowZoom 24s var(--easeStandard) both;
+}
+
+@media (max-width: 640px) {
+  .clubBackground__photo {
+    object-position: var(--bgFocalMobile, 50% 50%);
+  }
+}
+
+@keyframes bgSlowZoom {
+  from {
+    transform: scale(1);
+  }
+  to {
+    transform: scale(1.05);
+  }
+}
+
+.clubBackground__svg {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
 }
 
 .clubBackground__layer {
@@ -298,20 +366,69 @@
   height: 100%;
 }
 
+.clubBackground.hasPhoto .clubBackground__layer {
+  display: none;
+}
+
 .clubBackground__scrim {
   position: absolute;
   inset: 0;
   background:
-    linear-gradient(to bottom, rgba(10, 10, 10, 0.55), rgba(10, 10, 10, 0.55)),
-    radial-gradient(ellipse at center,
-      rgba(10, 10, 10, 0) 0%,
-      rgba(10, 10, 10, 0.55) 100%);
+    linear-gradient(
+      to bottom,
+      rgba(10, 10, 10, var(--bgScrimTop)),
+      rgba(10, 10, 10, var(--bgScrimBottom))
+    ),
+    radial-gradient(
+      ellipse at center,
+      rgba(10, 10, 10, var(--bgVignetteInner)) 0%,
+      rgba(10, 10, 10, var(--bgVignetteOuter)) 100%
+    );
+}
+
+.clubBackground__tint {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  opacity: 0;
+  background: radial-gradient(
+    circle at 50% 55%,
+    rgba(218, 41, 28, 0.55),
+    rgba(218, 41, 28, 0) 65%
+  );
+}
+
+.clubBackground__tint.isPulsing {
+  animation: backgroundPulse 600ms var(--easeOut) both;
+}
+
+@keyframes backgroundPulse {
+  0% {
+    opacity: 0;
+  }
+  25% {
+    opacity: 0.18;
+  }
+  100% {
+    opacity: 0;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .clubBackground__layer {
     will-change: auto;
     transform: none !important;
+  }
+
+  .clubBackground__photo {
+    transition-duration: 150ms !important;
+    animation: none !important;
+  }
+
+  .clubBackground__tint.isPulsing {
+    animation: none !important;
+    opacity: 0 !important;
   }
 }
 
@@ -328,6 +445,110 @@
 /* Roast card entrance */
 .roastCard {
   animation: roastCardIn var(--durationSlow) var(--easeOut) both;
+}
+
+.roastCard__fx {
+  position: absolute;
+  inset: -24px;
+  z-index: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  overflow: hidden;
+}
+
+.roastCard > *:not(.roastCard__fx) {
+  position: relative;
+  z-index: 1;
+}
+
+.roastCard__fx::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  background: radial-gradient(
+    ellipse at center,
+    rgba(218, 41, 28, 0.5),
+    rgba(218, 41, 28, 0) 70%
+  );
+  transition: opacity var(--durationSlow) var(--easeOut);
+}
+
+.roastCard.isCharging .roastCard__fx::before {
+  opacity: 0.55;
+}
+
+.roastCard.isRevealed .roastCard__fx::before {
+  animation: roastGlowPeak 450ms var(--easeOut) both;
+}
+
+.roastCard.isRevealed .roastCard__fx::after {
+  content: '';
+  position: absolute;
+  top: -60%;
+  left: -70%;
+  width: 45%;
+  height: 220%;
+  opacity: 0;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.16),
+    transparent
+  );
+  transform: translateX(-120%) rotate(18deg);
+  animation: roastSweep 450ms var(--easeOut) both;
+}
+
+.roastCard.isRevealed {
+  animation: roastSettle 450ms var(--easeOut) both;
+}
+
+@keyframes roastGlowPeak {
+  0% {
+    opacity: 0.55;
+  }
+  30% {
+    opacity: 0.85;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes roastSweep {
+  0% {
+    opacity: 0;
+    transform: translateX(-120%) rotate(18deg);
+  }
+  20% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(320%) rotate(18deg);
+  }
+}
+
+@keyframes roastSettle {
+  from {
+    transform: scale(1.03);
+  }
+  to {
+    transform: scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .roastCard.isRevealed,
+  .roastCard.isRevealed .roastCard__fx::before,
+  .roastCard.isRevealed .roastCard__fx::after {
+    animation: none !important;
+  }
+
+  .roastCard__fx::before {
+    transition: none !important;
+  }
 }
 
 @keyframes roastCardIn {

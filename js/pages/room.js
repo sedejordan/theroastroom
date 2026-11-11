@@ -18,6 +18,11 @@ import { applyFrittLinks } from '../brand/applyFrittLinks.js';
 import { burstConfetti } from '../ui/confetti.js';
 import { initScrollBackground } from '../background/scrollBackground.js';
 import { backgroundLayersFor } from '../background/layers.js';
+import { createImageBackground } from '../background/imageBackground.js';
+import {
+  clubBackgroundFor,
+  collectClubBackgrounds,
+} from '../background/backgroundConfig.js';
 import { createRoastForm } from '../roasts/roastForm.js';
 import { loadFanRoasts } from '../roasts/fanRoasts.js';
 
@@ -52,6 +57,8 @@ let busy = false;
 let sharePanel = null;
 /** @type {(() => void) | null} */
 let teardownBackground = null;
+/** @type {ReturnType<typeof createImageBackground> | null} */
+let imageBackground = null;
 
 const SESSION_KEY = 'roastroom_session_count';
 
@@ -136,8 +143,7 @@ function getFilteredRoasts() {
 }
 
 /**
- * Update the "Roast N of M" line. Nothing is shown before the first serve or
- * when the current cycle has already served everything once.
+ * Update the "Roast N of M" line.
  * @returns {void}
  */
 function updateProgress() {
@@ -203,6 +209,11 @@ async function showRoast(roast, options = {}) {
       reelPool: pool,
       hiddenElements: built.hiddenElements,
       forceAnimate: true,
+      cardElement: built.element,
+      onReveal: () => {
+        burstConfetti({ originX: 0.5, originY: 0.55, count: 24 });
+        if (imageBackground) imageBackground.pulse();
+      },
     });
   } else {
     built.headlineElement.textContent = String(roast.headline);
@@ -264,7 +275,32 @@ function rebuildBagAndFilter() {
 }
 
 /**
- * Handle a filter chip click. Resets the current roast and the bag.
+ * Wire hover, focus and touch preloading for category chips once.
+ * @returns {void}
+ */
+function wireChipPreload() {
+  if (!filterContainer || filterContainer.dataset.bgWired === 'true') return;
+  filterContainer.dataset.bgWired = 'true';
+
+  const preloadFromEvent = (event) => {
+    if (!imageBackground) return;
+    const target = event.target;
+    if (!(target instanceof Element)) return;
+    const button = target.closest('button[data-category-id]');
+    if (!button) return;
+    const id = button.getAttribute('data-category-id');
+    const image = clubBackgroundFor(clubIdParam, id);
+    if (image) imageBackground.preload([image]);
+  };
+
+  filterContainer.addEventListener('pointerenter', preloadFromEvent, true);
+  filterContainer.addEventListener('focusin', preloadFromEvent);
+  filterContainer.addEventListener('touchstart', preloadFromEvent, { passive: true });
+}
+
+/**
+ * Handle a filter chip click. Resets the current roast, the bag and the
+ * category background.
  * @param {string} newId
  * @returns {void}
  */
@@ -276,6 +312,12 @@ function handleFilterChange(newId) {
   if (liveRegion) liveRegion.textContent = '';
   if (sharePanel) sharePanel.hide();
   rebuildBagAndFilter();
+  wireChipPreload();
+
+  if (imageBackground) {
+    imageBackground.cancelPulse();
+    imageBackground.show(clubBackgroundFor(clubIdParam, newId));
+  }
 }
 
 async function handleRoastClick() {
@@ -295,7 +337,6 @@ async function handleRoastClick() {
       sessionCount += 1;
       writeSessionCount(sessionCount);
       renderSessionCount();
-      burstConfetti({ originX: 0.5, originY: 0.55, count: 36 });
       await showRoast(roast, { animate: true });
     }
   } finally {
@@ -337,11 +378,7 @@ async function init() {
     const existingIds = (Array.isArray(cachedClub.roasts) ? cachedClub.roasts : [])
       .map((roast) => (roast && typeof roast.id === 'string' ? roast.id : ''))
       .filter((id) => id.length > 0);
-    const fanRoasts = await loadFanRoasts(
-      clubIdParam,
-      cachedClub.categories,
-      existingIds
-    );
+    const fanRoasts = await loadFanRoasts(clubIdParam, cachedClub.categories, existingIds);
     if (fanRoasts.length > 0) {
       club = {
         ...cachedClub,
@@ -353,11 +390,30 @@ async function init() {
     }
     applyTheme(club.theme || {});
 
-    // Mount club-specific parallax background.
+    // Mount the photo background and the SVG fallback.
     if (teardownBackground) teardownBackground();
     const bgEl = document.getElementById('clubBackground');
     if (bgEl) {
-      teardownBackground = initScrollBackground(bgEl, backgroundLayersFor(clubIdParam));
+      const scrollTeardown = initScrollBackground(bgEl, backgroundLayersFor(clubIdParam));
+      imageBackground = createImageBackground(bgEl);
+      imageBackground.show(clubBackgroundFor(clubIdParam, 'all'));
+
+      const startPreload = () => {
+        if (imageBackground) imageBackground.preload(collectClubBackgrounds(clubIdParam));
+      };
+      if (document.readyState === 'complete') {
+        startPreload();
+      } else {
+        window.addEventListener('load', startPreload, { once: true });
+      }
+
+      teardownBackground = () => {
+        scrollTeardown();
+        if (imageBackground) {
+          imageBackground.destroy();
+          imageBackground = null;
+        }
+      };
     }
 
     if (clubBadge) clubBadge.textContent = String(club.name || 'Roast Room');
@@ -372,6 +428,7 @@ async function init() {
 
     selectedCategory = 'all';
     rebuildBagAndFilter();
+    wireChipPreload();
     showRoom();
 
     if (reelToggleEl) {

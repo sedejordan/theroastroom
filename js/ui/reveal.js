@@ -1,49 +1,74 @@
 /**
  * Reveal animation for a roast card.
- * Runs a short slot machine style reel on the headline, then fades the facts,
- * receipts and verified line in. Under prefers reduced motion everything is
- * skipped and the roast appears immediately.
+ * Runs a short slot machine style reel on the headline, then plays one reveal
+ * beat (glow, sweep, settle) and fades the facts, receipts and verified line
+ * in with a small stagger.
+ *
+ * Under prefers-reduced motion the reel and effects are skipped unless the
+ * caller explicitly forces the reel.
  */
 
 import { prefersReducedMotion } from '../utils/dom.js';
 
 const REEL_DURATION_MS = 600;
 const REEL_INTERVAL_MS = 80;
+const STAGGER_MS = 60;
+const CLEANUP_MS = 900;
 
 /**
  * Reveal a roast inside an already mounted card.
- *
- * The headline cycles through random entries from the pool for about 600 ms
- * with aria hidden set so screen readers do not narrate the churn. When the
- * reel settles, the final headline is written, aria hidden is removed, and the
- * hidden elements are shown by adding the isVisible class.
  *
  * @param {{
  *   headlineElement: HTMLElement,
  *   finalHeadline: string,
  *   reelPool: string[],
- *   hiddenElements: HTMLElement[]
+ *   hiddenElements: HTMLElement[],
+ *   forceAnimate?: boolean,
+ *   cardElement?: HTMLElement | null,
+ *   onReveal?: () => void
  * }} options
  * @returns {Promise<void>}
  */
 export async function revealRoast(options) {
-  const { headlineElement, finalHeadline, reelPool, hiddenElements, forceAnimate } = options;
+  const {
+    headlineElement,
+    finalHeadline,
+    reelPool,
+    hiddenElements,
+    forceAnimate,
+    cardElement,
+    onReveal,
+  } = options || {};
 
   if (!headlineElement) return;
 
   const hidden = Array.isArray(hiddenElements) ? hiddenElements.filter(Boolean) : [];
   const pool = Array.isArray(reelPool) ? reelPool : [];
+  const reduced = prefersReducedMotion();
+  const canReel = pool.length >= 2 && (!reduced || forceAnimate === true);
+  const card =
+    cardElement ||
+    (typeof headlineElement.closest === 'function'
+      ? headlineElement.closest('.roastCard')
+      : null);
 
-  const finish = () => {
+  const finishInstant = () => {
     headlineElement.textContent = finalHeadline;
-    for (const el of hidden) {
-      el.classList.add('isVisible');
+    for (const el of hidden) el.classList.add('isVisible');
+    if (card) {
+      card.classList.remove('isCharging');
+      card.classList.remove('isRevealed');
     }
   };
 
-  if (pool.length < 2 || (prefersReducedMotion() && !forceAnimate)) {
-    finish();
+  if (!canReel) {
+    finishInstant();
     return;
+  }
+
+  if (card) {
+    card.classList.remove('isRevealed');
+    card.classList.add('isCharging');
   }
 
   headlineElement.setAttribute('aria-hidden', 'true');
@@ -58,13 +83,43 @@ export async function revealRoast(options) {
         resolve();
         return;
       }
-      const pick = pool[Math.floor(Math.random() * pool.length)];
-      headlineElement.textContent = pick;
+      headlineElement.textContent = pool[Math.floor(Math.random() * pool.length)];
       window.setTimeout(tick, REEL_INTERVAL_MS);
     };
     tick();
   });
 
   headlineElement.removeAttribute('aria-hidden');
-  finish();
+  headlineElement.textContent = finalHeadline;
+
+  if (card) {
+    card.classList.remove('isCharging');
+    void card.offsetWidth;
+    card.classList.add('isRevealed');
+  }
+
+  if (typeof onReveal === 'function') {
+    try {
+      onReveal();
+    } catch {
+      // Effects are best effort only.
+    }
+  }
+
+  if (reduced) {
+    for (const el of hidden) el.classList.add('isVisible');
+  } else {
+    hidden.forEach((el, index) => {
+      window.setTimeout(() => {
+        if (el.isConnected) el.classList.add('isVisible');
+      }, index * STAGGER_MS);
+    });
+  }
+
+  if (card) {
+    window.setTimeout(() => {
+      card.classList.remove('isCharging');
+      card.classList.remove('isRevealed');
+    }, CLEANUP_MS);
+  }
 }

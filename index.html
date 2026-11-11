@@ -37,6 +37,7 @@
     <link rel="apple-touch-icon" href="/apple_touch_icon.png" />
 
     <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
+    <link rel="preload" as="image" href="/images/backgrounds/home/home-hero.webp" />
 
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -63,7 +64,7 @@
     </header>
 
     <main id="main">
-      <section class="relative overflow-hidden border-b border-line">
+      <section class="relative overflow-hidden border-b border-line" data-bg="hero">
         <svg
           class="pointer-events-none absolute inset-0 h-full w-full text-text"
           style="opacity: 0.06"
@@ -80,29 +81,20 @@
         </svg>
 
         <div class="relative mx-auto max-w-5xl px-4 py-16 md:py-24">
-          <div class="grid items-end gap-8 md:grid-cols-[1fr_auto]">
-            <div>
-              <p class="tokenLabel text-accent">Football banter, sourced and dated</p>
-              <h1 class="mt-3 text-displayMd text-text">Every rivalry needs receipts.</h1>
-              <p class="mt-4 max-w-xl text-lg text-textMuted">
-                Pick a rival club, hit the button, and read the pain. Every roast is backed by
-                dated evidence you can check yourself.
-              </p>
-              <div class="mt-8 flex flex-wrap gap-4">
-                <a
-                  href="./room.html?club=manutd"
-                  data-cta-club
-                  class="inline-block rounded-sharp bg-primary px-6 py-4 font-display text-xl uppercase tracking-wide text-primaryContrast no-underline transition-colors duration-fast ease-standard hover:bg-accent hover:text-background"
-                >
-                  Enter the Roast Room
-                </a>
-              </div>
-            </div>
-
-            <div class="rounded-sharp bg-primary p-6 text-primaryContrast" style="max-width: 20rem">
-              <p class="tokenLabel" style="color: rgba(255,255,255,0.7)">Roast Room</p>
-              <p class="mt-2 font-display text-3xl uppercase">Every claim backed</p>
-              <p class="mt-2 text-sm">Pick a club. Roast. Check the receipts.</p>
+          <div class="heroCopy max-w-xl">
+            <p class="tokenLabel text-accent">Football banter, sourced and dated</p>
+            <h1 class="mt-3 text-displayMd text-text">Every rivalry needs receipts.</h1>
+            <p class="mt-4 text-lg text-textMuted">
+              Pick a rival. Hit the button. Check the receipts.
+            </p>
+            <div class="mt-8 flex flex-wrap gap-4">
+              <a
+                href="./room.html?club=manutd"
+                data-cta-club
+                class="inline-block rounded-sharp bg-primary px-6 py-4 font-display text-xl uppercase tracking-wide text-primaryContrast no-underline transition-colors duration-fast ease-standard hover:bg-accent hover:text-background"
+              >
+                Enter the Roast Room
+              </a>
             </div>
           </div>
         </div>
@@ -110,6 +102,7 @@
 
       <section
         id="tickerSection"
+        data-bg="experience"
         class="hidden overflow-hidden border-b border-line bg-surface"
         aria-label="Recent roast headlines"
       >
@@ -122,50 +115,41 @@
         </div>
       </section>
 
-      <section aria-labelledby="howHeading" class="mx-auto max-w-5xl px-4 py-16">
-        <h2 id="howHeading" class="text-displaySm text-text">How it works</h2>
-        <ol class="mt-8 grid gap-6 md:grid-cols-3">
-          <li class="rounded-sharp border border-line bg-surface p-6">
-            <span class="font-display text-3xl text-primary">01</span>
-            <h3 class="mt-2 text-xl text-text">Pick a club</h3>
-            <p class="mt-2 text-sm text-textMuted">Choose the rival you want to roast.</p>
+      <section data-bg="experience" aria-label="How it works" class="mx-auto max-w-5xl px-4 py-12">
+        <ol class="grid gap-4 sm:grid-cols-3">
+          <li class="rounded-sharp border border-line bg-surface p-5">
+            <span class="font-display text-2xl text-primary">01</span>
+            <h3 class="mt-1 text-lg text-text">Pick a club</h3>
           </li>
-          <li class="rounded-sharp border border-line bg-surface p-6">
-            <span class="font-display text-3xl text-primary">02</span>
-            <h3 class="mt-2 text-xl text-text">Hit the button</h3>
-            <p class="mt-2 text-sm text-textMuted">One tap and the roast appears.</p>
+          <li class="rounded-sharp border border-line bg-surface p-5">
+            <span class="font-display text-2xl text-primary">02</span>
+            <h3 class="mt-1 text-lg text-text">Hit the button</h3>
           </li>
-          <li class="rounded-sharp border border-line bg-surface p-6">
-            <span class="font-display text-3xl text-primary">03</span>
-            <h3 class="mt-2 text-xl text-text">Check the receipts</h3>
-            <p class="mt-2 text-sm text-textMuted">Every roast lists dated, sourced evidence.</p>
+          <li class="rounded-sharp border border-line bg-surface p-5">
+            <span class="font-display text-2xl text-primary">03</span>
+            <h3 class="mt-1 text-lg text-text">Check the receipts</h3>
           </li>
         </ol>
       </section>
 
-      <section aria-labelledby="pickerHeading" class="mx-auto max-w-5xl border-t border-line px-4 py-16">
+      <section data-bg="picker" aria-labelledby="pickerHeading" class="mx-auto max-w-5xl border-t border-line px-4 py-16">
         <h2 id="pickerHeading" class="text-displaySm text-text">Pick a club</h2>
-        <p class="mt-3 max-w-xl text-textMuted">
-          Live clubs have a roast room ready. More clubs are on the way.
-        </p>
 
         <div id="liveClubs" class="mt-8 grid gap-4 md:grid-cols-2"></div>
 
         <p class="mt-10 tokenLabel">Coming soon</p>
-        <p class="mt-2 max-w-xl text-sm text-textMuted">
-          More clubs are on the way.
-        </p>
         <div id="comingSoonClubs" class="mt-4 grid gap-3 sm:grid-cols-2 md:grid-cols-3"></div>
       </section>
 
       <section
         id="suggestSection"
+        data-bg="closing"
         class="hidden mx-auto max-w-5xl border-t border-line px-4 py-16"
         aria-labelledby="suggestHeading"
       >
         <h2 id="suggestHeading" class="text-displaySm text-text">Who should we roast next?</h2>
         <p class="mt-3 max-w-xl text-textMuted">
-          Suggest a club. The most voted club is the one we build next.
+          Suggest a club. The most voted is built next.
         </p>
 
         <form id="suggestForm" class="mt-6 max-w-xl" novalidate>
@@ -211,6 +195,7 @@
       </section>
 
       <section
+        data-bg="closing"
         aria-labelledby="frittHeading"
         class="mx-auto max-w-5xl border-t border-line px-4 py-16"
       >

@@ -30,6 +30,11 @@ export function createRoastCard(roast, category) {
     },
   });
 
+  const fx = createElement('span', {
+    className: 'roastCard__fx',
+    attrs: { 'aria-hidden': 'true' },
+  });
+
   const categoryLine = createElement('p', {
     className: 'tokenLabel',
   });
@@ -129,6 +134,7 @@ export function createRoastCard(roast, category) {
   });
 
   card.append(
+    fx,
     categoryLine,
     jokeLabel,
     headlineElement,

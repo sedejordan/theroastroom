@@ -10,6 +10,7 @@ import { fileURLToPath } from 'node:url';
 
 import { CLUB_STATUS, CLUBS_DIRECTORY, REGISTRY_PATH } from '../js/config.js';
 import { validateClub, validateRegistry } from '../js/schema.js';
+import { collectBackgroundImagePaths } from '../js/background/backgroundConfig.js';
 
 const rootDirectory = resolve(fileURLToPath(new URL('..', import.meta.url)));
 
@@ -40,6 +41,7 @@ async function readJsonFile(relativePath) {
  */
 async function main() {
   const problems = [];
+  const warnings = [];
 
   let registry;
   try {
@@ -102,6 +104,22 @@ async function main() {
     const relativePath = `${CLUBS_DIRECTORY}/${file}`;
     if (!referencedFiles.has(relativePath)) {
       problems.push(`${relativePath} is not referenced by any club in the registry`);
+    }
+  }
+
+  for (const sitePath of collectBackgroundImagePaths()) {
+    const relativePath = sitePath.replace(/^\//, '');
+    try {
+      await readFile(join(rootDirectory, relativePath));
+    } catch {
+      warnings.push(`${relativePath} is missing. Backgrounds fall back to the SVG layers.`);
+    }
+  }
+
+  if (warnings.length > 0) {
+    console.warn(`Background warnings (${warnings.length}):`);
+    for (const warning of warnings) {
+      console.warn(`  ${warning}`);
     }
   }
 

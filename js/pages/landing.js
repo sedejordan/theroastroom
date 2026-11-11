@@ -1,7 +1,7 @@
 /**
  * Landing page logic.
- * Renders the club picker from the registry, the recent roast ticker and the
- * hero call to action target, all from data files at runtime.
+ * Renders the club picker from the registry, the recent roast ticker, the
+ * hero call to action and the crossfading section backgrounds.
  */
 
 import { initSuggestSection } from '../suggest/suggestSection.js';
@@ -11,6 +11,11 @@ import { getComingSoonClubs, getLiveClubs, loadClub, loadRegistry } from '../reg
 import { clear, createElement, prefersReducedMotion } from '../utils/dom.js';
 import { initScrollBackground } from '../background/scrollBackground.js';
 import { backgroundLayersFor } from '../background/layers.js';
+import { createImageBackground } from '../background/imageBackground.js';
+import {
+  collectHomeBackgrounds,
+  homeBackgroundFor,
+} from '../background/backgroundConfig.js';
 
 const liveContainer = document.getElementById('liveClubs');
 const comingSoonContainer = document.getElementById('comingSoonClubs');
@@ -120,8 +125,6 @@ function setupTickerToggle() {
 
 /**
  * Render the ticker with the first six headlines.
- * Duplicates the items once so the CSS translate loop is seamless; only the
- * first copy is exposed to screen readers.
  * @param {Array<{ headline: string, clubShortName: string }>} roasts
  * @returns {void}
  */
@@ -177,6 +180,35 @@ function showPickerError(message) {
 }
 
 /**
+ * Observe the sections with data-bg and crossfade the background.
+ * @param {ReturnType<typeof createImageBackground>} controller
+ * @returns {void}
+ */
+function setupSectionBackgrounds(controller) {
+  const sections = Array.from(document.querySelectorAll('[data-bg]'));
+  if (sections.length === 0) return;
+  if (typeof IntersectionObserver !== 'function') return;
+
+  let pending = 0;
+
+  const observer = new IntersectionObserver(
+    (entries) => {
+      for (const entry of entries) {
+        if (!entry.isIntersecting) continue;
+        const key = entry.target.getAttribute('data-bg');
+        const image = homeBackgroundFor(key);
+        if (!image) continue;
+        window.clearTimeout(pending);
+        pending = window.setTimeout(() => controller.show(image), 120);
+      }
+    },
+    { rootMargin: '-45% 0px -45% 0px', threshold: 0 }
+  );
+
+  for (const section of sections) observer.observe(section);
+}
+
+/**
  * Load the registry and render every section of the page.
  * @returns {Promise<void>}
  */
@@ -185,8 +217,22 @@ async function init() {
   applyFrittLinks();
 
   const bgEl = document.getElementById('clubBackground');
+  let imageBackground = null;
+
   if (bgEl) {
+    imageBackground = createImageBackground(bgEl);
     initScrollBackground(bgEl, backgroundLayersFor('manutd'));
+    imageBackground.show(homeBackgroundFor('hero'));
+    setupSectionBackgrounds(imageBackground);
+
+    const startPreload = () => {
+      if (imageBackground) imageBackground.preload(collectHomeBackgrounds());
+    };
+    if (document.readyState === 'complete') {
+      startPreload();
+    } else {
+      window.addEventListener('load', startPreload, { once: true });
+    }
   }
 
   try {
@@ -201,11 +247,16 @@ async function init() {
       try {
         const club = await loadClub(entry.id);
         if (liveContainer) {
-          liveContainer.append(renderLiveClub(entry, Array.isArray(club.roasts) ? club.roasts.length : 0));
+          liveContainer.append(
+            renderLiveClub(entry, Array.isArray(club.roasts) ? club.roasts.length : 0)
+          );
         }
         if (Array.isArray(club.roasts)) {
           for (const roast of club.roasts) {
-            roastPool.push({ headline: roast.headline, clubShortName: String(entry.shortName) });
+            roastPool.push({
+              headline: roast.headline,
+              clubShortName: String(entry.shortName),
+            });
           }
         }
       } catch (error) {
@@ -219,13 +270,13 @@ async function init() {
       }
     }
 
-      renderTicker(roastPool);
-    } catch (error) {
-      console.warn('[roastRoom] could not load the registry', error);
-      showPickerError('Could not load the club list. Serve the site over http and reload.');
-    }
+    renderTicker(roastPool);
+  } catch (error) {
+    console.warn('[roastRoom] could not load the registry', error);
+    showPickerError('Could not load the club list. Serve the site over http and reload.');
+  }
 
-    initSuggestSection();
+  initSuggestSection();
 }
 
 init();

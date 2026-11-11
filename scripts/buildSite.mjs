@@ -19,6 +19,7 @@ import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { SUGGEST_API_BASE } from '../js/suggest/suggestConfig.js';
+import { collectBackgroundImagePaths } from '../js/background/backgroundConfig.js';
 import {
   buildHeaders,
   buildRobots,
@@ -80,6 +81,20 @@ async function fileExists(path) {
 }
 
 /**
+ * Check whether a directory exists.
+ * @param {string} path
+ * @returns {Promise<boolean>}
+ */
+async function directoryExists(path) {
+  try {
+    const info = await stat(path);
+    return info.isDirectory();
+  } catch {
+    return false;
+  }
+}
+
+/**
  * Recursively list files ending in .html inside a folder.
  * @param {string} directory
  * @returns {Promise<string[]>}
@@ -134,6 +149,11 @@ async function main() {
   );
   await copyFolder(join(rootDirectory, 'data'), join(siteDirectory, 'data'), new Set());
 
+  const imagesSource = join(rootDirectory, 'images');
+  if (await directoryExists(imagesSource)) {
+    await copyFolder(imagesSource, join(siteDirectory, 'images'), new Set());
+  }
+
   // 5. Copy the public pages, skipping the developer pages.
   const rootEntries = await readdir(rootDirectory, { withFileTypes: true });
   for (const entry of rootEntries) {
@@ -163,6 +183,13 @@ async function main() {
     warnings.push(
       'apple_touch_icon.png not found in the repository root. The apple-touch-icon link will 404.'
     );
+  }
+
+  for (const sitePath of collectBackgroundImagePaths()) {
+    const relativePath = sitePath.replace(/^\//, '');
+    if (!(await fileExists(join(rootDirectory, relativePath)))) {
+      warnings.push(`${relativePath} is missing. The background falls back to the SVG layers.`);
+    }
   }
 
   // 6b. Hash the JS and CSS directories and rename them. Any change to a
