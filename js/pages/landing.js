@@ -88,8 +88,7 @@ function setupTickerToggle() {
   if (!toggle || !tickerTrack || toggle.dataset.ready === 'true') return;
   toggle.dataset.ready = 'true';
 
-  const reduced = prefersReducedMotion();
-  let running = !reduced;
+  let running = true;
 
   const apply = () => {
     const duration = window.matchMedia('(max-width: 767px)').matches ? '26s' : '40s';
