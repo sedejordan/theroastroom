@@ -15,7 +15,6 @@ import { clear, prefersReducedMotion } from '../utils/dom.js';
 import { parseRoastHash } from '../utils/links.js';
 import { createSharePanel } from '../share/sharePanel.js';
 import { applyFrittLinks } from '../brand/applyFrittLinks.js';
-import { burstConfetti } from '../ui/confetti.js';
 import { initScrollBackground } from '../background/scrollBackground.js';
 import { backgroundLayersFor } from '../background/layers.js';
 import { createImageBackground } from '../background/imageBackground.js';
@@ -211,7 +210,6 @@ async function showRoast(roast, options = {}) {
       forceAnimate: true,
       cardElement: built.element,
       onReveal: () => {
-        burstConfetti({ originX: 0.5, originY: 0.55, count: 24 });
         if (imageBackground) imageBackground.pulse();
       },
     });

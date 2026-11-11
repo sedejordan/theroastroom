@@ -1,16 +1,16 @@
 /**
  * Photo background layer for The Roast Room.
  *
- * Sits inside #clubBackground, below the scrim. Uses two stacked <img>
- * elements and crossfades between them. The SVG parallax layers act as the
- * fallback and are hidden (via the hasPhoto class) while a photo is showing.
+ * Two stacked <img> elements. The incoming image is always above the outgoing
+ * image and fades from 0 to 1 while the outgoing image stays fully opaque
+ * underneath. The outgoing image is hidden only after the fade completes.
  *
  * Never throws. All DOM work is guarded.
  */
 
 import { prefersReducedMotion } from '../utils/dom.js';
 
-const CROSSFADE_MS = 700;
+const CROSSFADE_MS = 1000;
 const REDUCED_CROSSFADE_MS = 150;
 const LOAD_TIMEOUT_MS = 10000;
 const PULSE_MS = 700;
@@ -53,6 +53,9 @@ export function createImageBackground(container) {
   let preloadToken = 0;
   let destroyed = false;
   let pulseTimer = 0;
+  let fadeTimer = 0;
+  let fadeToken = 0;
+  let fading = false;
 
   /**
    * Build one photo element.
@@ -88,14 +91,51 @@ export function createImageBackground(container) {
   }
 
   /**
-   * Load a source into an image element and resolve true only after it has
-   * loaded and decoded.
+   * Stop and reset the slow zoom on a photo. Only call while hidden.
    * @param {HTMLImageElement} img
+   * @returns {void}
+   */
+  function resetZoom(img) {
+    img.classList.remove('isZooming');
+    img.style.animation = 'none';
+    void img.offsetWidth;
+    img.style.animation = '';
+  }
+
+  /**
+   * Start the slow zoom on a photo. Resets any previous animation first.
+   * @param {HTMLImageElement} img
+   * @returns {void}
+   */
+  function startZoom(img) {
+    img.classList.remove('isZooming');
+    img.style.animation = 'none';
+    void img.offsetWidth;
+    img.style.animation = '';
+    img.classList.add('isZooming');
+  }
+
+  /**
+   * Hide a photo without transitioning and reset its zoom.
+   * @param {HTMLImageElement} img
+   * @returns {void}
+   */
+  function hidePhoto(img) {
+    img.style.transitionDuration = '0ms';
+    img.style.transitionTimingFunction = 'linear';
+    img.style.opacity = '0';
+    img.style.zIndex = '0';
+    resetZoom(img);
+  }
+
+  /**
+   * Load and decode an image off screen before assigning it to a hidden photo.
    * @param {string} src
    * @returns {Promise<boolean>}
    */
-  function loadInto(img, src) {
+  function loadSource(src) {
     return new Promise((resolve) => {
+      const img = new Image();
       let settled = false;
       let timer = 0;
 
@@ -108,10 +148,10 @@ export function createImageBackground(container) {
         resolve(ok);
       };
 
+      img.decoding = 'async';
       img.onload = () => done(true);
       img.onerror = () => done(false);
       timer = window.setTimeout(() => done(false), LOAD_TIMEOUT_MS);
-
       img.src = src;
 
       if (typeof img.decode === 'function') {
@@ -123,21 +163,42 @@ export function createImageBackground(container) {
   }
 
   /**
+   * Finish any running crossfade instantly so the hidden photo can be reused.
+   * @returns {void}
+   */
+  function finishFadeInstantly() {
+    if (!fading) return;
+    fadeToken += 1;
+    window.clearTimeout(fadeTimer);
+
+    front.style.transitionDuration = '0ms';
+    front.style.transitionTimingFunction = 'linear';
+    front.style.opacity = '1';
+    front.style.zIndex = '2';
+
+    if (back) hidePhoto(back);
+
+    fading = false;
+  }
+
+  /**
    * Show the SVG fallback and clear the photos.
    * @returns {void}
    */
   function fallback() {
+    fadeToken += 1;
+    fading = false;
+    window.clearTimeout(fadeTimer);
     container.classList.remove('hasPhoto');
-    imgA.classList.remove('isActive');
-    imgB.classList.remove('isActive');
+
+    hidePhoto(imgA);
+    hidePhoto(imgB);
     imgA.removeAttribute('src');
     imgB.removeAttribute('src');
-    imgA.style.opacity = '0';
-    imgB.style.opacity = '0';
-    imgA.style.transitionDuration = '0ms';
-    imgB.style.transitionDuration = '0ms';
+
     front = imgA;
     back = imgB;
+    currentSrc = '';
   }
 
   /**
@@ -156,46 +217,64 @@ export function createImageBackground(container) {
     }
 
     if (entry.src === currentSrc) {
+      setFocal(entry);
       container.classList.add('hasPhoto');
       return;
     }
 
     const id = ++requestId;
-    setFocal(entry);
-
-    const target = back;
-    const ok = await loadInto(target, entry.src);
+    const ok = await loadSource(entry.src);
 
     if (destroyed || id !== requestId) return;
 
     if (!ok) {
-      fallback();
+      if (currentSrc.length === 0) fallback();
       return;
     }
 
-    const fadeMs = prefersReducedMotion() ? REDUCED_CROSSFADE_MS : CROSSFADE_MS;
+    if (fading) finishFadeInstantly();
+
+    setFocal(entry);
+
     const oldFront = front;
+    const target = back;
+    const fadeMs = prefersReducedMotion() ? REDUCED_CROSSFADE_MS : CROSSFADE_MS;
+
+    target.src = entry.src;
+    target.style.transitionDuration = '0ms';
+    target.style.transitionTimingFunction = 'linear';
+    target.style.opacity = '0';
+    target.style.zIndex = '2';
+    startZoom(target);
+
+    oldFront.style.zIndex = '1';
+    if (currentSrc.length > 0) {
+      oldFront.style.transitionDuration = '0ms';
+      oldFront.style.transitionTimingFunction = 'linear';
+      oldFront.style.opacity = '1';
+      if (!oldFront.classList.contains('isZooming')) startZoom(oldFront);
+    }
+
+    // Force the browser to accept the initial opacity before enabling the fade.
+    void target.offsetWidth;
+
+    target.style.transitionDuration = `${fadeMs}ms`;
+    target.style.transitionTimingFunction = 'ease-in-out';
+    target.style.opacity = '1';
 
     currentSrc = entry.src;
     container.classList.add('hasPhoto');
 
-    target.style.transitionDuration = `${fadeMs}ms`;
-    oldFront.style.transitionDuration = `${fadeMs}ms`;
-
-    target.classList.add('isActive');
-    oldFront.classList.remove('isActive');
-
-    target.style.opacity = '1';
-    oldFront.style.opacity = '0';
-
     front = target;
     back = oldFront;
+    fading = true;
 
-    window.setTimeout(() => {
-      if (destroyed || front !== target) return;
-      back.style.transitionDuration = '0ms';
-      back.style.opacity = '0';
-      void back.offsetWidth;
+    const token = ++fadeToken;
+    window.clearTimeout(fadeTimer);
+    fadeTimer = window.setTimeout(() => {
+      if (destroyed || token !== fadeToken || front !== target) return;
+      hidePhoto(back);
+      fading = false;
     }, fadeMs + 40);
   }
 
@@ -271,7 +350,9 @@ export function createImageBackground(container) {
     destroyed = true;
     requestId += 1;
     preloadToken += 1;
+    fadeToken += 1;
     window.clearTimeout(pulseTimer);
+    window.clearTimeout(fadeTimer);
     root.remove();
     tint.remove();
   }

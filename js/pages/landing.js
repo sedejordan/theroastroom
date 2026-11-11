@@ -38,13 +38,12 @@ function setCallToActions() {
 /**
  * Build one live club card linking to its roast room.
  * @param {{ id: string, name: string }} entry Registry entry.
- * @param {number} roastCount Number of publishable roasts in the club.
  * @returns {HTMLAnchorElement}
  */
-function renderLiveClub(entry, roastCount) {
+function renderLiveClub(entry) {
   const link = createElement('a', {
     className:
-      'block rounded-sharp border border-line bg-surface p-6 no-underline transition-colors duration-fast ease-standard hover:border-primary',
+      'glassPanel block rounded-sharp p-6 no-underline transition-colors duration-fast ease-standard hover:border-primary',
     attrs: { href: `./room.html?club=${encodeURIComponent(entry.id)}` },
   });
 
@@ -55,37 +54,20 @@ function renderLiveClub(entry, roastCount) {
     })
   );
 
-  link.append(
-    createElement('p', {
-      className: 'mt-2 text-sm text-textMuted',
-      text: roastCount === 1 ? '1 roast ready' : `${roastCount} roasts ready`,
-    })
-  );
-
   return link;
 }
 
 /**
- * Build one coming soon card. Not a link and marked disabled for assistive tech.
+ * Build one coming soon chip. Marked disabled for assistive tech.
  * @param {{ name: string }} entry Registry entry.
  * @returns {HTMLElement}
  */
 function renderComingSoonClub(entry) {
-  const wrap = createElement('div', {
-    className: 'rounded-sharp border border-line bg-surface p-4',
+  return createElement('span', {
+    className: 'comingSoonChip',
+    text: entry.name,
     attrs: { 'aria-disabled': 'true' },
-    children: [
-      createElement('p', {
-        className: 'font-display text-lg uppercase text-textMuted',
-        text: entry.name,
-      }),
-      createElement('p', {
-        className: 'mt-1 tokenLabel',
-        text: 'Coming soon',
-      }),
-    ],
   });
-  return wrap;
 }
 
 function setupTickerToggle() {
@@ -111,7 +93,7 @@ function setupTickerToggle() {
       running ? 'running' : 'paused',
       'important'
     );
-    toggle.textContent = running ? 'Pause ticker' : 'Play ticker';
+    toggle.textContent = running ? 'Pause' : 'Play';
     toggle.setAttribute('aria-pressed', running ? 'false' : 'true');
   };
 
@@ -124,7 +106,7 @@ function setupTickerToggle() {
 }
 
 /**
- * Render the ticker with the first six headlines.
+ * Render the ticker with the first six headlines as large display type.
  * @param {Array<{ headline: string, clubShortName: string }>} roasts
  * @returns {void}
  */
@@ -143,7 +125,7 @@ function renderTicker(roasts) {
   for (const roast of items) {
     tickerTrack.append(
       createElement('span', {
-        className: 'whitespace-nowrap text-sm text-textMuted',
+        className: 'tickerItem',
         text: `${roast.clubShortName}: ${roast.headline}`,
       })
     );
@@ -152,9 +134,9 @@ function renderTicker(roasts) {
   for (const roast of items) {
     tickerTrack.append(
       createElement('span', {
-        className: 'whitespace-nowrap text-sm text-textMuted',
-        text: `${roast.clubShortName}: ${roast.headline}`,
+        className: 'tickerItem',
         attrs: { 'aria-hidden': 'true' },
+        text: `${roast.clubShortName}: ${roast.headline}`,
       })
     );
   }
@@ -181,6 +163,9 @@ function showPickerError(message) {
 
 /**
  * Observe the sections with data-bg and crossfade the background.
+ *
+ * A section must stay in the middle band for ~150 ms before it takes over the
+ * background, so fast scrolling does not fire a cascade of fades.
  * @param {ReturnType<typeof createImageBackground>} controller
  * @returns {void}
  */
@@ -189,17 +174,29 @@ function setupSectionBackgrounds(controller) {
   if (sections.length === 0) return;
   if (typeof IntersectionObserver !== 'function') return;
 
-  let pending = 0;
+  const SETTLE_MS = 150;
+  let pendingKey = '';
+  let pendingTimer = 0;
 
   const observer = new IntersectionObserver(
     (entries) => {
       for (const entry of entries) {
-        if (!entry.isIntersecting) continue;
         const key = entry.target.getAttribute('data-bg');
-        const image = homeBackgroundFor(key);
-        if (!image) continue;
-        window.clearTimeout(pending);
-        pending = window.setTimeout(() => controller.show(image), 120);
+        if (!key) continue;
+
+        if (entry.isIntersecting) {
+          if (pendingKey === key) continue;
+          pendingKey = key;
+          window.clearTimeout(pendingTimer);
+          const image = homeBackgroundFor(key);
+          if (!image) continue;
+          pendingTimer = window.setTimeout(() => {
+            if (pendingKey === key) controller.show(image);
+          }, SETTLE_MS);
+        } else if (pendingKey === key) {
+          window.clearTimeout(pendingTimer);
+          pendingKey = '';
+        }
       }
     },
     { rootMargin: '-45% 0px -45% 0px', threshold: 0 }
@@ -247,9 +244,7 @@ async function init() {
       try {
         const club = await loadClub(entry.id);
         if (liveContainer) {
-          liveContainer.append(
-            renderLiveClub(entry, Array.isArray(club.roasts) ? club.roasts.length : 0)
-          );
+          liveContainer.append(renderLiveClub(entry));
         }
         if (Array.isArray(club.roasts)) {
           for (const roast of club.roasts) {

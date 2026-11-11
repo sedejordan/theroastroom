@@ -575,3 +575,125 @@
     transform: none;
   }
 }
+
+@layer components {
+  .siteHeader {
+    border: 0;
+    background-color: transparent;
+    background-image: linear-gradient(to bottom, rgba(10, 10, 10, 0.82), rgba(10, 10, 10, 0));
+  }
+
+  .siteFooter {
+    border: 0;
+    background-color: transparent;
+  }
+
+  .glassPanel {
+    background-color: rgba(10, 10, 10, 0.5);
+    border: 1px solid var(--colorLine);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+  }
+
+  @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+    .glassPanel {
+      background-color: rgba(10, 10, 10, 0.8);
+    }
+  }
+
+  .scene {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+
+  .scene--full {
+    min-height: 100vh;
+    min-height: 100svh;
+  }
+
+  .scene--ticker {
+    min-height: 60vh;
+    min-height: 60svh;
+  }
+
+  .tickerItem {
+    font-family: var(--fontDisplay);
+    font-size: var(--textDisplaySm);
+    line-height: var(--leadingTight);
+    letter-spacing: var(--trackingTight);
+    text-transform: uppercase;
+    color: var(--colorText);
+    white-space: nowrap;
+    text-shadow: 0 2px 24px rgba(0, 0, 0, 0.7);
+  }
+
+  .tickerPause {
+    border: 0;
+    background: transparent;
+    color: var(--colorTextMuted);
+    padding: var(--space1);
+    font-size: var(--textXs);
+    text-decoration: underline;
+  }
+
+  .comingSoonChip {
+    display: inline-flex;
+    align-items: center;
+    border: 1px solid var(--colorLine);
+    border-radius: var(--radiusPill);
+    background-color: rgba(10, 10, 10, 0.5);
+    padding: var(--space1) var(--space3);
+    font-size: var(--textXs);
+    color: var(--colorTextMuted);
+  }
+
+  .heroCopy h1,
+  .heroCopy p,
+  main [data-bg] h1,
+  main [data-bg] h2 {
+    text-shadow: 0 2px 24px rgba(0, 0, 0, 0.7);
+  }
+
+  .roastCard {
+    background-color: var(--colorSurface);
+    background-color: color-mix(in srgb, var(--colorSurface) 85%, transparent);
+  }
+}
+
+.clubBackground {
+  --bgFadeMs: 1000ms;
+  --bgFadeEase: ease-in-out;
+
+  --bgScrimTop: 0.55;
+  --bgScrimBottom: 0.55;
+  --bgVignetteInner: 0;
+  --bgVignetteOuter: 0.55;
+}
+
+.clubBackground.hasPhoto {
+  --bgScrimTop: 0.10;
+  --bgScrimBottom: 0.35;
+  --bgVignetteInner: 0;
+  --bgVignetteOuter: 0.40;
+}
+
+.clubBackground__photo {
+  transition: opacity var(--bgFadeMs) var(--bgFadeEase);
+}
+
+.clubBackground__photo.isZooming {
+  animation: bgSlowZoom 24s var(--easeStandard) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .clubBackground {
+    --bgFadeMs: 150ms;
+  }
+
+  .clubBackground__photo {
+    transition-duration: 150ms !important;
+    animation: none !important;
+  }
+}

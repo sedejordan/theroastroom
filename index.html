@@ -54,39 +54,19 @@
     <div id="clubBackground" class="clubBackground" aria-hidden="true"></div>
     <a class="skipLink" href="#main">Skip to content</a>
 
-    <header class="border-b border-line bg-surface">
-      <div class="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-3 px-4 py-4">
+    <header class="siteHeader">
+      <div class="mx-auto flex max-w-5xl items-center justify-between gap-3 px-4 py-4">
         <a href="./index.html" class="font-display text-xl uppercase tracking-wide text-text no-underline">
           The Roast Room
         </a>
-        <span class="tokenLabel">A Fritt experiment</span>
       </div>
     </header>
 
     <main id="main">
-      <section class="relative overflow-hidden border-b border-line" data-bg="hero">
-        <svg
-          class="pointer-events-none absolute inset-0 h-full w-full text-text"
-          style="opacity: 0.06"
-          viewBox="0 0 800 400"
-          preserveAspectRatio="none"
-          aria-hidden="true"
-        >
-          <rect x="10" y="10" width="780" height="380" fill="none" stroke="currentColor" stroke-width="2" />
-          <line x1="400" y1="10" x2="400" y2="390" stroke="currentColor" stroke-width="2" />
-          <circle cx="400" cy="200" r="70" fill="none" stroke="currentColor" stroke-width="2" />
-          <circle cx="400" cy="200" r="4" fill="currentColor" />
-          <rect x="10" y="100" width="100" height="200" fill="none" stroke="currentColor" stroke-width="2" />
-          <rect x="690" y="100" width="100" height="200" fill="none" stroke="currentColor" stroke-width="2" />
-        </svg>
-
-        <div class="relative mx-auto max-w-5xl px-4 py-16 md:py-24">
+      <section class="scene scene--full" data-bg="hero">
+        <div class="mx-auto w-full max-w-5xl px-4">
           <div class="heroCopy max-w-xl">
-            <p class="tokenLabel text-accent">Football banter, sourced and dated</p>
-            <h1 class="mt-3 text-displayMd text-text">Every rivalry needs receipts.</h1>
-            <p class="mt-4 text-lg text-textMuted">
-              Pick a rival. Hit the button. Check the receipts.
-            </p>
+            <h1 class="text-displayMd text-text">Every rivalry needs receipts.</h1>
             <div class="mt-8 flex flex-wrap gap-4">
               <a
                 href="./room.html?club=manutd"
@@ -103,159 +83,120 @@
       <section
         id="tickerSection"
         data-bg="experience"
-        class="hidden overflow-hidden border-b border-line bg-surface"
+        class="scene scene--ticker hidden overflow-hidden"
         aria-label="Recent roast headlines"
       >
-        <div class="mx-auto max-w-5xl px-4 py-3">
-          <div class="mb-2 flex items-center justify-between gap-3">
-            <p class="tokenLabel">Recent roasts</p>
-            <button id="tickerToggle" type="button" class="rounded-sharp border border-line px-3 py-2 text-xs text-textMuted">Pause ticker</button>
-          </div>
+        <div class="mx-auto w-full max-w-5xl px-4">
+          <p class="srOnly">Recent roasts</p>
           <div id="tickerTrack" class="tickerTrack"></div>
+          <div class="mt-6 flex justify-end">
+            <button id="tickerToggle" type="button" class="tickerPause">Pause</button>
+          </div>
         </div>
       </section>
 
-      <section data-bg="experience" aria-label="How it works" class="mx-auto max-w-5xl px-4 py-12">
-        <ol class="grid gap-4 sm:grid-cols-3">
-          <li class="rounded-sharp border border-line bg-surface p-5">
-            <span class="font-display text-2xl text-primary">01</span>
-            <h3 class="mt-1 text-lg text-text">Pick a club</h3>
-          </li>
-          <li class="rounded-sharp border border-line bg-surface p-5">
-            <span class="font-display text-2xl text-primary">02</span>
-            <h3 class="mt-1 text-lg text-text">Hit the button</h3>
-          </li>
-          <li class="rounded-sharp border border-line bg-surface p-5">
-            <span class="font-display text-2xl text-primary">03</span>
-            <h3 class="mt-1 text-lg text-text">Check the receipts</h3>
-          </li>
-        </ol>
-      </section>
+      <section data-bg="picker" aria-labelledby="pickerHeading" class="scene scene--full">
+        <div class="mx-auto w-full max-w-5xl px-4">
+          <h2 id="pickerHeading" class="text-displaySm text-text">Pick a club</h2>
 
-      <section data-bg="picker" aria-labelledby="pickerHeading" class="mx-auto max-w-5xl border-t border-line px-4 py-16">
-        <h2 id="pickerHeading" class="text-displaySm text-text">Pick a club</h2>
+          <div id="liveClubs" class="mt-8 grid gap-4 md:grid-cols-2"></div>
 
-        <div id="liveClubs" class="mt-8 grid gap-4 md:grid-cols-2"></div>
-
-        <p class="mt-10 tokenLabel">Coming soon</p>
-        <div id="comingSoonClubs" class="mt-4 grid gap-3 sm:grid-cols-2 md:grid-cols-3"></div>
+          <p class="mt-10 text-xs text-textMuted">Coming soon</p>
+          <div id="comingSoonClubs" class="mt-3 flex flex-wrap gap-2"></div>
+        </div>
       </section>
 
       <section
         id="suggestSection"
         data-bg="closing"
-        class="hidden mx-auto max-w-5xl border-t border-line px-4 py-16"
+        class="scene scene--full hidden"
         aria-labelledby="suggestHeading"
       >
-        <h2 id="suggestHeading" class="text-displaySm text-text">Who should we roast next?</h2>
-        <p class="mt-3 max-w-xl text-textMuted">
-          Suggest a club. The most voted is built next.
-        </p>
+        <div class="mx-auto w-full max-w-5xl px-4">
+          <h2 id="suggestHeading" class="text-displaySm text-text">Who should we roast next?</h2>
 
-        <form id="suggestForm" class="mt-6 max-w-xl" novalidate>
-          <label for="suggestName" class="tokenLabel block">Club name</label>
-          <input
-            id="suggestName"
-            name="name"
-            type="text"
-            required
-            minlength="2"
-            maxlength="40"
-            autocomplete="off"
-            class="mt-2 w-full rounded-sharp border border-line bg-surface px-3 py-2 text-text focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
-          />
-          <div
-            style="position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden"
-            aria-hidden="true"
-          >
-            <label for="suggestWebsite">Website</label>
-            <input id="suggestWebsite" name="website" type="text" tabindex="-1" autocomplete="off" />
-          </div>
-          <button
-            id="suggestSubmit"
-            type="submit"
-            class="mt-3 rounded-sharp border-2 border-primary bg-primary px-5 py-3 font-display text-lg uppercase tracking-wide text-primaryContrast transition-colors duration-fast ease-standard hover:bg-accent hover:text-background disabled:opacity-60"
-          >
-            Suggest this club
-          </button>
-          <p class="mt-2 text-xs text-textMuted">
-            We store a salted hash of your network address for two days, only to rate limit
-            submissions. We never store the address itself.
-          </p>
-          <p id="suggestStatus" class="mt-3 text-sm text-accent" role="status" aria-live="polite"></p>
-        </form>
+          <form id="suggestForm" class="glassPanel mt-6 max-w-xl p-6" novalidate>
+            <label for="suggestName" class="tokenLabel block">Club name</label>
+            <input
+              id="suggestName"
+              name="name"
+              type="text"
+              required
+              minlength="2"
+              maxlength="40"
+              autocomplete="off"
+              class="mt-2 w-full rounded-sharp border border-line bg-background px-3 py-2 text-text focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
+            />
+            <div
+              style="position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden"
+              aria-hidden="true"
+            >
+              <label for="suggestWebsite">Website</label>
+              <input id="suggestWebsite" name="website" type="text" tabindex="-1" autocomplete="off" />
+            </div>
+            <button
+              id="suggestSubmit"
+              type="submit"
+              class="mt-3 rounded-sharp border-2 border-primary bg-primary px-5 py-3 font-display text-lg uppercase tracking-wide text-primaryContrast transition-colors duration-fast ease-standard hover:bg-accent hover:text-background disabled:opacity-60"
+            >
+              Suggest this club
+            </button>
+            <p class="mt-2 text-xs">
+              <a href="./about.html#privacy" class="text-textMuted underline">Privacy</a>
+            </p>
+            <p id="suggestStatus" class="mt-3 text-sm text-accent" role="status" aria-live="polite"></p>
+          </form>
 
-        <h3 class="mt-10 text-2xl text-text">Leaderboard</h3>
-        <p id="suggestLoading" class="mt-2 text-sm text-textMuted">Loading suggestions.</p>
-        <p id="suggestEmpty" class="hidden mt-2 text-sm text-textMuted">Be the first to suggest a club.</p>
-        <p id="suggestError" class="hidden mt-2 text-sm text-accent" role="alert">
-          Suggestions are unavailable right now.
-        </p>
-        <ul id="suggestBoard" class="mt-3 space-y-3"></ul>
+          <details class="mt-10 max-w-xl">
+            <summary class="cursor-pointer text-sm text-textMuted">See the votes</summary>
+            <p id="suggestLoading" class="mt-2 text-sm text-textMuted">Loading suggestions.</p>
+            <p id="suggestEmpty" class="hidden mt-2 text-sm text-textMuted">Be the first to suggest a club.</p>
+            <p id="suggestError" class="hidden mt-2 text-sm text-accent" role="alert">
+              Suggestions are unavailable right now.
+            </p>
+            <ul id="suggestBoard" class="mt-3 space-y-3"></ul>
+          </details>
+        </div>
       </section>
 
       <section
         data-bg="closing"
         aria-labelledby="frittHeading"
-        class="mx-auto max-w-5xl border-t border-line px-4 py-16"
+        class="scene scene--full"
       >
-        <div class="rounded-sharp border border-line bg-surface p-8 md:p-10">
-          <h2 id="frittHeading" class="text-displaySm text-text">Want a site like this?</h2>
-          <p class="mt-3 max-w-xl text-textMuted">
-            The Roast Room is a Fritt experiment. Fritt designs and builds fast, interactive
-            websites for businesses and individuals.
-          </p>
-          <div class="mt-6 flex flex-wrap gap-3">
-            <a
-              href="https://fritt.org"
-              data-fritt-target="contact"
-              data-fritt-placement="landingCta"
-              rel="noopener"
-              class="inline-block rounded-sharp bg-primary px-5 py-3 font-display text-lg uppercase tracking-wide text-primaryContrast no-underline transition-colors duration-fast ease-standard hover:bg-accent hover:text-background"
-            >
-              Talk to Fritt
-            </a>
-            <a
-              href="https://fritt.org"
-              data-fritt-target="portfolio"
-              data-fritt-placement="landingCta"
-              rel="noopener"
-              class="inline-block rounded-sharp border border-line px-5 py-3 font-display text-lg uppercase tracking-wide text-text no-underline transition-colors duration-fast ease-standard hover:border-accent hover:text-accent"
-            >
-              See Fritt's work
-            </a>
+        <div class="mx-auto w-full max-w-5xl px-4">
+          <div class="glassPanel max-w-xl p-8 md:p-10">
+            <h2 id="frittHeading" class="text-displaySm text-text">Want a site like this?</h2>
+            <div class="mt-6 flex flex-wrap gap-3">
+              <a
+                href="https://fritt.org"
+                data-fritt-target="contact"
+                data-fritt-placement="landingCta"
+                rel="noopener"
+                class="inline-block rounded-sharp bg-primary px-5 py-3 font-display text-lg uppercase tracking-wide text-primaryContrast no-underline transition-colors duration-fast ease-standard hover:bg-accent hover:text-background"
+              >
+                Talk to Fritt
+              </a>
+              <a
+                href="https://fritt.org"
+                data-fritt-target="portfolio"
+                data-fritt-placement="landingCta"
+                rel="noopener"
+                class="inline-block rounded-sharp border border-line px-5 py-3 font-display text-lg uppercase tracking-wide text-text no-underline transition-colors duration-fast ease-standard hover:border-accent hover:text-accent"
+              >
+                See Fritt's work
+              </a>
+            </div>
           </div>
         </div>
       </section>
-
     </main>
 
-    <footer class="border-t border-line bg-surface">
-      <div class="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-4 px-4 py-8">
+    <footer class="siteFooter">
+      <div class="mx-auto max-w-5xl px-4 py-8">
         <p class="text-sm text-textMuted">
           Built by <a href="https://fritt.org" rel="noopener">Fritt</a>.
           <a href="./about.html" class="text-textMuted underline">About and privacy</a>.
-        </p>
-        <p class="text-sm text-textMuted">
-          <a
-            href="https://fritt.org"
-            data-fritt-target="contact"
-            data-fritt-placement="landingFooter"
-            rel="noopener"
-            class="text-textMuted underline"
-          >
-            Talk to Fritt
-          </a>
-          ·
-          <a
-            href="https://fritt.org"
-            data-fritt-target="portfolio"
-            data-fritt-placement="landingFooter"
-            rel="noopener"
-            class="text-textMuted underline"
-          >
-            See Fritt's work
-          </a>
         </p>
       </div>
     </footer>

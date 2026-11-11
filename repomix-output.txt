@@ -55,8 +55,24 @@ data/
   clubs/
     manutd.json
   clubs.json
+images/
+  backgrounds/
+    home/
+      home-closing.webp
+      home-club-picker.webp
+      home-experience.webp
+      home-hero.webp
+    manutd/
+      mu-embarrassing-records.webp
+      mu-failed-transfers.webp
+      mu-historical-defeats.webp
+      mu-painful-stats.webp
+      mu-room-default.webp
+      mu-trophy-droughts.webp
 js/
   background/
+    backgroundConfig.js
+    imageBackground.js
     layers.js
     scrollBackground.js
   brand/
@@ -110,6 +126,7 @@ src/
 tests/
   fixtures/
     fakeData.mjs
+  backgroundConfig.test.mjs
   roastLogic.test.mjs
   schema.test.mjs
   shareText.test.mjs
@@ -946,80 +963,418 @@ File: data/clubs.json
 68: }
 
 ================
-File: js/background/scrollBackground.js
+File: js/background/backgroundConfig.js
 ================
- 1: /**
- 2:  * Fixed parallax background controller for The Roast Room.
- 3:  * Builds the layer DOM from a layer list, throttles scroll updates through
- 4:  * requestAnimationFrame, and does nothing when the user prefers reduced motion.
- 5:  */
- 6: 
- 7: import { prefersReducedMotion } from '../utils/dom.js';
- 8: 
- 9: /**
-10:  * Mount a parallax background inside a container element.
-11:  *
-12:  * @param {HTMLElement | null} container
-13:  * @param {import('./layers.js').BackgroundLayer[]} layers
-14:  * @returns {() => void} Teardown function. Safe to call at any time.
-15:  */
-16: export function initScrollBackground(container, layers) {
-17:   const noop = () => {};
-18:   if (!container || typeof document === 'undefined') return noop;
-19:   if (!Array.isArray(layers) || layers.length === 0) return noop;
-20: 
-21:   container.textContent = '';
-22: 
-23:   const scrim = document.createElement('div');
-24:   scrim.className = 'clubBackground__scrim';
-25:   container.append(scrim);
-26: 
-27:   /** @type {HTMLElement[]} */
-28:   const layerEls = [];
-29: 
-30:   for (const layer of layers) {
-31:     if (!layer || typeof layer.svg !== 'string') continue;
-32:     const el = document.createElement('div');
-33:     el.className =
-34:       'clubBackground__layer' + (layer.fast ? ' clubBackground__layer--fast' : '');
-35:     el.dataset.speed = String(layer.speed);
-36:     el.innerHTML = layer.svg; // safe: authored by us, no user data
-37:     container.append(el);
-38:     layerEls.push(el);
-39:   }
-40: 
-41:   const teardown = () => {
-42:     container.textContent = '';
-43:   };
-44: 
-45:   if (layerEls.length === 0) return teardown;
-46:   if (prefersReducedMotion()) return teardown;
-47: 
-48:   let ticking = false;
-49: 
-50:   const update = () => {
-51:     const y = window.scrollY || 0;
-52:     for (const el of layerEls) {
-53:       const speed = parseFloat(el.dataset.speed) || 0;
-54:       el.style.transform = `translate3d(0, ${-y * speed}px, 0)`;
-55:     }
-56:     ticking = false;
-57:   };
-58: 
-59:   const onScroll = () => {
-60:     if (ticking) return;
-61:     ticking = true;
-62:     window.requestAnimationFrame(update);
-63:   };
-64: 
-65:   window.addEventListener('scroll', onScroll, { passive: true });
-66:   update();
-67: 
-68:   return () => {
-69:     window.removeEventListener('scroll', onScroll);
-70:     teardown();
-71:   };
-72: }
+  1: /**
+  2:  * Background image configuration for The Roast Room.
+  3:  *
+  4:  * Pure data and pure helpers. No DOM, no fetch, no side effects, so this
+  5:  * module runs unchanged in the browser, in Node build scripts and in tests.
+  6:  *
+  7:  * Paths are site-root relative, matching how the pages reference ./js and
+  8:  * ./dist. Adding a future club means adding one entry here and dropping the
+  9:  * files into images/backgrounds/<clubId>/.
+ 10:  */
+ 11: 
+ 12: /**
+ 13:  * @typedef {Object} BackgroundImage
+ 14:  * @property {string} src Site-root relative image path.
+ 15:  * @property {{ desktop: string, mobile: string }} focal CSS object-position values.
+ 16:  */
+ 17: 
+ 18: /**
+ 19:  * Build a frozen background image entry.
+ 20:  * @param {string} src
+ 21:  * @param {string} [desktop]
+ 22:  * @param {string} [mobile]
+ 23:  * @returns {BackgroundImage}
+ 24:  */
+ 25: function entry(src, desktop = '50% 50%', mobile = '50% 50%') {
+ 26:   return Object.freeze({
+ 27:     src,
+ 28:     focal: Object.freeze({ desktop, mobile }),
+ 29:   });
+ 30: }
+ 31: 
+ 32: /** @type {Readonly<Record<string, BackgroundImage>>} */
+ 33: export const HOME_BACKGROUNDS = Object.freeze({
+ 34:   hero: entry('/images/backgrounds/home/home-hero.webp', '50% 45%', '50% 40%'),
+ 35:   experience: entry('/images/backgrounds/home/home-experience.webp', '50% 50%', '50% 50%'),
+ 36:   picker: entry('/images/backgrounds/home/home-club-picker.webp', '50% 50%', '50% 50%'),
+ 37:   closing: entry('/images/backgrounds/home/home-closing.webp', '50% 55%', '50% 60%'),
+ 38: });
+ 39: 
+ 40: /** @type {Readonly<Record<string, { default: BackgroundImage, categories: Readonly<Record<string, BackgroundImage>> }>>} */
+ 41: export const CLUB_BACKGROUNDS = Object.freeze({
+ 42:   manutd: Object.freeze({
+ 43:     default: entry('/images/backgrounds/manutd/mu-room-default.webp', '50% 45%', '50% 40%'),
+ 44:     categories: Object.freeze({
+ 45:       trophyDroughts: entry('/images/backgrounds/manutd/mu-trophy-droughts.webp'),
+ 46:       historicalDefeats: entry('/images/backgrounds/manutd/mu-historical-defeats.webp'),
+ 47:       embarrassingRecords: entry('/images/backgrounds/manutd/mu-embarrassing-records.webp'),
+ 48:       failedTransfers: entry('/images/backgrounds/manutd/mu-failed-transfers.webp'),
+ 49:       painfulStats: entry('/images/backgrounds/manutd/mu-painful-stats.webp'),
+ 50:     }),
+ 51:   }),
+ 52: });
+ 53: 
+ 54: /**
+ 55:  * Return the landing page image for a section key, or null when unknown.
+ 56:  * @param {string} sectionKey
+ 57:  * @returns {BackgroundImage | null}
+ 58:  */
+ 59: export function homeBackgroundFor(sectionKey) {
+ 60:   if (typeof sectionKey !== 'string' || sectionKey.length === 0) return null;
+ 61:   return HOME_BACKGROUNDS[sectionKey] || null;
+ 62: }
+ 63: 
+ 64: /**
+ 65:  * Return the category image, else the club default, else null.
+ 66:  * 'all' always resolves to the club default. Unknown clubs and unknown
+ 67:  * categories return null so the SVG layers can show instead.
+ 68:  * @param {string} clubId
+ 69:  * @param {string} [categoryId]
+ 70:  * @returns {BackgroundImage | null}
+ 71:  */
+ 72: export function clubBackgroundFor(clubId, categoryId) {
+ 73:   if (typeof clubId !== 'string' || clubId.length === 0) return null;
+ 74:   const club = CLUB_BACKGROUNDS[clubId];
+ 75:   if (!club) return null;
+ 76: 
+ 77:   if (typeof categoryId === 'string' && categoryId.length > 0 && categoryId !== 'all') {
+ 78:     const category = club.categories[categoryId];
+ 79:     return category || null;
+ 80:   }
+ 81: 
+ 82:   return club.default || null;
+ 83: }
+ 84: 
+ 85: /**
+ 86:  * Every landing page image, for idle preloading.
+ 87:  * @returns {BackgroundImage[]}
+ 88:  */
+ 89: export function collectHomeBackgrounds() {
+ 90:   return Object.values(HOME_BACKGROUNDS);
+ 91: }
+ 92: 
+ 93: /**
+ 94:  * Every image for one club, for idle preloading.
+ 95:  * @param {string} clubId
+ 96:  * @returns {BackgroundImage[]}
+ 97:  */
+ 98: export function collectClubBackgrounds(clubId) {
+ 99:   const club = CLUB_BACKGROUNDS[clubId];
+100:   if (!club) return [];
+101:   const list = [club.default, ...Object.values(club.categories)];
+102:   return list.filter(Boolean);
+103: }
+104: 
+105: /**
+106:  * Every configured image path across the whole site. Used by the build and
+107:  * data gate to warn about missing files.
+108:  * @returns {string[]}
+109:  */
+110: export function collectBackgroundImagePaths() {
+111:   const paths = new Set();
+112: 
+113:   for (const image of Object.values(HOME_BACKGROUNDS)) {
+114:     if (image && typeof image.src === 'string') paths.add(image.src);
+115:   }
+116: 
+117:   for (const club of Object.values(CLUB_BACKGROUNDS)) {
+118:     if (!club) continue;
+119:     if (club.default && typeof club.default.src === 'string') paths.add(club.default.src);
+120:     for (const image of Object.values(club.categories || {})) {
+121:       if (image && typeof image.src === 'string') paths.add(image.src);
+122:     }
+123:   }
+124: 
+125:   return Array.from(paths);
+126: }
+
+================
+File: js/background/imageBackground.js
+================
+  1: /**
+  2:  * Photo background layer for The Roast Room.
+  3:  *
+  4:  * Sits inside #clubBackground, below the scrim. Uses two stacked <img>
+  5:  * elements and crossfades between them. The SVG parallax layers act as the
+  6:  * fallback and are hidden (via the hasPhoto class) while a photo is showing.
+  7:  *
+  8:  * Never throws. All DOM work is guarded.
+  9:  */
+ 10: 
+ 11: import { prefersReducedMotion } from '../utils/dom.js';
+ 12: 
+ 13: const CROSSFADE_MS = 700;
+ 14: const REDUCED_CROSSFADE_MS = 150;
+ 15: const LOAD_TIMEOUT_MS = 10000;
+ 16: const PULSE_MS = 700;
+ 17: 
+ 18: /**
+ 19:  * Create a background image controller inside a container.
+ 20:  * @param {HTMLElement | null} container
+ 21:  * @returns {{
+ 22:  *   show: (entry: { src: string, focal?: { desktop?: string, mobile?: string } } | null) => Promise<void>,
+ 23:  *   preload: (entries: Array<{ src: string }>) => void,
+ 24:  *   pulse: () => void,
+ 25:  *   cancelPulse: () => void,
+ 26:  *   destroy: () => void
+ 27:  * }}
+ 28:  */
+ 29: export function createImageBackground(container) {
+ 30:   const noop = () => {};
+ 31:   const noopAsync = async () => {};
+ 32: 
+ 33:   if (!container || typeof document === 'undefined') {
+ 34:     return { show: noopAsync, preload: noop, pulse: noop, cancelPulse: noop, destroy: noop };
+ 35:   }
+ 36: 
+ 37:   const root = document.createElement('div');
+ 38:   root.className = 'clubBackground__images';
+ 39: 
+ 40:   const imgA = createPhoto();
+ 41:   const imgB = createPhoto();
+ 42:   root.append(imgA, imgB);
+ 43:   container.append(root);
+ 44: 
+ 45:   const tint = document.createElement('div');
+ 46:   tint.className = 'clubBackground__tint';
+ 47:   container.append(tint);
+ 48: 
+ 49:   let front = imgA;
+ 50:   let back = imgB;
+ 51:   let currentSrc = '';
+ 52:   let requestId = 0;
+ 53:   let preloadToken = 0;
+ 54:   let destroyed = false;
+ 55:   let pulseTimer = 0;
+ 56: 
+ 57:   /**
+ 58:    * Build one photo element.
+ 59:    * @returns {HTMLImageElement}
+ 60:    */
+ 61:   function createPhoto() {
+ 62:     const img = document.createElement('img');
+ 63:     img.className = 'clubBackground__photo';
+ 64:     img.alt = '';
+ 65:     img.decoding = 'async';
+ 66:     img.loading = 'eager';
+ 67:     img.draggable = false;
+ 68:     img.setAttribute('aria-hidden', 'true');
+ 69:     return img;
+ 70:   }
+ 71: 
+ 72:   /**
+ 73:    * Apply focal point CSS variables for the current image.
+ 74:    * @param {{ focal?: { desktop?: string, mobile?: string } }} entry
+ 75:    * @returns {void}
+ 76:    */
+ 77:   function setFocal(entry) {
+ 78:     const desktop =
+ 79:       entry && entry.focal && typeof entry.focal.desktop === 'string'
+ 80:         ? entry.focal.desktop
+ 81:         : '50% 50%';
+ 82:     const mobile =
+ 83:       entry && entry.focal && typeof entry.focal.mobile === 'string'
+ 84:         ? entry.focal.mobile
+ 85:         : '50% 50%';
+ 86:     root.style.setProperty('--bgFocalDesktop', desktop);
+ 87:     root.style.setProperty('--bgFocalMobile', mobile);
+ 88:   }
+ 89: 
+ 90:   /**
+ 91:    * Load a source into an image element and resolve true only after it has
+ 92:    * loaded and decoded.
+ 93:    * @param {HTMLImageElement} img
+ 94:    * @param {string} src
+ 95:    * @returns {Promise<boolean>}
+ 96:    */
+ 97:   function loadInto(img, src) {
+ 98:     return new Promise((resolve) => {
+ 99:       let settled = false;
+100:       let timer = 0;
+101: 
+102:       const done = (ok) => {
+103:         if (settled) return;
+104:         settled = true;
+105:         window.clearTimeout(timer);
+106:         img.onload = null;
+107:         img.onerror = null;
+108:         resolve(ok);
+109:       };
+110: 
+111:       img.onload = () => done(true);
+112:       img.onerror = () => done(false);
+113:       timer = window.setTimeout(() => done(false), LOAD_TIMEOUT_MS);
+114: 
+115:       img.src = src;
+116: 
+117:       if (typeof img.decode === 'function') {
+118:         img.decode().then(() => done(true)).catch(() => {
+119:           // onload/onerror or the timeout decides the outcome.
+120:         });
+121:       }
+122:     });
+123:   }
+124: 
+125:   /**
+126:    * Show the SVG fallback and clear the photos.
+127:    * @returns {void}
+128:    */
+129:   function fallback() {
+130:     container.classList.remove('hasPhoto');
+131:     imgA.classList.remove('isActive');
+132:     imgB.classList.remove('isActive');
+133:     imgA.removeAttribute('src');
+134:     imgB.removeAttribute('src');
+135:     imgA.style.opacity = '0';
+136:     imgB.style.opacity = '0';
+137:     imgA.style.transitionDuration = '0ms';
+138:     imgB.style.transitionDuration = '0ms';
+139:     front = imgA;
+140:     back = imgB;
+141:   }
+142: 
+143:   /**
+144:    * Show an image. Stale requests are ignored; the latest call wins.
+145:    * @param {{ src: string, focal?: { desktop?: string, mobile?: string } } | null} entry
+146:    * @returns {Promise<void>}
+147:    */
+148:   async function show(entry) {
+149:     if (destroyed) return;
+150: 
+151:     if (!entry || typeof entry.src !== 'string' || entry.src.length === 0) {
+152:       requestId += 1;
+153:       currentSrc = '';
+154:       fallback();
+155:       return;
+156:     }
+157: 
+158:     if (entry.src === currentSrc) {
+159:       container.classList.add('hasPhoto');
+160:       return;
+161:     }
+162: 
+163:     const id = ++requestId;
+164:     setFocal(entry);
+165: 
+166:     const target = back;
+167:     const ok = await loadInto(target, entry.src);
+168: 
+169:     if (destroyed || id !== requestId) return;
+170: 
+171:     if (!ok) {
+172:       fallback();
+173:       return;
+174:     }
+175: 
+176:     const fadeMs = prefersReducedMotion() ? REDUCED_CROSSFADE_MS : CROSSFADE_MS;
+177:     const oldFront = front;
+178: 
+179:     currentSrc = entry.src;
+180:     container.classList.add('hasPhoto');
+181: 
+182:     target.style.transitionDuration = `${fadeMs}ms`;
+183:     oldFront.style.transitionDuration = `${fadeMs}ms`;
+184: 
+185:     target.classList.add('isActive');
+186:     oldFront.classList.remove('isActive');
+187: 
+188:     target.style.opacity = '1';
+189:     oldFront.style.opacity = '0';
+190: 
+191:     front = target;
+192:     back = oldFront;
+193: 
+194:     window.setTimeout(() => {
+195:       if (destroyed || front !== target) return;
+196:       back.style.transitionDuration = '0ms';
+197:       back.style.opacity = '0';
+198:       void back.offsetWidth;
+199:     }, fadeMs + 40);
+200:   }
+201: 
+202:   /**
+203:    * Preload images one at a time during idle time.
+204:    * @param {Array<{ src: string }>} entries
+205:    * @returns {void}
+206:    */
+207:   function preload(entries) {
+208:     if (destroyed || !Array.isArray(entries)) return;
+209: 
+210:     const connection = navigator && navigator.connection;
+211:     if (connection && connection.saveData) return;
+212: 
+213:     const seen = new Set();
+214:     const list = entries.filter((entry) => {
+215:       if (!entry || typeof entry.src !== 'string') return false;
+216:       if (entry.src === currentSrc) return false;
+217:       if (seen.has(entry.src)) return false;
+218:       seen.add(entry.src);
+219:       return true;
+220:     });
+221: 
+222:     if (list.length === 0) return;
+223: 
+224:     const token = ++preloadToken;
+225:     const schedule =
+226:       typeof window.requestIdleCallback === 'function'
+227:         ? (fn) => window.requestIdleCallback(fn, { timeout: 2000 })
+228:         : (fn) => window.setTimeout(fn, 200);
+229: 
+230:     const run = (index) => {
+231:       if (destroyed || token !== preloadToken || index >= list.length) return;
+232:       const img = new Image();
+233:       img.decoding = 'async';
+234:       img.src = list[index].src;
+235:       if (typeof img.decode === 'function') {
+236:         img.decode().catch(() => {});
+237:       }
+238:       schedule(() => run(index + 1));
+239:     };
+240: 
+241:     schedule(() => run(0));
+242:   }
+243: 
+244:   /**
+245:    * A short red pulse behind the page content.
+246:    * @returns {void}
+247:    */
+248:   function pulse() {
+249:     if (destroyed || prefersReducedMotion()) return;
+250:     tint.classList.remove('isPulsing');
+251:     void tint.offsetWidth;
+252:     tint.classList.add('isPulsing');
+253:     window.clearTimeout(pulseTimer);
+254:     pulseTimer = window.setTimeout(() => tint.classList.remove('isPulsing'), PULSE_MS);
+255:   }
+256: 
+257:   /**
+258:    * Cancel a running pulse, for example when the filter changes.
+259:    * @returns {void}
+260:    */
+261:   function cancelPulse() {
+262:     window.clearTimeout(pulseTimer);
+263:     tint.classList.remove('isPulsing');
+264:   }
+265: 
+266:   /**
+267:    * Remove everything and stop pending work.
+268:    * @returns {void}
+269:    */
+270:   function destroy() {
+271:     destroyed = true;
+272:     requestId += 1;
+273:     preloadToken += 1;
+274:     window.clearTimeout(pulseTimer);
+275:     root.remove();
+276:     tint.remove();
+277:   }
+278: 
+279:   return { show, preload, pulse, cancelPulse, destroy };
+280: }
 
 ================
 File: js/brand/applyFrittLinks.js
@@ -4483,136 +4838,6 @@ File: js/theme.js
 77: }
 
 ================
-File: scripts/validate.mjs
-================
-  1: /**
-  2:  * Data gate for The Roast Room.
-  3:  * Validates the registry and every club data file, then exits with code 1 when
-  4:  * anything is wrong. Run it before every deploy.
-  5:  */
-  6: 
-  7: import { readFile, readdir } from 'node:fs/promises';
-  8: import { join, resolve } from 'node:path';
-  9: import { fileURLToPath } from 'node:url';
- 10: 
- 11: import { CLUB_STATUS, CLUBS_DIRECTORY, REGISTRY_PATH } from '../js/config.js';
- 12: import { validateClub, validateRegistry } from '../js/schema.js';
- 13: 
- 14: const rootDirectory = resolve(fileURLToPath(new URL('..', import.meta.url)));
- 15: 
- 16: /**
- 17:  * Turn an unknown thrown value into a readable string.
- 18:  * @param {unknown} error
- 19:  * @returns {string}
- 20:  */
- 21: function describeError(error) {
- 22:   if (error instanceof Error) return error.message;
- 23:   return String(error);
- 24: }
- 25: 
- 26: /**
- 27:  * Read and parse a json file relative to the project root.
- 28:  * @param {string} relativePath
- 29:  * @returns {Promise<unknown>}
- 30:  */
- 31: async function readJsonFile(relativePath) {
- 32:   const absolutePath = join(rootDirectory, relativePath);
- 33:   const text = await readFile(absolutePath, 'utf8');
- 34:   return JSON.parse(text);
- 35: }
- 36: 
- 37: /**
- 38:  * Run every check and collect problems. The process exit code is set by the caller.
- 39:  * @returns {Promise<number>} Number of problems found.
- 40:  */
- 41: async function main() {
- 42:   const problems = [];
- 43: 
- 44:   let registry;
- 45:   try {
- 46:     registry = await readJsonFile(REGISTRY_PATH);
- 47:   } catch (error) {
- 48:     console.error(`Could not read ${REGISTRY_PATH}: ${describeError(error)}`);
- 49:     return 1;
- 50:   }
- 51: 
- 52:   const registryResult = validateRegistry(registry);
- 53:   problems.push(...registryResult.errors);
- 54: 
- 55:   const clubs = registry && Array.isArray(registry.clubs) ? registry.clubs : [];
- 56:   const referencedFiles = new Set();
- 57: 
- 58:   // Collect every data file that ANY registry club references, whatever its
- 59:   // status. A live club must have a readable, valid file. A coming soon club
- 60:   // may declare a file that does not exist yet, but the file is validated in
- 61:   // exactly the same way as a live club file when it does exist.
- 62:   for (const club of clubs) {
- 63:     if (!club) continue;
- 64:     if (typeof club.dataFile !== 'string' || club.dataFile.length === 0) continue;
- 65: 
- 66:     referencedFiles.add(club.dataFile);
- 67: 
- 68:     let data;
- 69:     try {
- 70:       data = await readJsonFile(club.dataFile);
- 71:     } catch (error) {
- 72:         const fileIsMissing = error && error.code === 'ENOENT';
- 73:         if (club.status === CLUB_STATUS.LIVE || !fileIsMissing) {
- 74:           problems.push(`${club.dataFile} could not be read: ${describeError(error)}`);
- 75:         }
- 76:         continue;
- 77:       }
- 78: 
- 79:     const clubResult = validateClub(data, {
- 80:       path: club.dataFile,
- 81:       mode: 'data',
- 82:       clubId: club.id,
- 83:     });
- 84:     problems.push(...clubResult.errors);
- 85: 
- 86:     if (data && typeof data === 'object' && data.themeKey !== club.themeKey) {
- 87:       problems.push(`${club.dataFile}.themeKey must match the registry themeKey "${club.themeKey}"`);
- 88:     }
- 89:   }
- 90: 
- 91:   let files = [];
- 92:   try {
- 93:     files = await readdir(join(rootDirectory, CLUBS_DIRECTORY));
- 94:   } catch (error) {
- 95:     problems.push(`${CLUBS_DIRECTORY} could not be read: ${describeError(error)}`);
- 96:   }
- 97: 
- 98:   // Orphan check. Every file in the clubs folder must be referenced by at
- 99:   // least one registry entry, whatever the status of that entry.
-100:   for (const file of files) {
-101:     if (!file.endsWith('.json')) continue;
-102:     const relativePath = `${CLUBS_DIRECTORY}/${file}`;
-103:     if (!referencedFiles.has(relativePath)) {
-104:       problems.push(`${relativePath} is not referenced by any club in the registry`);
-105:     }
-106:   }
-107: 
-108:   if (problems.length > 0) {
-109:     console.error(`Data validation failed with ${problems.length} problem(s):`);
-110:     for (const problem of problems) {
-111:       console.error(`  ${problem}`);
-112:     }
-113:     return problems.length;
-114:   }
-115: 
-116:   console.log(
-117:     `Data validation passed. ${clubs.length} club(s) and ${referencedFiles.size} data file reference(s) checked.`
-118:   );
-119:   return 0;
-120: }
-121: 
-122: const problemCount = await main();
-123: 
-124: if (problemCount > 0) {
-125:   process.exitCode = 1;
-126: }
-
-================
 File: tests/fixtures/fakeData.mjs
 ================
  1: /**
@@ -4692,6 +4917,83 @@ File: tests/fixtures/fakeData.mjs
 75:   version: 1,
 76:   clubs: [{ ...fakeClubEntry }],
 77: };
+
+================
+File: tests/backgroundConfig.test.mjs
+================
+ 1: /**
+ 2:  * Tests for the pure background configuration helpers.
+ 3:  * Node test runner only, no extra dependencies.
+ 4:  */
+ 5: 
+ 6: import test from 'node:test';
+ 7: import assert from 'node:assert/strict';
+ 8: 
+ 9: import {
+10:   CLUB_BACKGROUNDS,
+11:   HOME_BACKGROUNDS,
+12:   clubBackgroundFor,
+13:   collectBackgroundImagePaths,
+14:   collectClubBackgrounds,
+15:   collectHomeBackgrounds,
+16:   homeBackgroundFor,
+17: } from '../js/background/backgroundConfig.js';
+18: 
+19: test('homeBackgroundFor returns the hero image', () => {
+20:   const hero = homeBackgroundFor('hero');
+21:   assert.ok(hero);
+22:   assert.equal(hero.src, '/images/backgrounds/home/home-hero.webp');
+23: });
+24: 
+25: test('homeBackgroundFor returns null for an unknown key', () => {
+26:   assert.equal(homeBackgroundFor('nope'), null);
+27:   assert.equal(homeBackgroundFor(''), null);
+28:   assert.equal(homeBackgroundFor(null), null);
+29: });
+30: 
+31: test('clubBackgroundFor returns the category image', () => {
+32:   const image = clubBackgroundFor('manutd', 'trophyDroughts');
+33:   assert.ok(image);
+34:   assert.equal(image.src, '/images/backgrounds/manutd/mu-trophy-droughts.webp');
+35: });
+36: 
+37: test('clubBackgroundFor treats all as the club default', () => {
+38:   const image = clubBackgroundFor('manutd', 'all');
+39:   assert.ok(image);
+40:   assert.equal(image.src, CLUB_BACKGROUNDS.manutd.default.src);
+41: });
+42: 
+43: test('clubBackgroundFor returns null for an unknown club', () => {
+44:   assert.equal(clubBackgroundFor('nope', 'trophyDroughts'), null);
+45:   assert.equal(clubBackgroundFor('', 'all'), null);
+46: });
+47: 
+48: test('clubBackgroundFor returns null for an unknown category', () => {
+49:   assert.equal(clubBackgroundFor('manutd', 'nope'), null);
+50: });
+51: 
+52: test('clubBackgroundFor never throws on odd input', () => {
+53:   const values = [undefined, null, 0, 'text', [], {}];
+54:   for (const value of values) {
+55:     assert.doesNotThrow(() => clubBackgroundFor(value, value));
+56:     assert.doesNotThrow(() => homeBackgroundFor(value));
+57:   }
+58: });
+59: 
+60: test('every configured path starts with the images folder', () => {
+61:   const paths = collectBackgroundImagePaths();
+62:   assert.ok(paths.length > 0);
+63:   for (const path of paths) {
+64:     assert.ok(path.startsWith('/images/backgrounds/'), `${path} is not under images/backgrounds`);
+65:   }
+66: });
+67: 
+68: test('collectHomeBackgrounds and collectClubBackgrounds return entries', () => {
+69:   assert.equal(collectHomeBackgrounds().length, Object.keys(HOME_BACKGROUNDS).length);
+70:   const club = collectClubBackgrounds('manutd');
+71:   assert.ok(club.length >= 6);
+72:   assert.deepEqual(collectClubBackgrounds('nope'), []);
+73: });
 
 ================
 File: tests/schema.test.mjs
@@ -7013,6 +7315,87 @@ File: js/background/layers.js
 95: }
 
 ================
+File: js/background/scrollBackground.js
+================
+ 1: /**
+ 2:  * Fixed parallax background controller for The Roast Room.
+ 3:  * Builds the layer DOM inside a .clubBackground__svg wrapper, throttles scroll
+ 4:  * updates through requestAnimationFrame, and does nothing when the user
+ 5:  * prefers reduced motion. The SVG layers are the fallback when no photo is
+ 6:  * available.
+ 7:  */
+ 8: 
+ 9: import { prefersReducedMotion } from '../utils/dom.js';
+10: 
+11: /**
+12:  * Mount the SVG parallax layers inside a container element.
+13:  *
+14:  * @param {HTMLElement | null} container
+15:  * @param {import('./layers.js').BackgroundLayer[]} layers
+16:  * @returns {() => void} Teardown function. Safe to call at any time.
+17:  */
+18: export function initScrollBackground(container, layers) {
+19:   const noop = () => {};
+20:   if (!container || typeof document === 'undefined') return noop;
+21: 
+22:   const root = document.createElement('div');
+23:   root.className = 'clubBackground__svg';
+24:   root.setAttribute('aria-hidden', 'true');
+25:   container.append(root);
+26: 
+27:   const scrim = document.createElement('div');
+28:   scrim.className = 'clubBackground__scrim';
+29:   root.append(scrim);
+30: 
+31:   /** @type {HTMLElement[]} */
+32:   const layerEls = [];
+33:   const list = Array.isArray(layers) ? layers : [];
+34: 
+35:   for (const layer of list) {
+36:     if (!layer || typeof layer.svg !== 'string') continue;
+37:     const el = document.createElement('div');
+38:     el.className =
+39:       'clubBackground__layer' + (layer.fast ? ' clubBackground__layer--fast' : '');
+40:     el.dataset.speed = String(layer.speed);
+41:     el.innerHTML = layer.svg; // safe: authored by us, no user data
+42:     root.append(el);
+43:     layerEls.push(el);
+44:   }
+45: 
+46:   const teardown = () => {
+47:     root.remove();
+48:   };
+49: 
+50:   if (layerEls.length === 0) return teardown;
+51:   if (prefersReducedMotion()) return teardown;
+52: 
+53:   let ticking = false;
+54: 
+55:   const update = () => {
+56:     const y = window.scrollY || 0;
+57:     for (const el of layerEls) {
+58:       const speed = parseFloat(el.dataset.speed) || 0;
+59:       el.style.transform = `translate3d(0, ${-y * speed}px, 0)`;
+60:     }
+61:     ticking = false;
+62:   };
+63: 
+64:   const onScroll = () => {
+65:     if (ticking) return;
+66:     ticking = true;
+67:     window.requestAnimationFrame(update);
+68:   };
+69: 
+70:   window.addEventListener('scroll', onScroll, { passive: true });
+71:   update();
+72: 
+73:   return () => {
+74:     window.removeEventListener('scroll', onScroll);
+75:     teardown();
+76:   };
+77: }
+
+================
 File: js/dev/adminLab.js
 ================
   1: /**
@@ -7489,78 +7872,152 @@ File: js/share/shareConfig.js
 7: export const SHARE_HOST_OVERRIDE = 'roastroom.fritt.org';
 
 ================
-File: js/ui/reveal.js
+File: scripts/validate.mjs
 ================
- 1: /**
- 2:  * Reveal animation for a roast card.
- 3:  * Runs a short slot machine style reel on the headline, then fades the facts,
- 4:  * receipts and verified line in. Under prefers reduced motion everything is
- 5:  * skipped and the roast appears immediately.
- 6:  */
- 7: 
- 8: import { prefersReducedMotion } from '../utils/dom.js';
- 9: 
-10: const REEL_DURATION_MS = 600;
-11: const REEL_INTERVAL_MS = 80;
-12: 
-13: /**
-14:  * Reveal a roast inside an already mounted card.
-15:  *
-16:  * The headline cycles through random entries from the pool for about 600 ms
-17:  * with aria hidden set so screen readers do not narrate the churn. When the
-18:  * reel settles, the final headline is written, aria hidden is removed, and the
-19:  * hidden elements are shown by adding the isVisible class.
-20:  *
-21:  * @param {{
-22:  *   headlineElement: HTMLElement,
-23:  *   finalHeadline: string,
-24:  *   reelPool: string[],
-25:  *   hiddenElements: HTMLElement[]
-26:  * }} options
-27:  * @returns {Promise<void>}
-28:  */
-29: export async function revealRoast(options) {
-30:   const { headlineElement, finalHeadline, reelPool, hiddenElements, forceAnimate } = options;
-31: 
-32:   if (!headlineElement) return;
-33: 
-34:   const hidden = Array.isArray(hiddenElements) ? hiddenElements.filter(Boolean) : [];
-35:   const pool = Array.isArray(reelPool) ? reelPool : [];
-36: 
-37:   const finish = () => {
-38:     headlineElement.textContent = finalHeadline;
-39:     for (const el of hidden) {
-40:       el.classList.add('isVisible');
-41:     }
-42:   };
-43: 
-44:   if (pool.length < 2 || (prefersReducedMotion() && !forceAnimate)) {
-45:     finish();
-46:     return;
-47:   }
-48: 
-49:   headlineElement.setAttribute('aria-hidden', 'true');
-50:   headlineElement.textContent = pool[Math.floor(Math.random() * pool.length)];
-51: 
-52:   const start = Date.now();
-53: 
-54:   await new Promise((resolve) => {
-55:     const tick = () => {
-56:       const elapsed = Date.now() - start;
-57:       if (elapsed >= REEL_DURATION_MS) {
-58:         resolve();
-59:         return;
-60:       }
-61:       const pick = pool[Math.floor(Math.random() * pool.length)];
-62:       headlineElement.textContent = pick;
-63:       window.setTimeout(tick, REEL_INTERVAL_MS);
-64:     };
-65:     tick();
-66:   });
-67: 
-68:   headlineElement.removeAttribute('aria-hidden');
-69:   finish();
-70: }
+  1: /**
+  2:  * Data gate for The Roast Room.
+  3:  * Validates the registry and every club data file, then exits with code 1 when
+  4:  * anything is wrong. Run it before every deploy.
+  5:  */
+  6: 
+  7: import { readFile, readdir } from 'node:fs/promises';
+  8: import { join, resolve } from 'node:path';
+  9: import { fileURLToPath } from 'node:url';
+ 10: 
+ 11: import { CLUB_STATUS, CLUBS_DIRECTORY, REGISTRY_PATH } from '../js/config.js';
+ 12: import { validateClub, validateRegistry } from '../js/schema.js';
+ 13: import { collectBackgroundImagePaths } from '../js/background/backgroundConfig.js';
+ 14: 
+ 15: const rootDirectory = resolve(fileURLToPath(new URL('..', import.meta.url)));
+ 16: 
+ 17: /**
+ 18:  * Turn an unknown thrown value into a readable string.
+ 19:  * @param {unknown} error
+ 20:  * @returns {string}
+ 21:  */
+ 22: function describeError(error) {
+ 23:   if (error instanceof Error) return error.message;
+ 24:   return String(error);
+ 25: }
+ 26: 
+ 27: /**
+ 28:  * Read and parse a json file relative to the project root.
+ 29:  * @param {string} relativePath
+ 30:  * @returns {Promise<unknown>}
+ 31:  */
+ 32: async function readJsonFile(relativePath) {
+ 33:   const absolutePath = join(rootDirectory, relativePath);
+ 34:   const text = await readFile(absolutePath, 'utf8');
+ 35:   return JSON.parse(text);
+ 36: }
+ 37: 
+ 38: /**
+ 39:  * Run every check and collect problems. The process exit code is set by the caller.
+ 40:  * @returns {Promise<number>} Number of problems found.
+ 41:  */
+ 42: async function main() {
+ 43:   const problems = [];
+ 44:   const warnings = [];
+ 45: 
+ 46:   let registry;
+ 47:   try {
+ 48:     registry = await readJsonFile(REGISTRY_PATH);
+ 49:   } catch (error) {
+ 50:     console.error(`Could not read ${REGISTRY_PATH}: ${describeError(error)}`);
+ 51:     return 1;
+ 52:   }
+ 53: 
+ 54:   const registryResult = validateRegistry(registry);
+ 55:   problems.push(...registryResult.errors);
+ 56: 
+ 57:   const clubs = registry && Array.isArray(registry.clubs) ? registry.clubs : [];
+ 58:   const referencedFiles = new Set();
+ 59: 
+ 60:   // Collect every data file that ANY registry club references, whatever its
+ 61:   // status. A live club must have a readable, valid file. A coming soon club
+ 62:   // may declare a file that does not exist yet, but the file is validated in
+ 63:   // exactly the same way as a live club file when it does exist.
+ 64:   for (const club of clubs) {
+ 65:     if (!club) continue;
+ 66:     if (typeof club.dataFile !== 'string' || club.dataFile.length === 0) continue;
+ 67: 
+ 68:     referencedFiles.add(club.dataFile);
+ 69: 
+ 70:     let data;
+ 71:     try {
+ 72:       data = await readJsonFile(club.dataFile);
+ 73:     } catch (error) {
+ 74:         const fileIsMissing = error && error.code === 'ENOENT';
+ 75:         if (club.status === CLUB_STATUS.LIVE || !fileIsMissing) {
+ 76:           problems.push(`${club.dataFile} could not be read: ${describeError(error)}`);
+ 77:         }
+ 78:         continue;
+ 79:       }
+ 80: 
+ 81:     const clubResult = validateClub(data, {
+ 82:       path: club.dataFile,
+ 83:       mode: 'data',
+ 84:       clubId: club.id,
+ 85:     });
+ 86:     problems.push(...clubResult.errors);
+ 87: 
+ 88:     if (data && typeof data === 'object' && data.themeKey !== club.themeKey) {
+ 89:       problems.push(`${club.dataFile}.themeKey must match the registry themeKey "${club.themeKey}"`);
+ 90:     }
+ 91:   }
+ 92: 
+ 93:   let files = [];
+ 94:   try {
+ 95:     files = await readdir(join(rootDirectory, CLUBS_DIRECTORY));
+ 96:   } catch (error) {
+ 97:     problems.push(`${CLUBS_DIRECTORY} could not be read: ${describeError(error)}`);
+ 98:   }
+ 99: 
+100:   // Orphan check. Every file in the clubs folder must be referenced by at
+101:   // least one registry entry, whatever the status of that entry.
+102:   for (const file of files) {
+103:     if (!file.endsWith('.json')) continue;
+104:     const relativePath = `${CLUBS_DIRECTORY}/${file}`;
+105:     if (!referencedFiles.has(relativePath)) {
+106:       problems.push(`${relativePath} is not referenced by any club in the registry`);
+107:     }
+108:   }
+109: 
+110:   for (const sitePath of collectBackgroundImagePaths()) {
+111:     const relativePath = sitePath.replace(/^\//, '');
+112:     try {
+113:       await readFile(join(rootDirectory, relativePath));
+114:     } catch {
+115:       warnings.push(`${relativePath} is missing. Backgrounds fall back to the SVG layers.`);
+116:     }
+117:   }
+118: 
+119:   if (warnings.length > 0) {
+120:     console.warn(`Background warnings (${warnings.length}):`);
+121:     for (const warning of warnings) {
+122:       console.warn(`  ${warning}`);
+123:     }
+124:   }
+125: 
+126:   if (problems.length > 0) {
+127:     console.error(`Data validation failed with ${problems.length} problem(s):`);
+128:     for (const problem of problems) {
+129:       console.error(`  ${problem}`);
+130:     }
+131:     return problems.length;
+132:   }
+133: 
+134:   console.log(
+135:     `Data validation passed. ${clubs.length} club(s) and ${referencedFiles.size} data file reference(s) checked.`
+136:   );
+137:   return 0;
+138: }
+139: 
+140: const problemCount = await main();
+141: 
+142: if (problemCount > 0) {
+143:   process.exitCode = 1;
+144: }
 
 ================
 File: src/input.css
@@ -9241,154 +9698,133 @@ File: js/share/renderCard.js
 622: }
 
 ================
-File: js/ui/roastCard.js
+File: js/ui/reveal.js
 ================
   1: /**
-  2:  * Builds the DOM for one roast card. Never uses innerHTML with data, so every
-  3:  * piece of evidence is inserted as text or as a safe attribute value.
-  4:  */
-  5: 
-  6: import { createElement } from '../utils/dom.js';
-  7: 
-  8: /**
-  9:  * Build a roast card element.
- 10:  *
- 11:  * The headline is left empty on purpose. The caller decides whether to run the
- 12:  * reel and set the final headline, or to set it immediately for a deep link.
- 13:  * The facts block, the receipts block and the verified line start hidden and
- 14:  * are revealed by the reveal helper.
- 15:  *
- 16:  * @param {import('../schema.js').Roast} roast Roast data.
- 17:  * @param {import('../schema.js').ClubCategory | null} category Category the roast belongs to.
- 18:  * @returns {{
- 19:  *   element: HTMLElement,
- 20:  *   headlineElement: HTMLElement,
- 21:  *   hiddenElements: HTMLElement[]
- 22:  * }}
- 23:  */
- 24: export function createRoastCard(roast, category) {
- 25:   const card = createElement('article', {
- 26:     className: 'roastCard ticketStub',
- 27:     attrs: {
- 28:       'data-roast-id': roast.id,
- 29:       'aria-label': 'Roast',
- 30:     },
- 31:   });
- 32: 
- 33:   const categoryLine = createElement('p', {
- 34:     className: 'tokenLabel',
- 35:   });
- 36:   categoryLine.textContent = category
- 37:     ? `${category.emoji}  ${category.displayLabel}`
- 38:     : 'Roast';
- 39:   const isFan = Array.isArray(roast.tags) && roast.tags.includes('fan');
- 40:   if (isFan) {
- 41:     categoryLine.append(
- 42:       document.createTextNode(' '),
- 43:       createElement('span', {
- 44:         className:
- 45:           'ml-2 inline-block rounded-sharp border border-primary px-2 py-0.5 text-xs font-bold uppercase tracking-wider text-primary',
- 46:         text: 'Fan roast',
- 47:       })
- 48:     );
- 49:   }
- 50: 
- 51:   const jokeLabel = createElement('p', {
- 52:     className: 'tokenLabel mt-4',
- 53:     text: 'The joke',
- 54:   });
- 55: 
- 56:   const headlineElement = createElement('h2', {
- 57:     className: 'roastHeadline mt-2 text-displaySm text-text',
- 58:   });
- 59: 
- 60:   const factsGroup = createElement('div', {
- 61:     className: 'revealTarget mt-6',
- 62:     attrs: { 'data-reveal-group': 'facts' },
- 63:   });
- 64:   const factsLabel = createElement('p', { className: 'tokenLabel', text: 'The facts' });
- 65:   const factsText = createElement('p', {
- 66:     className: 'mt-2 text-base text-text',
- 67:     text: roast.explanation,
- 68:   });
- 69:   factsGroup.append(factsLabel, factsText);
- 70: 
- 71:   const receiptsGroup = createElement('div', {
- 72:     className: 'revealTarget mt-6',
- 73:     attrs: { 'data-reveal-group': 'receipts' },
- 74:   });
- 75:   const receiptsLabel = createElement('p', { className: 'tokenLabel', text: 'The receipts' });
- 76:   const receiptsList = createElement('ul', { className: 'mt-3 space-y-3' });
- 77: 
- 78:   for (const evidence of roast.evidence) {
- 79:     const item = createElement('li', {
- 80:       className: 'rounded-sharp border border-line bg-surfaceRaised p-3',
- 81:     });
- 82: 
- 83:     const claimEl = createElement('p', {
- 84:       className: 'text-sm text-text',
- 85:       text: evidence.claim,
- 86:     });
- 87: 
- 88:     const metaEl = createElement('p', {
- 89:       className: 'mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-textMuted',
- 90:     });
+  2:  * Reveal animation for a roast card.
+  3:  * Runs a short slot machine style reel on the headline, then plays one reveal
+  4:  * beat (glow, sweep, settle) and fades the facts, receipts and verified line
+  5:  * in with a small stagger.
+  6:  *
+  7:  * Under prefers-reduced motion the reel and effects are skipped unless the
+  8:  * caller explicitly forces the reel.
+  9:  */
+ 10: 
+ 11: import { prefersReducedMotion } from '../utils/dom.js';
+ 12: 
+ 13: const REEL_DURATION_MS = 600;
+ 14: const REEL_INTERVAL_MS = 80;
+ 15: const STAGGER_MS = 60;
+ 16: const CLEANUP_MS = 900;
+ 17: 
+ 18: /**
+ 19:  * Reveal a roast inside an already mounted card.
+ 20:  *
+ 21:  * @param {{
+ 22:  *   headlineElement: HTMLElement,
+ 23:  *   finalHeadline: string,
+ 24:  *   reelPool: string[],
+ 25:  *   hiddenElements: HTMLElement[],
+ 26:  *   forceAnimate?: boolean,
+ 27:  *   cardElement?: HTMLElement | null,
+ 28:  *   onReveal?: () => void
+ 29:  * }} options
+ 30:  * @returns {Promise<void>}
+ 31:  */
+ 32: export async function revealRoast(options) {
+ 33:   const {
+ 34:     headlineElement,
+ 35:     finalHeadline,
+ 36:     reelPool,
+ 37:     hiddenElements,
+ 38:     forceAnimate,
+ 39:     cardElement,
+ 40:     onReveal,
+ 41:   } = options || {};
+ 42: 
+ 43:   if (!headlineElement) return;
+ 44: 
+ 45:   const hidden = Array.isArray(hiddenElements) ? hiddenElements.filter(Boolean) : [];
+ 46:   const pool = Array.isArray(reelPool) ? reelPool : [];
+ 47:   const reduced = prefersReducedMotion();
+ 48:   const canReel = pool.length >= 2 && (!reduced || forceAnimate === true);
+ 49:   const card =
+ 50:     cardElement ||
+ 51:     (typeof headlineElement.closest === 'function'
+ 52:       ? headlineElement.closest('.roastCard')
+ 53:       : null);
+ 54: 
+ 55:   const finishInstant = () => {
+ 56:     headlineElement.textContent = finalHeadline;
+ 57:     for (const el of hidden) el.classList.add('isVisible');
+ 58:     if (card) {
+ 59:       card.classList.remove('isCharging');
+ 60:       card.classList.remove('isRevealed');
+ 61:     }
+ 62:   };
+ 63: 
+ 64:   if (!canReel) {
+ 65:     finishInstant();
+ 66:     return;
+ 67:   }
+ 68: 
+ 69:   if (card) {
+ 70:     card.classList.remove('isRevealed');
+ 71:     card.classList.add('isCharging');
+ 72:   }
+ 73: 
+ 74:   headlineElement.setAttribute('aria-hidden', 'true');
+ 75:   headlineElement.textContent = pool[Math.floor(Math.random() * pool.length)];
+ 76: 
+ 77:   const start = Date.now();
+ 78: 
+ 79:   await new Promise((resolve) => {
+ 80:     const tick = () => {
+ 81:       const elapsed = Date.now() - start;
+ 82:       if (elapsed >= REEL_DURATION_MS) {
+ 83:         resolve();
+ 84:         return;
+ 85:       }
+ 86:       headlineElement.textContent = pool[Math.floor(Math.random() * pool.length)];
+ 87:       window.setTimeout(tick, REEL_INTERVAL_MS);
+ 88:     };
+ 89:     tick();
+ 90:   });
  91: 
- 92:     const periodSpan = createElement('span', { text: `Period ${evidence.period}` });
- 93: 
- 94:     const sourceLink = createElement('a', {
- 95:       className: 'text-accent',
- 96:       text: evidence.sourceName,
- 97:       attrs: {
- 98:         href: evidence.sourceUrl,
- 99:         target: '_blank',
-100:         rel: 'noopener noreferrer nofollow ugc',
-101:       },
-102:     });
-103: 
-104:     const accessedSpan = createElement('span', {
-105:       text: `Accessed ${evidence.accessedOn}`,
-106:     });
-107: 
-108:     metaEl.append(periodSpan, sourceLink, accessedSpan);
-109:     item.append(claimEl, metaEl);
-110:     receiptsList.append(item);
-111:   }
-112: 
-113:   receiptsGroup.append(receiptsLabel, receiptsList);
-114: 
-115:     const mistakeLink = createElement('p', {
-116:     className: 'revealTarget mt-3 text-xs',
-117:     children: [
-118:       createElement('a', {
-119:         className: 'text-textMuted underline hover:text-accent',
-120:         text: 'Spot a mistake?',
-121:         attrs: { href: './about.html#corrections' },
-122:       }),
-123:     ],
-124:   });
-125: 
-126:   const verifiedEl = createElement('p', {
-127:     className: 'revealTarget mt-4 text-xs text-textMuted',
-128:     text: `Checked on ${roast.verifiedOn}`,
-129:   });
-130: 
-131:   card.append(
-132:     categoryLine,
-133:     jokeLabel,
-134:     headlineElement,
-135:     factsGroup,
-136:     receiptsGroup,
-137:     mistakeLink,
-138:     verifiedEl
-139:   );
-140: 
-141:   return {
-142:     element: card,
-143:     headlineElement,
-144:     hiddenElements: [factsGroup, receiptsGroup, mistakeLink, verifiedEl],
-145:   };
-146: }
+ 92:   headlineElement.removeAttribute('aria-hidden');
+ 93:   headlineElement.textContent = finalHeadline;
+ 94: 
+ 95:   if (card) {
+ 96:     card.classList.remove('isCharging');
+ 97:     void card.offsetWidth;
+ 98:     card.classList.add('isRevealed');
+ 99:   }
+100: 
+101:   if (typeof onReveal === 'function') {
+102:     try {
+103:       onReveal();
+104:     } catch {
+105:       // Effects are best effort only.
+106:     }
+107:   }
+108: 
+109:   if (reduced) {
+110:     for (const el of hidden) el.classList.add('isVisible');
+111:   } else {
+112:     hidden.forEach((el, index) => {
+113:       window.setTimeout(() => {
+114:         if (el.isConnected) el.classList.add('isVisible');
+115:       }, index * STAGGER_MS);
+116:     });
+117:   }
+118: 
+119:   if (card) {
+120:     window.setTimeout(() => {
+121:       card.classList.remove('isCharging');
+122:       card.classList.remove('isRevealed');
+123:     }, CLEANUP_MS);
+124:   }
+125: }
 
 ================
 File: scripts/lib/siteTools.mjs
@@ -9613,271 +10049,6 @@ File: scripts/lib/siteTools.mjs
 218:     '',
 219:   ].join('\n');
 220: }
-
-================
-File: scripts/buildSite.mjs
-================
-  1: /**
-  2:  * Production build for The Roast Room.
-  3:  *
-  4:  * 1. Compiles the Tailwind CSS into dist/styles.css via npm run css.
-  5:  * 2. Copies the public pages, the javascript, the json data, the compiled
-  6:  *    styles, the favicon and (when present) the social preview images into
-  7:  *    a fresh site/ folder.
-  8:  * 3. Excludes the developer pages from the deploy.
-  9:  * 4. Replaces every __SITE_URL__ token with the detected site URL.
- 10:  * 5. Writes sitemap.xml, robots.txt and _headers.
- 11:  * 6. Prints a summary and clear WARNINGS (no failures) for a missing site
- 12:  *    URL, a missing og.png or apple_touch_icon.png, or an empty
- 13:  *    SUGGEST_API_BASE.
- 14:  */
- 15: 
- 16: import { copyFile, mkdir, readFile, readdir, rename, rm, stat, writeFile } from 'node:fs/promises';
- 17: import { execSync } from 'node:child_process';
- 18: import { join, resolve } from 'node:path';
- 19: import { fileURLToPath } from 'node:url';
- 20: 
- 21: import { SUGGEST_API_BASE } from '../js/suggest/suggestConfig.js';
- 22: import {
- 23:   buildHeaders,
- 24:   buildRobots,
- 25:   buildSitemap,
- 26:   hashDirectory,
- 27:   normaliseSiteUrl,
- 28:   originOf,
- 29:   replaceSiteUrl,
- 30: } from './lib/siteTools.mjs';
- 31: 
- 32: const excludedPages = new Set(['tokens.html', 'cardlab.html', 'adminlab.html', 'ogimage.html']);
- 33: 
- 34: const rootDirectory = resolve(fileURLToPath(new URL('..', import.meta.url)));
- 35: const siteDirectory = join(rootDirectory, 'site');
- 36: 
- 37: /**
- 38:  * Run the Tailwind CSS build.
- 39:  * @returns {void}
- 40:  */
- 41: function buildCss() {
- 42:   console.log('[build] running npm run css');
- 43:   execSync('npm run css', { cwd: rootDirectory, stdio: 'inherit' });
- 44: }
- 45: 
- 46: /**
- 47:  * Copy a folder recursively, skipping the given file names.
- 48:  * @param {string} source
- 49:  * @param {string} destination
- 50:  * @param {Set<string>} skip
- 51:  * @returns {Promise<void>}
- 52:  */
- 53: async function copyFolder(source, destination, skip, skipDirs) {
- 54:   await mkdir(destination, { recursive: true });
- 55:   const entries = await readdir(source, { withFileTypes: true });
- 56:   for (const entry of entries) {
- 57:     const from = join(source, entry.name);
- 58:     const to = join(destination, entry.name);
- 59:     if (entry.isDirectory()) {
- 60:       if (skipDirs && skipDirs.has(entry.name)) continue;
- 61:       await copyFolder(from, to, skip, skipDirs);
- 62:     } else if (!skip.has(entry.name)) {
- 63:       await copyFile(from, to);
- 64:     }
- 65:   }
- 66: }
- 67: 
- 68: /**
- 69:  * Check whether a file exists.
- 70:  * @param {string} path
- 71:  * @returns {Promise<boolean>}
- 72:  */
- 73: async function fileExists(path) {
- 74:   try {
- 75:     const info = await stat(path);
- 76:     return info.isFile();
- 77:   } catch {
- 78:     return false;
- 79:   }
- 80: }
- 81: 
- 82: /**
- 83:  * Recursively list files ending in .html inside a folder.
- 84:  * @param {string} directory
- 85:  * @returns {Promise<string[]>}
- 86:  */
- 87: async function listHtmlFiles(directory) {
- 88:   const results = [];
- 89:   const entries = await readdir(directory, { withFileTypes: true });
- 90:   for (const entry of entries) {
- 91:     const full = join(directory, entry.name);
- 92:     if (entry.isDirectory()) {
- 93:       results.push(...(await listHtmlFiles(full)));
- 94:     } else if (entry.name.endsWith('.html')) {
- 95:       results.push(full);
- 96:     }
- 97:   }
- 98:   return results;
- 99: }
-100: 
-101: /**
-102:  * Main build.
-103:  * @returns {Promise<number>} Exit code.
-104:  */
-105: async function main() {
-106:   const warnings = [];
-107: 
-108:   // 1. CSS build.
-109:   buildCss();
-110: 
-111:   // 2. Site URL from environment.
-112:   const rawSiteUrl =
-113:     process.env.SITE_URL || process.env.URL || process.env.CF_PAGES_URL || '';
-114:   const siteUrl = normaliseSiteUrl(rawSiteUrl);
-115:   if (siteUrl.length === 0) {
-116:     warnings.push(
-117:       'No site URL found (checked SITE_URL, URL and CF_PAGES_URL). Absolute URLs will be empty and sitemap.xml will be skipped.'
-118:     );
-119:   } else {
-120:     console.log(`[build] site URL: ${siteUrl}`);
-121:   }
-122: 
-123:   // 3. Fresh site folder.
-124:   await rm(siteDirectory, { recursive: true, force: true });
-125:   await mkdir(siteDirectory, { recursive: true });
-126: 
-127:   // 4. Copy the compiled styles, the scripts, the data.
-128:   await copyFolder(join(rootDirectory, 'dist'), join(siteDirectory, 'dist'), new Set());
-129:   await copyFolder(
-130:     join(rootDirectory, 'js'),
-131:     join(siteDirectory, 'js'),
-132:     new Set(),
-133:     new Set(['dev'])
-134:   );
-135:   await copyFolder(join(rootDirectory, 'data'), join(siteDirectory, 'data'), new Set());
-136: 
-137:   // 5. Copy the public pages, skipping the developer pages.
-138:   const rootEntries = await readdir(rootDirectory, { withFileTypes: true });
-139:   for (const entry of rootEntries) {
-140:     if (!entry.isFile()) continue;
-141:     if (!entry.name.endsWith('.html')) continue;
-142:     if (excludedPages.has(entry.name)) continue;
-143:     await copyFile(join(rootDirectory, entry.name), join(siteDirectory, entry.name));
-144:   }
-145: 
-146:   // 6. Copy the static assets.
-147:   const faviconSource = join(rootDirectory, 'favicon.svg');
-148:   if (await fileExists(faviconSource)) {
-149:     await copyFile(faviconSource, join(siteDirectory, 'favicon.svg'));
-150:   }
-151: 
-152:   const ogSource = join(rootDirectory, 'og.png');
-153:   if (await fileExists(ogSource)) {
-154:     await copyFile(ogSource, join(siteDirectory, 'og.png'));
-155:   } else {
-156:     warnings.push('og.png not found in the repository root. Social previews will 404.');
-157:   }
-158: 
-159:   const iconSource = join(rootDirectory, 'apple_touch_icon.png');
-160:   if (await fileExists(iconSource)) {
-161:     await copyFile(iconSource, join(siteDirectory, 'apple_touch_icon.png'));
-162:   } else {
-163:     warnings.push(
-164:       'apple_touch_icon.png not found in the repository root. The apple-touch-icon link will 404.'
-165:     );
-166:   }
-167: 
-168:   // 6b. Hash the JS and CSS directories and rename them. Any change to a
-169:   // file inside produces a new directory name, so browsers treat the files
-170:   // as new assets and fetch them fresh.
-171:   const jsHash = await hashDirectory(join(siteDirectory, 'js'));
-172:   const distHash = await hashDirectory(join(siteDirectory, 'dist'));
-173: 
-174:   await rename(join(siteDirectory, 'js'), join(siteDirectory, `js.${jsHash}`));
-175:   await rename(join(siteDirectory, 'dist'), join(siteDirectory, `dist.${distHash}`));
-176: 
-177:   console.log(`[build] js hash: ${jsHash}`);
-178:   console.log(`[build] dist hash: ${distHash}`);
-179: 
-180:   // 7. Replace the __SITE_URL__ token in every HTML file in site/.
-181:   const htmlFiles = await listHtmlFiles(siteDirectory);
-182:   let survivingTokens = 0;
-183:   for (const file of htmlFiles) {
-184:     let html = await readFile(file, 'utf8');
-185:     html = replaceSiteUrl(html, siteUrl);
-186:     html = html.split('js/pages/').join(`js.${jsHash}/pages/`);
-187:     html = html.split('dist/styles.css').join(`dist.${distHash}/styles.css`);
-188:     await writeFile(file, html, 'utf8');
-189:     if (html.includes('__SITE_URL__')) {
-190:       survivingTokens += 1;
-191:     }
-192:   }
-193: 
-194:   // 8. Read the registry so sitemap.xml lists one room URL per live club.
-195:   let liveClubs = [];
-196:   try {
-197:     const registry = JSON.parse(
-198:       await readFile(join(rootDirectory, 'data/clubs.json'), 'utf8')
-199:     );
-200:     liveClubs = Array.isArray(registry.clubs)
-201:       ? registry.clubs.filter((club) => club && club.status === 'live')
-202:       : [];
-203:   } catch (error) {
-204:     warnings.push(`Could not read data/clubs.json for the sitemap: ${String(error.message)}`);
-205:   }
-206: 
-207:   // 9. Write sitemap.xml (only when a site URL is known), robots.txt and _headers.
-208:   if (siteUrl.length > 0) {
-209:     const paths = ['/', '/about.html'];
-210:     for (const club of liveClubs) {
-211:       if (typeof club.id === 'string' && club.id.length > 0) {
-212:         paths.push(`/room.html?club=${encodeURIComponent(club.id)}`);
-213:       }
-214:     }
-215:     const sitemap = buildSitemap({ siteUrl, paths });
-216:     await writeFile(join(siteDirectory, 'sitemap.xml'), sitemap, 'utf8');
-217:   }
-218: 
-219:   const robots = buildRobots(siteUrl);
-220:   await writeFile(join(siteDirectory, 'robots.txt'), robots, 'utf8');
-221: 
-222:   const workerOrigin = SUGGEST_API_BASE ? originOf(SUGGEST_API_BASE) : '';
-223:   if (!SUGGEST_API_BASE) {
-224:     warnings.push(
-225:       'SUGGEST_API_BASE is empty, so the suggestion section is hidden and the Worker origin is not added to connect-src.'
-226:     );
-227:   }
-228: 
-229:   const headers = buildHeaders({ workerOrigin });
-230:   await writeFile(join(siteDirectory, '_headers'), headers, 'utf8');
-231: 
-232:   // 10. Fail loudly if any token survived.
-233:   if (survivingTokens > 0) {
-234:     console.error(
-235:       `[build] ${survivingTokens} html file(s) still contain the __SITE_URL__ token. This should not happen.`
-236:     );
-237:     return 1;
-238:   }
-239: 
-240:   // 11. Summary and warnings.
-241:   console.log('');
-242:   console.log(`[build] site/ written with ${htmlFiles.length} html file(s).`);
-243:   if (siteUrl.length > 0) {
-244:     console.log(`[build] sitemap.xml, robots.txt and _headers written for ${siteUrl}`);
-245:   } else {
-246:     console.log('[build] robots.txt and _headers written, sitemap.xml skipped.');
-247:   }
-248: 
-249:   if (warnings.length > 0) {
-250:     console.log('');
-251:     console.log('[build] WARNINGS:');
-252:     for (const warning of warnings) {
-253:       console.log(`  - ${warning}`);
-254:     }
-255:   }
-256: 
-257:   return 0;
-258: }
-259: 
-260: const exitCode = await main();
-261: process.exitCode = exitCode;
 
 ================
 File: tests/siteTools.test.mjs
@@ -10816,6 +10987,454 @@ File: .gitignore
 5: dist
 
 ================
+File: js/ui/roastCard.js
+================
+  1: /**
+  2:  * Builds the DOM for one roast card. Never uses innerHTML with data, so every
+  3:  * piece of evidence is inserted as text or as a safe attribute value.
+  4:  */
+  5: 
+  6: import { createElement } from '../utils/dom.js';
+  7: 
+  8: /**
+  9:  * Build a roast card element.
+ 10:  *
+ 11:  * The headline is left empty on purpose. The caller decides whether to run the
+ 12:  * reel and set the final headline, or to set it immediately for a deep link.
+ 13:  * The facts block, the receipts block and the verified line start hidden and
+ 14:  * are revealed by the reveal helper.
+ 15:  *
+ 16:  * @param {import('../schema.js').Roast} roast Roast data.
+ 17:  * @param {import('../schema.js').ClubCategory | null} category Category the roast belongs to.
+ 18:  * @returns {{
+ 19:  *   element: HTMLElement,
+ 20:  *   headlineElement: HTMLElement,
+ 21:  *   hiddenElements: HTMLElement[]
+ 22:  * }}
+ 23:  */
+ 24: export function createRoastCard(roast, category) {
+ 25:   const card = createElement('article', {
+ 26:     className: 'roastCard ticketStub',
+ 27:     attrs: {
+ 28:       'data-roast-id': roast.id,
+ 29:       'aria-label': 'Roast',
+ 30:     },
+ 31:   });
+ 32: 
+ 33:   const fx = createElement('span', {
+ 34:     className: 'roastCard__fx',
+ 35:     attrs: { 'aria-hidden': 'true' },
+ 36:   });
+ 37: 
+ 38:   const categoryLine = createElement('p', {
+ 39:     className: 'tokenLabel',
+ 40:   });
+ 41:   categoryLine.textContent = category
+ 42:     ? `${category.emoji}  ${category.displayLabel}`
+ 43:     : 'Roast';
+ 44:   const isFan = Array.isArray(roast.tags) && roast.tags.includes('fan');
+ 45:   if (isFan) {
+ 46:     categoryLine.append(
+ 47:       document.createTextNode(' '),
+ 48:       createElement('span', {
+ 49:         className:
+ 50:           'ml-2 inline-block rounded-sharp border border-primary px-2 py-0.5 text-xs font-bold uppercase tracking-wider text-primary',
+ 51:         text: 'Fan roast',
+ 52:       })
+ 53:     );
+ 54:   }
+ 55: 
+ 56:   const jokeLabel = createElement('p', {
+ 57:     className: 'tokenLabel mt-4',
+ 58:     text: 'The joke',
+ 59:   });
+ 60: 
+ 61:   const headlineElement = createElement('h2', {
+ 62:     className: 'roastHeadline mt-2 text-displaySm text-text',
+ 63:   });
+ 64: 
+ 65:   const factsGroup = createElement('div', {
+ 66:     className: 'revealTarget mt-6',
+ 67:     attrs: { 'data-reveal-group': 'facts' },
+ 68:   });
+ 69:   const factsLabel = createElement('p', { className: 'tokenLabel', text: 'The facts' });
+ 70:   const factsText = createElement('p', {
+ 71:     className: 'mt-2 text-base text-text',
+ 72:     text: roast.explanation,
+ 73:   });
+ 74:   factsGroup.append(factsLabel, factsText);
+ 75: 
+ 76:   const receiptsGroup = createElement('div', {
+ 77:     className: 'revealTarget mt-6',
+ 78:     attrs: { 'data-reveal-group': 'receipts' },
+ 79:   });
+ 80:   const receiptsLabel = createElement('p', { className: 'tokenLabel', text: 'The receipts' });
+ 81:   const receiptsList = createElement('ul', { className: 'mt-3 space-y-3' });
+ 82: 
+ 83:   for (const evidence of roast.evidence) {
+ 84:     const item = createElement('li', {
+ 85:       className: 'rounded-sharp border border-line bg-surfaceRaised p-3',
+ 86:     });
+ 87: 
+ 88:     const claimEl = createElement('p', {
+ 89:       className: 'text-sm text-text',
+ 90:       text: evidence.claim,
+ 91:     });
+ 92: 
+ 93:     const metaEl = createElement('p', {
+ 94:       className: 'mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-textMuted',
+ 95:     });
+ 96: 
+ 97:     const periodSpan = createElement('span', { text: `Period ${evidence.period}` });
+ 98: 
+ 99:     const sourceLink = createElement('a', {
+100:       className: 'text-accent',
+101:       text: evidence.sourceName,
+102:       attrs: {
+103:         href: evidence.sourceUrl,
+104:         target: '_blank',
+105:         rel: 'noopener noreferrer nofollow ugc',
+106:       },
+107:     });
+108: 
+109:     const accessedSpan = createElement('span', {
+110:       text: `Accessed ${evidence.accessedOn}`,
+111:     });
+112: 
+113:     metaEl.append(periodSpan, sourceLink, accessedSpan);
+114:     item.append(claimEl, metaEl);
+115:     receiptsList.append(item);
+116:   }
+117: 
+118:   receiptsGroup.append(receiptsLabel, receiptsList);
+119: 
+120:     const mistakeLink = createElement('p', {
+121:     className: 'revealTarget mt-3 text-xs',
+122:     children: [
+123:       createElement('a', {
+124:         className: 'text-textMuted underline hover:text-accent',
+125:         text: 'Spot a mistake?',
+126:         attrs: { href: './about.html#corrections' },
+127:       }),
+128:     ],
+129:   });
+130: 
+131:   const verifiedEl = createElement('p', {
+132:     className: 'revealTarget mt-4 text-xs text-textMuted',
+133:     text: `Checked on ${roast.verifiedOn}`,
+134:   });
+135: 
+136:   card.append(
+137:     fx,
+138:     categoryLine,
+139:     jokeLabel,
+140:     headlineElement,
+141:     factsGroup,
+142:     receiptsGroup,
+143:     mistakeLink,
+144:     verifiedEl
+145:   );
+146: 
+147:   return {
+148:     element: card,
+149:     headlineElement,
+150:     hiddenElements: [factsGroup, receiptsGroup, mistakeLink, verifiedEl],
+151:   };
+152: }
+
+================
+File: scripts/buildSite.mjs
+================
+  1: /**
+  2:  * Production build for The Roast Room.
+  3:  *
+  4:  * 1. Compiles the Tailwind CSS into dist/styles.css via npm run css.
+  5:  * 2. Copies the public pages, the javascript, the json data, the compiled
+  6:  *    styles, the favicon and (when present) the social preview images into
+  7:  *    a fresh site/ folder.
+  8:  * 3. Excludes the developer pages from the deploy.
+  9:  * 4. Replaces every __SITE_URL__ token with the detected site URL.
+ 10:  * 5. Writes sitemap.xml, robots.txt and _headers.
+ 11:  * 6. Prints a summary and clear WARNINGS (no failures) for a missing site
+ 12:  *    URL, a missing og.png or apple_touch_icon.png, or an empty
+ 13:  *    SUGGEST_API_BASE.
+ 14:  */
+ 15: 
+ 16: import { copyFile, mkdir, readFile, readdir, rename, rm, stat, writeFile } from 'node:fs/promises';
+ 17: import { execSync } from 'node:child_process';
+ 18: import { join, resolve } from 'node:path';
+ 19: import { fileURLToPath } from 'node:url';
+ 20: 
+ 21: import { SUGGEST_API_BASE } from '../js/suggest/suggestConfig.js';
+ 22: import { collectBackgroundImagePaths } from '../js/background/backgroundConfig.js';
+ 23: import {
+ 24:   buildHeaders,
+ 25:   buildRobots,
+ 26:   buildSitemap,
+ 27:   hashDirectory,
+ 28:   normaliseSiteUrl,
+ 29:   originOf,
+ 30:   replaceSiteUrl,
+ 31: } from './lib/siteTools.mjs';
+ 32: 
+ 33: const excludedPages = new Set(['tokens.html', 'cardlab.html', 'adminlab.html', 'ogimage.html']);
+ 34: 
+ 35: const rootDirectory = resolve(fileURLToPath(new URL('..', import.meta.url)));
+ 36: const siteDirectory = join(rootDirectory, 'site');
+ 37: 
+ 38: /**
+ 39:  * Run the Tailwind CSS build.
+ 40:  * @returns {void}
+ 41:  */
+ 42: function buildCss() {
+ 43:   console.log('[build] running npm run css');
+ 44:   execSync('npm run css', { cwd: rootDirectory, stdio: 'inherit' });
+ 45: }
+ 46: 
+ 47: /**
+ 48:  * Copy a folder recursively, skipping the given file names.
+ 49:  * @param {string} source
+ 50:  * @param {string} destination
+ 51:  * @param {Set<string>} skip
+ 52:  * @returns {Promise<void>}
+ 53:  */
+ 54: async function copyFolder(source, destination, skip, skipDirs) {
+ 55:   await mkdir(destination, { recursive: true });
+ 56:   const entries = await readdir(source, { withFileTypes: true });
+ 57:   for (const entry of entries) {
+ 58:     const from = join(source, entry.name);
+ 59:     const to = join(destination, entry.name);
+ 60:     if (entry.isDirectory()) {
+ 61:       if (skipDirs && skipDirs.has(entry.name)) continue;
+ 62:       await copyFolder(from, to, skip, skipDirs);
+ 63:     } else if (!skip.has(entry.name)) {
+ 64:       await copyFile(from, to);
+ 65:     }
+ 66:   }
+ 67: }
+ 68: 
+ 69: /**
+ 70:  * Check whether a file exists.
+ 71:  * @param {string} path
+ 72:  * @returns {Promise<boolean>}
+ 73:  */
+ 74: async function fileExists(path) {
+ 75:   try {
+ 76:     const info = await stat(path);
+ 77:     return info.isFile();
+ 78:   } catch {
+ 79:     return false;
+ 80:   }
+ 81: }
+ 82: 
+ 83: /**
+ 84:  * Check whether a directory exists.
+ 85:  * @param {string} path
+ 86:  * @returns {Promise<boolean>}
+ 87:  */
+ 88: async function directoryExists(path) {
+ 89:   try {
+ 90:     const info = await stat(path);
+ 91:     return info.isDirectory();
+ 92:   } catch {
+ 93:     return false;
+ 94:   }
+ 95: }
+ 96: 
+ 97: /**
+ 98:  * Recursively list files ending in .html inside a folder.
+ 99:  * @param {string} directory
+100:  * @returns {Promise<string[]>}
+101:  */
+102: async function listHtmlFiles(directory) {
+103:   const results = [];
+104:   const entries = await readdir(directory, { withFileTypes: true });
+105:   for (const entry of entries) {
+106:     const full = join(directory, entry.name);
+107:     if (entry.isDirectory()) {
+108:       results.push(...(await listHtmlFiles(full)));
+109:     } else if (entry.name.endsWith('.html')) {
+110:       results.push(full);
+111:     }
+112:   }
+113:   return results;
+114: }
+115: 
+116: /**
+117:  * Main build.
+118:  * @returns {Promise<number>} Exit code.
+119:  */
+120: async function main() {
+121:   const warnings = [];
+122: 
+123:   // 1. CSS build.
+124:   buildCss();
+125: 
+126:   // 2. Site URL from environment.
+127:   const rawSiteUrl =
+128:     process.env.SITE_URL || process.env.URL || process.env.CF_PAGES_URL || '';
+129:   const siteUrl = normaliseSiteUrl(rawSiteUrl);
+130:   if (siteUrl.length === 0) {
+131:     warnings.push(
+132:       'No site URL found (checked SITE_URL, URL and CF_PAGES_URL). Absolute URLs will be empty and sitemap.xml will be skipped.'
+133:     );
+134:   } else {
+135:     console.log(`[build] site URL: ${siteUrl}`);
+136:   }
+137: 
+138:   // 3. Fresh site folder.
+139:   await rm(siteDirectory, { recursive: true, force: true });
+140:   await mkdir(siteDirectory, { recursive: true });
+141: 
+142:   // 4. Copy the compiled styles, the scripts, the data.
+143:   await copyFolder(join(rootDirectory, 'dist'), join(siteDirectory, 'dist'), new Set());
+144:   await copyFolder(
+145:     join(rootDirectory, 'js'),
+146:     join(siteDirectory, 'js'),
+147:     new Set(),
+148:     new Set(['dev'])
+149:   );
+150:   await copyFolder(join(rootDirectory, 'data'), join(siteDirectory, 'data'), new Set());
+151: 
+152:   const imagesSource = join(rootDirectory, 'images');
+153:   if (await directoryExists(imagesSource)) {
+154:     await copyFolder(imagesSource, join(siteDirectory, 'images'), new Set());
+155:   }
+156: 
+157:   // 5. Copy the public pages, skipping the developer pages.
+158:   const rootEntries = await readdir(rootDirectory, { withFileTypes: true });
+159:   for (const entry of rootEntries) {
+160:     if (!entry.isFile()) continue;
+161:     if (!entry.name.endsWith('.html')) continue;
+162:     if (excludedPages.has(entry.name)) continue;
+163:     await copyFile(join(rootDirectory, entry.name), join(siteDirectory, entry.name));
+164:   }
+165: 
+166:   // 6. Copy the static assets.
+167:   const faviconSource = join(rootDirectory, 'favicon.svg');
+168:   if (await fileExists(faviconSource)) {
+169:     await copyFile(faviconSource, join(siteDirectory, 'favicon.svg'));
+170:   }
+171: 
+172:   const ogSource = join(rootDirectory, 'og.png');
+173:   if (await fileExists(ogSource)) {
+174:     await copyFile(ogSource, join(siteDirectory, 'og.png'));
+175:   } else {
+176:     warnings.push('og.png not found in the repository root. Social previews will 404.');
+177:   }
+178: 
+179:   const iconSource = join(rootDirectory, 'apple_touch_icon.png');
+180:   if (await fileExists(iconSource)) {
+181:     await copyFile(iconSource, join(siteDirectory, 'apple_touch_icon.png'));
+182:   } else {
+183:     warnings.push(
+184:       'apple_touch_icon.png not found in the repository root. The apple-touch-icon link will 404.'
+185:     );
+186:   }
+187: 
+188:   for (const sitePath of collectBackgroundImagePaths()) {
+189:     const relativePath = sitePath.replace(/^\//, '');
+190:     if (!(await fileExists(join(rootDirectory, relativePath)))) {
+191:       warnings.push(`${relativePath} is missing. The background falls back to the SVG layers.`);
+192:     }
+193:   }
+194: 
+195:   // 6b. Hash the JS and CSS directories and rename them. Any change to a
+196:   // file inside produces a new directory name, so browsers treat the files
+197:   // as new assets and fetch them fresh.
+198:   const jsHash = await hashDirectory(join(siteDirectory, 'js'));
+199:   const distHash = await hashDirectory(join(siteDirectory, 'dist'));
+200: 
+201:   await rename(join(siteDirectory, 'js'), join(siteDirectory, `js.${jsHash}`));
+202:   await rename(join(siteDirectory, 'dist'), join(siteDirectory, `dist.${distHash}`));
+203: 
+204:   console.log(`[build] js hash: ${jsHash}`);
+205:   console.log(`[build] dist hash: ${distHash}`);
+206: 
+207:   // 7. Replace the __SITE_URL__ token in every HTML file in site/.
+208:   const htmlFiles = await listHtmlFiles(siteDirectory);
+209:   let survivingTokens = 0;
+210:   for (const file of htmlFiles) {
+211:     let html = await readFile(file, 'utf8');
+212:     html = replaceSiteUrl(html, siteUrl);
+213:     html = html.split('js/pages/').join(`js.${jsHash}/pages/`);
+214:     html = html.split('dist/styles.css').join(`dist.${distHash}/styles.css`);
+215:     await writeFile(file, html, 'utf8');
+216:     if (html.includes('__SITE_URL__')) {
+217:       survivingTokens += 1;
+218:     }
+219:   }
+220: 
+221:   // 8. Read the registry so sitemap.xml lists one room URL per live club.
+222:   let liveClubs = [];
+223:   try {
+224:     const registry = JSON.parse(
+225:       await readFile(join(rootDirectory, 'data/clubs.json'), 'utf8')
+226:     );
+227:     liveClubs = Array.isArray(registry.clubs)
+228:       ? registry.clubs.filter((club) => club && club.status === 'live')
+229:       : [];
+230:   } catch (error) {
+231:     warnings.push(`Could not read data/clubs.json for the sitemap: ${String(error.message)}`);
+232:   }
+233: 
+234:   // 9. Write sitemap.xml (only when a site URL is known), robots.txt and _headers.
+235:   if (siteUrl.length > 0) {
+236:     const paths = ['/', '/about.html'];
+237:     for (const club of liveClubs) {
+238:       if (typeof club.id === 'string' && club.id.length > 0) {
+239:         paths.push(`/room.html?club=${encodeURIComponent(club.id)}`);
+240:       }
+241:     }
+242:     const sitemap = buildSitemap({ siteUrl, paths });
+243:     await writeFile(join(siteDirectory, 'sitemap.xml'), sitemap, 'utf8');
+244:   }
+245: 
+246:   const robots = buildRobots(siteUrl);
+247:   await writeFile(join(siteDirectory, 'robots.txt'), robots, 'utf8');
+248: 
+249:   const workerOrigin = SUGGEST_API_BASE ? originOf(SUGGEST_API_BASE) : '';
+250:   if (!SUGGEST_API_BASE) {
+251:     warnings.push(
+252:       'SUGGEST_API_BASE is empty, so the suggestion section is hidden and the Worker origin is not added to connect-src.'
+253:     );
+254:   }
+255: 
+256:   const headers = buildHeaders({ workerOrigin });
+257:   await writeFile(join(siteDirectory, '_headers'), headers, 'utf8');
+258: 
+259:   // 10. Fail loudly if any token survived.
+260:   if (survivingTokens > 0) {
+261:     console.error(
+262:       `[build] ${survivingTokens} html file(s) still contain the __SITE_URL__ token. This should not happen.`
+263:     );
+264:     return 1;
+265:   }
+266: 
+267:   // 11. Summary and warnings.
+268:   console.log('');
+269:   console.log(`[build] site/ written with ${htmlFiles.length} html file(s).`);
+270:   if (siteUrl.length > 0) {
+271:     console.log(`[build] sitemap.xml, robots.txt and _headers written for ${siteUrl}`);
+272:   } else {
+273:     console.log('[build] robots.txt and _headers written, sitemap.xml skipped.');
+274:   }
+275: 
+276:   if (warnings.length > 0) {
+277:     console.log('');
+278:     console.log('[build] WARNINGS:');
+279:     for (const warning of warnings) {
+280:       console.log(`  - ${warning}`);
+281:     }
+282:   }
+283: 
+284:   return 0;
+285: }
+286: 
+287: const exitCode = await main();
+288: process.exitCode = exitCode;
+
+================
 File: README.md
 ================
   1: # The Roast Room
@@ -10968,1319 +11587,6 @@ File: worker/wrangler.toml
 18: ALLOWED_ORIGINS = "http://localhost:3000,http://localhost:8000,https://the-roast-room.pages.dev,https://roastroom.fritt.org"
 19: # Comma separated list of clubs that accept fan roast submissions.
 20: LIVE_CLUB_IDS = "manutd"
-
-================
-File: index.html
-================
-  1: <!DOCTYPE html>
-  2: <html lang="en">
-  3:   <head>
-  4:     <meta charset="utf-8" />
-  5:     <meta name="viewport" content="width=device-width, initial-scale=1" />
-  6:     <title>The Roast Room | Football banter with receipts</title>
-  7:     <meta
-  8:       name="description"
-  9:       content="Friendly football banter with receipts. Pick a rival club and read sourced, dated facts that actually happened."
- 10:     />
- 11:     <meta name="color-scheme" content="dark" />
- 12:     <meta name="theme-color" content="#0A0A0A" />
- 13: 
- 14:     <meta property="og:title" content="The Roast Room" />
- 15:     <meta
- 16:       property="og:description"
- 17:       content="Football banter with receipts. Pick a rival club and read sourced, dated facts, or vote on which club gets roasted next."
- 18:     />
- 19:     <meta property="og:type" content="website" />
- 20:     <link rel="canonical" href="__SITE_URL__/" />
- 21:     <meta property="og:url" content="__SITE_URL__/" />
- 22:     <meta property="og:site_name" content="The Roast Room" />
- 23:     <meta property="og:image" content="__SITE_URL__/og.png" />
- 24:     <meta property="og:image:width" content="1200" />
- 25:     <meta property="og:image:height" content="630" />
- 26:     <meta
- 27:       property="og:image:alt"
- 28:       content="The Roast Room wordmark on a dark background with the line Every rivalry needs receipts."
- 29:     />
- 30:     <meta name="twitter:card" content="summary_large_image" />
- 31:     <meta name="twitter:title" content="The Roast Room | Football banter with receipts" />
- 32:     <meta
- 33:       name="twitter:description"
- 34:       content="Football banter with receipts. Pick a rival club and read sourced, dated facts, or vote on which club gets roasted next."
- 35:     />
- 36:     <meta name="twitter:image" content="__SITE_URL__/og.png" />
- 37:     <link rel="apple-touch-icon" href="/apple_touch_icon.png" />
- 38: 
- 39:     <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
- 40: 
- 41:     <link rel="preconnect" href="https://fonts.googleapis.com" />
- 42:     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
- 43:     <link
- 44:       rel="stylesheet"
- 45:       href="https://fonts.googleapis.com/css2?family=Anton&amp;family=Inter:wght@400;500;600;700&amp;display=swap"
- 46:     />
- 47:     <link rel="stylesheet" href="./dist/styles.css" />
- 48: 
- 49:     <script type="module" src="./js/pages/landing.js" defer></script>
- 50:   </head>
- 51: 
- 52:   <body class="min-h-screen bg-background text-text">
- 53:     <div id="clubBackground" class="clubBackground" aria-hidden="true"></div>
- 54:     <a class="skipLink" href="#main">Skip to content</a>
- 55: 
- 56:     <header class="border-b border-line bg-surface">
- 57:       <div class="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-3 px-4 py-4">
- 58:         <a href="./index.html" class="font-display text-xl uppercase tracking-wide text-text no-underline">
- 59:           The Roast Room
- 60:         </a>
- 61:         <span class="tokenLabel">A Fritt experiment</span>
- 62:       </div>
- 63:     </header>
- 64: 
- 65:     <main id="main">
- 66:       <section class="relative overflow-hidden border-b border-line">
- 67:         <svg
- 68:           class="pointer-events-none absolute inset-0 h-full w-full text-text"
- 69:           style="opacity: 0.06"
- 70:           viewBox="0 0 800 400"
- 71:           preserveAspectRatio="none"
- 72:           aria-hidden="true"
- 73:         >
- 74:           <rect x="10" y="10" width="780" height="380" fill="none" stroke="currentColor" stroke-width="2" />
- 75:           <line x1="400" y1="10" x2="400" y2="390" stroke="currentColor" stroke-width="2" />
- 76:           <circle cx="400" cy="200" r="70" fill="none" stroke="currentColor" stroke-width="2" />
- 77:           <circle cx="400" cy="200" r="4" fill="currentColor" />
- 78:           <rect x="10" y="100" width="100" height="200" fill="none" stroke="currentColor" stroke-width="2" />
- 79:           <rect x="690" y="100" width="100" height="200" fill="none" stroke="currentColor" stroke-width="2" />
- 80:         </svg>
- 81: 
- 82:         <div class="relative mx-auto max-w-5xl px-4 py-16 md:py-24">
- 83:           <div class="grid items-end gap-8 md:grid-cols-[1fr_auto]">
- 84:             <div>
- 85:               <p class="tokenLabel text-accent">Football banter, sourced and dated</p>
- 86:               <h1 class="mt-3 text-displayMd text-text">Every rivalry needs receipts.</h1>
- 87:               <p class="mt-4 max-w-xl text-lg text-textMuted">
- 88:                 Pick a rival club, hit the button, and read the pain. Every roast is backed by
- 89:                 dated evidence you can check yourself.
- 90:               </p>
- 91:               <div class="mt-8 flex flex-wrap gap-4">
- 92:                 <a
- 93:                   href="./room.html?club=manutd"
- 94:                   data-cta-club
- 95:                   class="inline-block rounded-sharp bg-primary px-6 py-4 font-display text-xl uppercase tracking-wide text-primaryContrast no-underline transition-colors duration-fast ease-standard hover:bg-accent hover:text-background"
- 96:                 >
- 97:                   Enter the Roast Room
- 98:                 </a>
- 99:               </div>
-100:             </div>
-101: 
-102:             <div class="rounded-sharp bg-primary p-6 text-primaryContrast" style="max-width: 20rem">
-103:               <p class="tokenLabel" style="color: rgba(255,255,255,0.7)">Roast Room</p>
-104:               <p class="mt-2 font-display text-3xl uppercase">Every claim backed</p>
-105:               <p class="mt-2 text-sm">Pick a club. Roast. Check the receipts.</p>
-106:             </div>
-107:           </div>
-108:         </div>
-109:       </section>
-110: 
-111:       <section
-112:         id="tickerSection"
-113:         class="hidden overflow-hidden border-b border-line bg-surface"
-114:         aria-label="Recent roast headlines"
-115:       >
-116:         <div class="mx-auto max-w-5xl px-4 py-3">
-117:           <div class="mb-2 flex items-center justify-between gap-3">
-118:             <p class="tokenLabel">Recent roasts</p>
-119:             <button id="tickerToggle" type="button" class="rounded-sharp border border-line px-3 py-2 text-xs text-textMuted">Pause ticker</button>
-120:           </div>
-121:           <div id="tickerTrack" class="tickerTrack"></div>
-122:         </div>
-123:       </section>
-124: 
-125:       <section aria-labelledby="howHeading" class="mx-auto max-w-5xl px-4 py-16">
-126:         <h2 id="howHeading" class="text-displaySm text-text">How it works</h2>
-127:         <ol class="mt-8 grid gap-6 md:grid-cols-3">
-128:           <li class="rounded-sharp border border-line bg-surface p-6">
-129:             <span class="font-display text-3xl text-primary">01</span>
-130:             <h3 class="mt-2 text-xl text-text">Pick a club</h3>
-131:             <p class="mt-2 text-sm text-textMuted">Choose the rival you want to roast.</p>
-132:           </li>
-133:           <li class="rounded-sharp border border-line bg-surface p-6">
-134:             <span class="font-display text-3xl text-primary">02</span>
-135:             <h3 class="mt-2 text-xl text-text">Hit the button</h3>
-136:             <p class="mt-2 text-sm text-textMuted">One tap and the roast appears.</p>
-137:           </li>
-138:           <li class="rounded-sharp border border-line bg-surface p-6">
-139:             <span class="font-display text-3xl text-primary">03</span>
-140:             <h3 class="mt-2 text-xl text-text">Check the receipts</h3>
-141:             <p class="mt-2 text-sm text-textMuted">Every roast lists dated, sourced evidence.</p>
-142:           </li>
-143:         </ol>
-144:       </section>
-145: 
-146:       <section aria-labelledby="pickerHeading" class="mx-auto max-w-5xl border-t border-line px-4 py-16">
-147:         <h2 id="pickerHeading" class="text-displaySm text-text">Pick a club</h2>
-148:         <p class="mt-3 max-w-xl text-textMuted">
-149:           Live clubs have a roast room ready. More clubs are on the way.
-150:         </p>
-151: 
-152:         <div id="liveClubs" class="mt-8 grid gap-4 md:grid-cols-2"></div>
-153: 
-154:         <p class="mt-10 tokenLabel">Coming soon</p>
-155:         <p class="mt-2 max-w-xl text-sm text-textMuted">
-156:           More clubs are on the way.
-157:         </p>
-158:         <div id="comingSoonClubs" class="mt-4 grid gap-3 sm:grid-cols-2 md:grid-cols-3"></div>
-159:       </section>
-160: 
-161:       <section
-162:         id="suggestSection"
-163:         class="hidden mx-auto max-w-5xl border-t border-line px-4 py-16"
-164:         aria-labelledby="suggestHeading"
-165:       >
-166:         <h2 id="suggestHeading" class="text-displaySm text-text">Who should we roast next?</h2>
-167:         <p class="mt-3 max-w-xl text-textMuted">
-168:           Suggest a club. The most voted club is the one we build next.
-169:         </p>
-170: 
-171:         <form id="suggestForm" class="mt-6 max-w-xl" novalidate>
-172:           <label for="suggestName" class="tokenLabel block">Club name</label>
-173:           <input
-174:             id="suggestName"
-175:             name="name"
-176:             type="text"
-177:             required
-178:             minlength="2"
-179:             maxlength="40"
-180:             autocomplete="off"
-181:             class="mt-2 w-full rounded-sharp border border-line bg-surface px-3 py-2 text-text focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
-182:           />
-183:           <div
-184:             style="position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden"
-185:             aria-hidden="true"
-186:           >
-187:             <label for="suggestWebsite">Website</label>
-188:             <input id="suggestWebsite" name="website" type="text" tabindex="-1" autocomplete="off" />
-189:           </div>
-190:           <button
-191:             id="suggestSubmit"
-192:             type="submit"
-193:             class="mt-3 rounded-sharp border-2 border-primary bg-primary px-5 py-3 font-display text-lg uppercase tracking-wide text-primaryContrast transition-colors duration-fast ease-standard hover:bg-accent hover:text-background disabled:opacity-60"
-194:           >
-195:             Suggest this club
-196:           </button>
-197:           <p class="mt-2 text-xs text-textMuted">
-198:             We store a salted hash of your network address for two days, only to rate limit
-199:             submissions. We never store the address itself.
-200:           </p>
-201:           <p id="suggestStatus" class="mt-3 text-sm text-accent" role="status" aria-live="polite"></p>
-202:         </form>
-203: 
-204:         <h3 class="mt-10 text-2xl text-text">Leaderboard</h3>
-205:         <p id="suggestLoading" class="mt-2 text-sm text-textMuted">Loading suggestions.</p>
-206:         <p id="suggestEmpty" class="hidden mt-2 text-sm text-textMuted">Be the first to suggest a club.</p>
-207:         <p id="suggestError" class="hidden mt-2 text-sm text-accent" role="alert">
-208:           Suggestions are unavailable right now.
-209:         </p>
-210:         <ul id="suggestBoard" class="mt-3 space-y-3"></ul>
-211:       </section>
-212: 
-213:       <section
-214:         aria-labelledby="frittHeading"
-215:         class="mx-auto max-w-5xl border-t border-line px-4 py-16"
-216:       >
-217:         <div class="rounded-sharp border border-line bg-surface p-8 md:p-10">
-218:           <h2 id="frittHeading" class="text-displaySm text-text">Want a site like this?</h2>
-219:           <p class="mt-3 max-w-xl text-textMuted">
-220:             The Roast Room is a Fritt experiment. Fritt designs and builds fast, interactive
-221:             websites for businesses and individuals.
-222:           </p>
-223:           <div class="mt-6 flex flex-wrap gap-3">
-224:             <a
-225:               href="https://fritt.org"
-226:               data-fritt-target="contact"
-227:               data-fritt-placement="landingCta"
-228:               rel="noopener"
-229:               class="inline-block rounded-sharp bg-primary px-5 py-3 font-display text-lg uppercase tracking-wide text-primaryContrast no-underline transition-colors duration-fast ease-standard hover:bg-accent hover:text-background"
-230:             >
-231:               Talk to Fritt
-232:             </a>
-233:             <a
-234:               href="https://fritt.org"
-235:               data-fritt-target="portfolio"
-236:               data-fritt-placement="landingCta"
-237:               rel="noopener"
-238:               class="inline-block rounded-sharp border border-line px-5 py-3 font-display text-lg uppercase tracking-wide text-text no-underline transition-colors duration-fast ease-standard hover:border-accent hover:text-accent"
-239:             >
-240:               See Fritt's work
-241:             </a>
-242:           </div>
-243:         </div>
-244:       </section>
-245: 
-246:     </main>
-247: 
-248:     <footer class="border-t border-line bg-surface">
-249:       <div class="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-4 px-4 py-8">
-250:         <p class="text-sm text-textMuted">
-251:           Built by <a href="https://fritt.org" rel="noopener">Fritt</a>.
-252:           <a href="./about.html" class="text-textMuted underline">About and privacy</a>.
-253:         </p>
-254:         <p class="text-sm text-textMuted">
-255:           <a
-256:             href="https://fritt.org"
-257:             data-fritt-target="contact"
-258:             data-fritt-placement="landingFooter"
-259:             rel="noopener"
-260:             class="text-textMuted underline"
-261:           >
-262:             Talk to Fritt
-263:           </a>
-264:           ·
-265:           <a
-266:             href="https://fritt.org"
-267:             data-fritt-target="portfolio"
-268:             data-fritt-placement="landingFooter"
-269:             rel="noopener"
-270:             class="text-textMuted underline"
-271:           >
-272:             See Fritt's work
-273:           </a>
-274:         </p>
-275:       </div>
-276:     </footer>
-277:   </body>
-278: </html>
-
-================
-File: css/components.css
-================
-  1: /*
-  2:   Shared component styles for The Roast Room.
-  3:   Imported by src/input.css after tokens.css and base.css so every rule here
-  4:   reads the design tokens and the base reset.
-  5: */
-  6: 
-  7: @layer components {
-  8:   /* Visually hidden but available to screen readers */
-  9:   .srOnly {
- 10:     position: absolute;
- 11:     width: 1px;
- 12:     height: 1px;
- 13:     padding: 0;
- 14:     margin: -1px;
- 15:     overflow: hidden;
- 16:     clip: rect(0, 0, 0, 0);
- 17:     white-space: nowrap;
- 18:     border: 0;
- 19:   }
- 20: 
- 21:   /* Roast card, styled as a matchday ticket stub with notches on both sides */
- 22:   .roastCard {
- 23:     position: relative;
- 24:     background-color: var(--colorSurface);
- 25:     border: var(--borderWidth1) solid var(--colorLine);
- 26:     border-radius: var(--radiusSharp);
- 27:     padding: var(--space6);
- 28:     margin: 0 var(--space4);
- 29:   }
- 30: 
- 31:   .ticketStub::before,
- 32:   .ticketStub::after {
- 33:     content: '';
- 34:     position: absolute;
- 35:     top: 50%;
- 36:     width: var(--space6);
- 37:     height: var(--space6);
- 38:     background-color: var(--colorBackground);
- 39:     border-radius: 50%;
- 40:     transform: translateY(-50%);
- 41:     pointer-events: none;
- 42:   }
- 43: 
- 44:   .ticketStub::before {
- 45:     left: calc(var(--space6) / -2);
- 46:   }
- 47: 
- 48:   .ticketStub::after {
- 49:     right: calc(var(--space6) / -2);
- 50:   }
- 51: 
- 52:   /* Reveal animation target for the facts and receipts */
- 53:   .revealTarget {
- 54:     opacity: 0;
- 55:     transition: opacity var(--durationSlow) var(--easeOut);
- 56:   }
- 57: 
- 58:   .revealTarget.isVisible {
- 59:     opacity: 1;
- 60:   }
- 61: 
- 62:   /* Category filter chips */
- 63:   .categoryChip {
- 64:     display: inline-flex;
- 65:     align-items: center;
- 66:     gap: var(--space2);
- 67:     border-radius: var(--radiusPill);
- 68:     border: var(--borderWidth1) solid var(--colorLine);
- 69:     background-color: var(--colorSurface);
- 70:     color: var(--colorText);
- 71:     padding: var(--space2) var(--space4);
- 72:     font-size: var(--textSm);
- 73:     transition:
- 74:       background-color var(--durationFast) var(--easeStandard),
- 75:       color var(--durationFast) var(--easeStandard),
- 76:       border-color var(--durationFast) var(--easeStandard);
- 77:   }
- 78: 
- 79:   .categoryChip:hover {
- 80:     border-color: var(--colorPrimary);
- 81:   }
- 82: 
- 83:   .categoryChip[aria-pressed='true'] {
- 84:     background-color: var(--colorPrimary);
- 85:     border-color: var(--colorPrimary);
- 86:     color: var(--colorPrimaryContrast);
- 87:   }
- 88: 
- 89:   .categoryChipCount {
- 90:     color: var(--colorTextMuted);
- 91:   }
- 92: 
- 93:   .categoryChip[aria-pressed='true'] .categoryChipCount {
- 94:     color: var(--colorPrimaryContrast);
- 95:   }
- 96: 
- 97:   /* Headline placeholder so the card does not collapse before the reel */
- 98:   .roastHeadline {
- 99:     min-height: 1.2em;
-100:   }
-101: 
-102:     .tickerTrack {
-103:     display: flex;
-104:     gap: var(--space8);
-105:     width: max-content;
-106:     animation: tickerScroll 40s linear infinite;
-107:     will-change: transform;
-108:   }
-109: 
-110:   @media (max-width: 767px) {
-111:     .tickerTrack {
-112:       animation-duration: 26s;
-113:     }
-114:   }
-115: 
-116:   @media (prefers-reduced-motion: reduce) {
-117:     .tickerTrack {
-118:       animation-play-state: paused;
-119:     }
-120:   }
-121: 
-122:   /* Share panel */
-123:   .sharePanel {
-124:     margin-top: var(--space8);
-125:     border: var(--borderWidth1) solid var(--colorLine);
-126:     border-radius: var(--radiusSharp);
-127:     background-color: var(--colorSurface);
-128:     padding: var(--space5);
-129:   }
-130: 
-131:   .sharePanelHeading {
-132:     margin: 0;
-133:     font-family: var(--fontDisplay);
-134:     font-size: var(--text2xl);
-135:     line-height: var(--leadingTight);
-136:     letter-spacing: var(--trackingTight);
-137:     text-transform: uppercase;
-138:     color: var(--colorText);
-139:   }
-140: 
-141:   .shareFormatToggle {
-142:     display: flex;
-143:     flex-wrap: wrap;
-144:     gap: var(--space2);
-145:     margin-top: var(--space4);
-146:   }
-147: 
-148:   .shareFormatButton {
-149:     border: var(--borderWidth1) solid var(--colorLine);
-150:     border-radius: var(--radiusPill);
-151:     background-color: var(--colorSurfaceRaised);
-152:     color: var(--colorText);
-153:     padding: var(--space2) var(--space4);
-154:     font-size: var(--textSm);
-155:     transition:
-156:       background-color var(--durationFast) var(--easeStandard),
-157:       color var(--durationFast) var(--easeStandard),
-158:       border-color var(--durationFast) var(--easeStandard);
-159:   }
-160: 
-161:   .shareFormatButton:hover {
-162:     border-color: var(--colorPrimary);
-163:   }
-164: 
-165:   .shareFormatButton[aria-pressed='true'] {
-166:     background-color: var(--colorPrimary);
-167:     border-color: var(--colorPrimary);
-168:     color: var(--colorPrimaryContrast);
-169:   }
-170: 
-171:   .sharePreviewWrap {
-172:     display: flex;
-173:     justify-content: center;
-174:     margin-top: var(--space4);
-175:     border: var(--borderWidth1) solid var(--colorLine);
-176:     background-color: var(--colorSurfaceRaised);
-177:     padding: var(--space3);
-178:   }
-179: 
-180:   .sharePreviewCanvas {
-181:     display: block;
-182:     width: 100%;
-183:     height: auto;
-184:     max-height: 40vh;
-185:     object-fit: contain;
-186:     background-color: var(--colorBackground);
-187:   }
-188: 
-189:   .shareActions {
-190:     display: flex;
-191:     flex-wrap: wrap;
-192:     gap: var(--space3);
-193:     margin-top: var(--space4);
-194:   }
-195: 
-196:   .shareActionPrimary,
-197:   .shareActionSecondary {
-198:     border-radius: var(--radiusSharp);
-199:     border: var(--borderWidth1) solid var(--colorLine);
-200:     padding: var(--space3) var(--space5);
-201:     font-weight: 600;
-202:     transition:
-203:       background-color var(--durationFast) var(--easeStandard),
-204:       color var(--durationFast) var(--easeStandard),
-205:       border-color var(--durationFast) var(--easeStandard);
-206:   }
-207: 
-208:   .shareActionPrimary {
-209:     background-color: var(--colorPrimary);
-210:     border-color: var(--colorPrimary);
-211:     color: var(--colorPrimaryContrast);
-212:   }
-213: 
-214:   .shareActionPrimary:hover {
-215:     background-color: var(--colorAccent);
-216:     border-color: var(--colorAccent);
-217:     color: var(--colorBackground);
-218:   }
-219: 
-220:   .shareActionSecondary {
-221:     background-color: var(--colorSurfaceRaised);
-222:     color: var(--colorText);
-223:   }
-224: 
-225:   .shareActionSecondary:hover {
-226:     border-color: var(--colorPrimary);
-227:   }
-228: 
-229:   .shareActionPrimary:disabled,
-230:   .shareActionSecondary:disabled {
-231:     opacity: 0.6;
-232:     cursor: not-allowed;
-233:   }
-234: 
-235:   .shareStatus {
-236:     min-height: 1.5em;
-237:     margin-top: var(--space3);
-238:     font-size: var(--textSm);
-239:     color: var(--colorTextMuted);
-240:   }
-241: 
-242:   .shareFallback {
-243:     margin-top: var(--space3);
-244:   }
-245: 
-246:   .shareFallbackInput {
-247:     width: 100%;
-248:     margin-top: var(--space2);
-249:     border: var(--borderWidth1) solid var(--colorLine);
-250:     border-radius: var(--radiusSharp);
-251:     background-color: var(--colorBackground);
-252:     color: var(--colorText);
-253:     padding: var(--space3);
-254:     font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-255:     font-size: var(--textSm);
-256:   }
-257: 
-258:   .shareFallbackInput:focus-visible {
-259:     outline: var(--borderWidth2) solid var(--colorAccent);
-260:     outline-offset: 2px;
-261:   }
-262: }
-263: 
-264: @keyframes tickerScroll {
-265:   from {
-266:     transform: translateX(0);
-267:   }
-268:   to {
-269:     transform: translateX(-50%);
-270:   }
-271: }
-272: 
-273: /* ------------------------------------------------------------------
-274:    Club background (fixed, parallax layers)
-275:    ------------------------------------------------------------------ */
-276: .clubBackground {
-277:   position: fixed;
-278:   inset: 0;
-279:   z-index: -1;
-280:   overflow: hidden;
-281:   pointer-events: none;
-282:   contain: layout paint;
-283: }
-284: 
-285: .clubBackground__layer {
-286:   position: absolute;
-287:   left: 0;
-288:   right: 0;
-289:   top: -50vh;
-290:   bottom: -50vh;
-291:   will-change: transform;
-292:   transform: translate3d(0, 0, 0);
-293: }
-294: 
-295: .clubBackground__layer > svg {
-296:   display: block;
-297:   width: 100%;
-298:   height: 100%;
-299: }
-300: 
-301: .clubBackground__scrim {
-302:   position: absolute;
-303:   inset: 0;
-304:   background:
-305:     linear-gradient(to bottom, rgba(10, 10, 10, 0.55), rgba(10, 10, 10, 0.55)),
-306:     radial-gradient(ellipse at center,
-307:       rgba(10, 10, 10, 0) 0%,
-308:       rgba(10, 10, 10, 0.55) 100%);
-309: }
-310: 
-311: @media (prefers-reduced-motion: reduce) {
-312:   .clubBackground__layer {
-313:     will-change: auto;
-314:     transform: none !important;
-315:   }
-316: }
-317: 
-318: @media (max-width: 480px) {
-319:   .clubBackground__layer--fast {
-320:     display: none;
-321:   }
-322: }
-323: 
-324: /* ------------------------------------------------------------------
-325:    Micro-interactions
-326:    ------------------------------------------------------------------ */
-327: 
-328: /* Roast card entrance */
-329: .roastCard {
-330:   animation: roastCardIn var(--durationSlow) var(--easeOut) both;
-331: }
-332: 
-333: @keyframes roastCardIn {
-334:   from {
-335:     opacity: 0;
-336:     transform: translateY(12px) scale(0.98);
-337:   }
-338:   to {
-339:     opacity: 1;
-340:     transform: translateY(0) scale(1);
-341:   }
-342: }
-343: 
-344: /* Filter chip press */
-345: .categoryChip:active {
-346:   transform: scale(0.96);
-347: }
-348: 
-349: @media (prefers-reduced-motion: reduce) {
-350:   .roastCard {
-351:     animation: none;
-352:   }
-353:   .categoryChip:active {
-354:     transform: none;
-355:   }
-356: }
-
-================
-File: js/pages/landing.js
-================
-  1: /**
-  2:  * Landing page logic.
-  3:  * Renders the club picker from the registry, the recent roast ticker and the
-  4:  * hero call to action target, all from data files at runtime.
-  5:  */
-  6: 
-  7: import { initSuggestSection } from '../suggest/suggestSection.js';
-  8: import { applyFrittLinks } from '../brand/applyFrittLinks.js';
-  9: import { DEFAULT_CLUB_ID } from '../config.js';
- 10: import { getComingSoonClubs, getLiveClubs, loadClub, loadRegistry } from '../registry.js';
- 11: import { clear, createElement, prefersReducedMotion } from '../utils/dom.js';
- 12: import { initScrollBackground } from '../background/scrollBackground.js';
- 13: import { backgroundLayersFor } from '../background/layers.js';
- 14: 
- 15: const liveContainer = document.getElementById('liveClubs');
- 16: const comingSoonContainer = document.getElementById('comingSoonClubs');
- 17: const tickerSection = document.getElementById('tickerSection');
- 18: const tickerTrack = document.getElementById('tickerTrack');
- 19: 
- 20: /**
- 21:  * Point every CTA at the default club from config.
- 22:  * @returns {void}
- 23:  */
- 24: function setCallToActions() {
- 25:   const links = document.querySelectorAll('[data-cta-club]');
- 26:   for (const link of links) {
- 27:     if (link instanceof HTMLAnchorElement) {
- 28:       link.href = `./room.html?club=${encodeURIComponent(DEFAULT_CLUB_ID)}`;
- 29:     }
- 30:   }
- 31: }
- 32: 
- 33: /**
- 34:  * Build one live club card linking to its roast room.
- 35:  * @param {{ id: string, name: string }} entry Registry entry.
- 36:  * @param {number} roastCount Number of publishable roasts in the club.
- 37:  * @returns {HTMLAnchorElement}
- 38:  */
- 39: function renderLiveClub(entry, roastCount) {
- 40:   const link = createElement('a', {
- 41:     className:
- 42:       'block rounded-sharp border border-line bg-surface p-6 no-underline transition-colors duration-fast ease-standard hover:border-primary',
- 43:     attrs: { href: `./room.html?club=${encodeURIComponent(entry.id)}` },
- 44:   });
- 45: 
- 46:   link.append(
- 47:     createElement('p', {
- 48:       className: 'font-display text-2xl uppercase text-text',
- 49:       text: entry.name,
- 50:     })
- 51:   );
- 52: 
- 53:   link.append(
- 54:     createElement('p', {
- 55:       className: 'mt-2 text-sm text-textMuted',
- 56:       text: roastCount === 1 ? '1 roast ready' : `${roastCount} roasts ready`,
- 57:     })
- 58:   );
- 59: 
- 60:   return link;
- 61: }
- 62: 
- 63: /**
- 64:  * Build one coming soon card. Not a link and marked disabled for assistive tech.
- 65:  * @param {{ name: string }} entry Registry entry.
- 66:  * @returns {HTMLElement}
- 67:  */
- 68: function renderComingSoonClub(entry) {
- 69:   const wrap = createElement('div', {
- 70:     className: 'rounded-sharp border border-line bg-surface p-4',
- 71:     attrs: { 'aria-disabled': 'true' },
- 72:     children: [
- 73:       createElement('p', {
- 74:         className: 'font-display text-lg uppercase text-textMuted',
- 75:         text: entry.name,
- 76:       }),
- 77:       createElement('p', {
- 78:         className: 'mt-1 tokenLabel',
- 79:         text: 'Coming soon',
- 80:       }),
- 81:     ],
- 82:   });
- 83:   return wrap;
- 84: }
- 85: 
- 86: function setupTickerToggle() {
- 87:   const toggle = document.getElementById('tickerToggle');
- 88:   if (!toggle || !tickerTrack || toggle.dataset.ready === 'true') return;
- 89:   toggle.dataset.ready = 'true';
- 90: 
- 91:   let running = true;
- 92: 
- 93:   const apply = () => {
- 94:     const duration = window.matchMedia('(max-width: 767px)').matches ? '26s' : '40s';
- 95:     // Inline `!important` is required: css/base.css sets
- 96:     // `* { animation-duration: 1ms !important; animation-iteration-count: 1 !important; }`
- 97:     // under prefers-reduced-motion, which would otherwise kill the ticker even
- 98:     // after the user clicks Play.
- 99:     tickerTrack.style.setProperty(
-100:       'animation',
-101:       `tickerScroll ${duration} linear infinite`,
-102:       'important'
-103:     );
-104:     tickerTrack.style.setProperty(
-105:       'animation-play-state',
-106:       running ? 'running' : 'paused',
-107:       'important'
-108:     );
-109:     toggle.textContent = running ? 'Pause ticker' : 'Play ticker';
-110:     toggle.setAttribute('aria-pressed', running ? 'false' : 'true');
-111:   };
-112: 
-113:   toggle.addEventListener('click', () => {
-114:     running = !running;
-115:     apply();
-116:   });
-117: 
-118:   apply();
-119: }
-120: 
-121: /**
-122:  * Render the ticker with the first six headlines.
-123:  * Duplicates the items once so the CSS translate loop is seamless; only the
-124:  * first copy is exposed to screen readers.
-125:  * @param {Array<{ headline: string, clubShortName: string }>} roasts
-126:  * @returns {void}
-127:  */
-128: function renderTicker(roasts) {
-129:   if (!tickerTrack || !tickerSection) return;
-130: 
-131:   clear(tickerTrack);
-132: 
-133:   if (!Array.isArray(roasts) || roasts.length === 0) {
-134:     tickerSection.classList.add('hidden');
-135:     return;
-136:   }
-137: 
-138:   const items = roasts.slice(0, 6);
-139: 
-140:   for (const roast of items) {
-141:     tickerTrack.append(
-142:       createElement('span', {
-143:         className: 'whitespace-nowrap text-sm text-textMuted',
-144:         text: `${roast.clubShortName}: ${roast.headline}`,
-145:       })
-146:     );
-147:   }
-148: 
-149:   for (const roast of items) {
-150:     tickerTrack.append(
-151:       createElement('span', {
-152:         className: 'whitespace-nowrap text-sm text-textMuted',
-153:         text: `${roast.clubShortName}: ${roast.headline}`,
-154:         attrs: { 'aria-hidden': 'true' },
-155:       })
-156:     );
-157:   }
-158: 
-159:   tickerSection.classList.remove('hidden');
-160:   setupTickerToggle();
-161: }
-162: 
-163: /**
-164:  * Show a friendly error inside the picker when the registry cannot load.
-165:  * @param {string} message
-166:  * @returns {void}
-167:  */
-168: function showPickerError(message) {
-169:   if (!liveContainer) return;
-170:   clear(liveContainer);
-171:   liveContainer.append(
-172:     createElement('p', {
-173:       className: 'text-textMuted',
-174:       text: message,
-175:     })
-176:   );
-177: }
-178: 
-179: /**
-180:  * Load the registry and render every section of the page.
-181:  * @returns {Promise<void>}
-182:  */
-183: async function init() {
-184:   setCallToActions();
-185:   applyFrittLinks();
-186: 
-187:   const bgEl = document.getElementById('clubBackground');
-188:   if (bgEl) {
-189:     initScrollBackground(bgEl, backgroundLayersFor('manutd'));
-190:   }
-191: 
-192:   try {
-193:     const registry = await loadRegistry();
-194:     const live = getLiveClubs(registry);
-195:     const comingSoon = getComingSoonClubs(registry);
-196: 
-197:     /** @type {Array<{ headline: string, clubShortName: string }>} */
-198:     const roastPool = [];
-199: 
-200:     for (const entry of live) {
-201:       try {
-202:         const club = await loadClub(entry.id);
-203:         if (liveContainer) {
-204:           liveContainer.append(renderLiveClub(entry, Array.isArray(club.roasts) ? club.roasts.length : 0));
-205:         }
-206:         if (Array.isArray(club.roasts)) {
-207:           for (const roast of club.roasts) {
-208:             roastPool.push({ headline: roast.headline, clubShortName: String(entry.shortName) });
-209:           }
-210:         }
-211:       } catch (error) {
-212:         console.warn('[roastRoom] could not load live club', entry.id, error);
-213:       }
-214:     }
-215: 
-216:     if (comingSoonContainer) {
-217:       for (const entry of comingSoon) {
-218:         comingSoonContainer.append(renderComingSoonClub(entry));
-219:       }
-220:     }
-221: 
-222:       renderTicker(roastPool);
-223:     } catch (error) {
-224:       console.warn('[roastRoom] could not load the registry', error);
-225:       showPickerError('Could not load the club list. Serve the site over http and reload.');
-226:     }
-227: 
-228:     initSuggestSection();
-229: }
-230: 
-231: init();
-
-================
-File: js/pages/room.js
-================
-  1: /**
-  2:  * Roast room logic.
-  3:  * Reads the club id from the query string, loads the club, wires the category
-  4:  * filter and the shuffle bag, and shows roasts on demand with a short reel.
-  5:  */
-  6: 
-  7: import { CLUB_STATUS, DEFAULT_CLUB_ID } from '../config.js';
-  8: import { loadClub, loadRegistry } from '../registry.js';
-  9: import { applyTheme } from '../theme.js';
- 10: import { buildCategoryFilter } from '../ui/categoryFilter.js';
- 11: import { createRoastCard } from '../ui/roastCard.js';
- 12: import { createShuffleBag } from '../ui/shuffleBag.js';
- 13: import { revealRoast } from '../ui/reveal.js';
- 14: import { clear, prefersReducedMotion } from '../utils/dom.js';
- 15: import { parseRoastHash } from '../utils/links.js';
- 16: import { createSharePanel } from '../share/sharePanel.js';
- 17: import { applyFrittLinks } from '../brand/applyFrittLinks.js';
- 18: import { burstConfetti } from '../ui/confetti.js';
- 19: import { initScrollBackground } from '../background/scrollBackground.js';
- 20: import { backgroundLayersFor } from '../background/layers.js';
- 21: import { createRoastForm } from '../roasts/roastForm.js';
- 22: import { loadFanRoasts } from '../roasts/fanRoasts.js';
- 23: 
- 24: const params = new URLSearchParams(window.location.search);
- 25: const clubIdParam = params.get('club') || DEFAULT_CLUB_ID;
- 26: 
- 27: const loadingEl = document.getElementById('loadingState');
- 28: const errorEl = document.getElementById('errorState');
- 29: const errorMessageEl = document.getElementById('errorMessage');
- 30: const roomEl = document.getElementById('roomState');
- 31: const filterContainer = document.getElementById('categoryFilter');
- 32: const roastButton = document.getElementById('roastButton');
- 33: const progressEl = document.getElementById('progress');
- 34: const roastContainer = document.getElementById('roastContainer');
- 35: const clubBadge = document.getElementById('clubBadge');
- 36: const emptyEl = document.getElementById('emptyState');
- 37: const liveRegion = document.getElementById('roastLiveRegion');
- 38: const pageHeading = document.getElementById('pageHeading');
- 39: const sharePanelEl = document.getElementById('sharePanel');
- 40: const sessionCounterEl = document.getElementById('sessionCounter');
- 41: const reelToggleEl = document.getElementById('reelToggle');
- 42: 
- 43: /** @type {Record<string, unknown> | null} */
- 44: let club = null;
- 45: let selectedCategory = 'all';
- 46: /** @type {ReturnType<typeof createShuffleBag> | null} */
- 47: let bag = null;
- 48: /** @type {Record<string, unknown> | null} */
- 49: let currentRoast = null;
- 50: let busy = false;
- 51: /** @type {ReturnType<typeof createSharePanel> | null} */
- 52: let sharePanel = null;
- 53: /** @type {(() => void) | null} */
- 54: let teardownBackground = null;
- 55: 
- 56: const SESSION_KEY = 'roastroom_session_count';
- 57: 
- 58: /**
- 59:  * Read the roast count for this browser session.
- 60:  * @returns {number}
- 61:  */
- 62: function readSessionCount() {
- 63:   try {
- 64:     return parseInt(window.sessionStorage.getItem(SESSION_KEY) || '0', 10) || 0;
- 65:   } catch {
- 66:     return 0;
- 67:   }
- 68: }
- 69: 
- 70: /**
- 71:  * Persist the roast count. Best effort only.
- 72:  * @param {number} count
- 73:  * @returns {void}
- 74:  */
- 75: function writeSessionCount(count) {
- 76:   try {
- 77:     window.sessionStorage.setItem(SESSION_KEY, String(count));
- 78:   } catch {
- 79:     // sessionStorage is best effort only.
- 80:   }
- 81: }
- 82: 
- 83: let sessionCount = readSessionCount();
- 84: 
- 85: /**
- 86:  * Update the "N roasts served this session" line.
- 87:  * @returns {void}
- 88:  */
- 89: function renderSessionCount() {
- 90:   if (!sessionCounterEl) return;
- 91:   if (sessionCount === 0) {
- 92:     sessionCounterEl.textContent = '';
- 93:   } else if (sessionCount === 1) {
- 94:     sessionCounterEl.textContent = '1 roast served this session.';
- 95:   } else {
- 96:     sessionCounterEl.textContent = `${sessionCount} roasts served this session.`;
- 97:   }
- 98: }
- 99: 
-100: renderSessionCount();
-101: 
-102: function showLoading() {
-103:   if (loadingEl) loadingEl.classList.remove('hidden');
-104:   if (errorEl) errorEl.classList.add('hidden');
-105:   if (roomEl) roomEl.classList.add('hidden');
-106: }
-107: 
-108: /**
-109:  * Show the error state with a friendly message.
-110:  * @param {string} message
-111:  * @returns {void}
-112:  */
-113: function showError(message) {
-114:   if (loadingEl) loadingEl.classList.add('hidden');
-115:   if (roomEl) roomEl.classList.add('hidden');
-116:   if (errorEl) errorEl.classList.remove('hidden');
-117:   if (errorMessageEl) errorMessageEl.textContent = message;
-118:   if (clubBadge) clubBadge.textContent = 'Club unavailable';
-119: }
-120: 
-121: function showRoom() {
-122:   if (loadingEl) loadingEl.classList.add('hidden');
-123:   if (errorEl) errorEl.classList.add('hidden');
-124:   if (roomEl) roomEl.classList.remove('hidden');
-125: }
-126: 
-127: /**
-128:  * Roasts in the current filter.
-129:  * @returns {Array<Record<string, unknown>>}
-130:  */
-131: function getFilteredRoasts() {
-132:   if (!club) return [];
-133:   const roasts = Array.isArray(club.roasts) ? club.roasts : [];
-134:   if (selectedCategory === 'all') return roasts;
-135:   return roasts.filter((roast) => roast.category === selectedCategory);
-136: }
-137: 
-138: /**
-139:  * Update the "Roast N of M" line. Nothing is shown before the first serve or
-140:  * when the current cycle has already served everything once.
-141:  * @returns {void}
-142:  */
-143: function updateProgress() {
-144:   if (!progressEl) return;
-145:   if (!bag || !currentRoast || bag.size() === 0) {
-146:     progressEl.textContent = '';
-147:     return;
-148:   }
-149:   const size = bag.size();
-150:   const remaining = bag.remaining();
-151:   const n = size - remaining;
-152:   if (n <= 0) {
-153:     progressEl.textContent = '';
-154:     return;
-155:   }
-156:   progressEl.textContent = `Roast ${n} of ${size}`;
-157: }
-158: 
-159: /**
-160:  * Look up the category metadata for a roast.
-161:  * @param {string} id
-162:  * @returns {Record<string, unknown> | null}
-163:  */
-164: function findCategory(id) {
-165:   if (!club || !Array.isArray(club.categories)) return null;
-166:   return club.categories.find((category) => category && category.id === id) || null;
-167: }
-168: 
-169: /**
-170:  * Show a roast in the card area, reveal it, announce it and update the URL hash.
-171:  * @param {Record<string, unknown>} roast
-172:  * @param {{ animate?: boolean }} [options]
-173:  * @returns {Promise<void>}
-174:  */
-175: async function showRoast(roast, options = {}) {
-176:   if (!roast || !roastContainer) return;
-177: 
-178:   const shouldAnimate = options.animate !== false;
-179:   currentRoast = roast;
-180: 
-181:   const category = findCategory(String(roast.category));
-182:   const built = createRoastCard(roast, category);
-183: 
-184:   clear(roastContainer);
-185:   roastContainer.append(built.element);
-186: 
-187:   const base = window.location.pathname + window.location.search;
-188:   try {
-189:     window.history.replaceState(null, '', `${base}#${encodeURIComponent(String(roast.id))}`);
-190:   } catch {
-191:     // Ignore history errors, the page still works.
-192:   }
-193: 
-194:   const reelOn = reelToggleEl ? reelToggleEl.checked : !prefersReducedMotion();
-195: 
-196:   if (shouldAnimate && reelOn) {
-197:     const pool = (Array.isArray(club?.roasts) ? club.roasts : [])
-198:       .map((entry) => String(entry.headline))
-199:       .filter((headline) => headline.length > 0);
-200:     await revealRoast({
-201:       headlineElement: built.headlineElement,
-202:       finalHeadline: String(roast.headline),
-203:       reelPool: pool,
-204:       hiddenElements: built.hiddenElements,
-205:       forceAnimate: true,
-206:     });
-207:   } else {
-208:     built.headlineElement.textContent = String(roast.headline);
-209:     for (const el of built.hiddenElements) {
-210:       el.classList.add('isVisible');
-211:     }
-212:   }
-213: 
-214:   if (liveRegion) {
-215:     liveRegion.textContent = String(roast.headline);
-216:   }
-217: 
-218:   if (sharePanel) {
-219:     try {
-220:       sharePanel.update(roast, category, club);
-221:     } catch (error) {
-222:       console.warn('[roastRoom] could not update the share panel', error);
-223:     }
-224:   }
-225: 
-226:   updateProgress();
-227: }
-228: 
-229: /**
-230:  * Rebuild the bag and the filter chips for the current selection.
-231:  * @returns {void}
-232:  */
-233: function rebuildBagAndFilter() {
-234:   if (!club) return;
-235: 
-236:   const filtered = getFilteredRoasts();
-237: 
-238:   if (bag) {
-239:     bag.reset(filtered);
-240:   } else {
-241:     bag = createShuffleBag(filtered);
-242:   }
-243: 
-244:   if (filterContainer) {
-245:     buildCategoryFilter({
-246:       container: filterContainer,
-247:       categories: Array.isArray(club.categories) ? club.categories : [],
-248:       roasts: Array.isArray(club.roasts) ? club.roasts : [],
-249:       selectedId: selectedCategory,
-250:       onChange: handleFilterChange,
-251:     });
-252:   }
-253: 
-254:   const isEmpty = filtered.length === 0;
-255:   if (roastButton) roastButton.disabled = isEmpty;
-256:   if (emptyEl) emptyEl.classList.toggle('hidden', !isEmpty);
-257: 
-258:   if (isEmpty) {
-259:     clear(roastContainer);
-260:     currentRoast = null;
-261:     if (progressEl) progressEl.textContent = '';
-262:     if (sharePanel) sharePanel.hide();
-263:   }
-264: }
-265: 
-266: /**
-267:  * Handle a filter chip click. Resets the current roast and the bag.
-268:  * @param {string} newId
-269:  * @returns {void}
-270:  */
-271: function handleFilterChange(newId) {
-272:   if (busy) return;
-273:   selectedCategory = newId;
-274:   currentRoast = null;
-275:   if (roastContainer) clear(roastContainer);
-276:   if (liveRegion) liveRegion.textContent = '';
-277:   if (sharePanel) sharePanel.hide();
-278:   rebuildBagAndFilter();
-279: }
-280: 
-281: async function handleRoastClick() {
-282:   if (busy || !bag) return;
-283:   const items = getFilteredRoasts();
-284:   if (items.length === 0) return;
-285: 
-286:   busy = true;
-287:   if (roastButton) {
-288:     roastButton.disabled = true;
-289:     roastButton.textContent = 'Roasting…';
-290:   }
-291: 
-292:   try {
-293:     const roast = bag.next();
-294:     if (roast) {
-295:       sessionCount += 1;
-296:       writeSessionCount(sessionCount);
-297:       renderSessionCount();
-298:       burstConfetti({ originX: 0.5, originY: 0.55, count: 36 });
-299:       await showRoast(roast, { animate: true });
-300:     }
-301:   } finally {
-302:     busy = false;
-303:     if (roastButton) {
-304:       roastButton.textContent = 'Roast them';
-305:       roastButton.disabled = getFilteredRoasts().length === 0;
-306:     }
-307:   }
-308: }
-309: 
-310: /**
-311:  * Boot the page. Reads the club id, loads the club, wires everything up.
-312:  * @returns {Promise<void>}
-313:  */
-314: async function init() {
-315:   showLoading();
-316:   applyFrittLinks();
-317: 
-318:   try {
-319:     const registry = await loadRegistry();
-320:     const clubs = Array.isArray(registry.clubs) ? registry.clubs : [];
-321:     const entry = clubs.find((candidate) => candidate && candidate.id === clubIdParam);
-322: 
-323:     if (!entry) {
-324:       showError(`That club isn't in the registry. Pick one from the picker instead.`);
-325:       return;
-326:     }
-327: 
-328:     if (entry.status !== CLUB_STATUS.LIVE) {
-329:       showError(`${entry.name} is coming soon. There isn't a roast room for it yet.`);
-330:       return;
-331:     }
-332: 
-333:     club = await loadClub(clubIdParam);
-334: 
-335:     // Merge approved fan roasts without mutating the cached club object.
-336:     const cachedClub = club;
-337:     const existingIds = (Array.isArray(cachedClub.roasts) ? cachedClub.roasts : [])
-338:       .map((roast) => (roast && typeof roast.id === 'string' ? roast.id : ''))
-339:       .filter((id) => id.length > 0);
-340:     const fanRoasts = await loadFanRoasts(
-341:       clubIdParam,
-342:       cachedClub.categories,
-343:       existingIds
-344:     );
-345:     if (fanRoasts.length > 0) {
-346:       club = {
-347:         ...cachedClub,
-348:         roasts: [
-349:           ...(Array.isArray(cachedClub.roasts) ? cachedClub.roasts : []),
-350:           ...fanRoasts,
-351:         ],
-352:       };
-353:     }
-354:     applyTheme(club.theme || {});
-355: 
-356:     // Mount club-specific parallax background.
-357:     if (teardownBackground) teardownBackground();
-358:     const bgEl = document.getElementById('clubBackground');
-359:     if (bgEl) {
-360:       teardownBackground = initScrollBackground(bgEl, backgroundLayersFor(clubIdParam));
-361:     }
-362: 
-363:     if (clubBadge) clubBadge.textContent = String(club.name || 'Roast Room');
-364:     if (pageHeading) pageHeading.textContent = `${club.name || 'Roast Room'} Roast Room`;
-365:     document.title = `${club.shortName || club.name || 'Roast Room'} Roast Room | The Roast Room`;
-366: 
-367:     const hash = parseRoastHash(window.location.hash);
-368:     const deepRoast =
-369:       hash && Array.isArray(club.roasts)
-370:         ? club.roasts.find((roast) => roast && roast.id === hash) || null
-371:         : null;
-372: 
-373:     selectedCategory = 'all';
-374:     rebuildBagAndFilter();
-375:     showRoom();
-376: 
-377:     if (reelToggleEl) {
-378:       reelToggleEl.checked = !prefersReducedMotion();
-379:     }
-380: 
-381:     // Fan roast submission form.
-382:     const submitSection = document.getElementById('roastSubmitSection');
-383:     const submitForm = document.getElementById('roastSubmitForm');
-384:     if (submitSection && submitForm) {
-385:       try {
-386:         createRoastForm({
-387:           section: submitSection,
-388:           container: submitForm,
-389:           clubId: clubIdParam,
-390:           categories: Array.isArray(club.categories) ? club.categories : [],
-391:         });
-392:       } catch (error) {
-393:         console.warn('[roastRoom] could not build the roast form', error);
-394:       }
-395:     }
-396: 
-397:     if (sharePanelEl && !sharePanel) {
-398:       try {
-399:         sharePanel = createSharePanel({ container: sharePanelEl });
-400:       } catch (error) {
-401:         console.warn('[roastRoom] could not create the share panel', error);
-402:       }
-403:     }
-404: 
-405:     if (deepRoast) {
-406:       await showRoast(deepRoast, { animate: false });
-407:     }
-408: 
-409:     if (roastButton) {
-410:       roastButton.addEventListener('click', handleRoastClick);
-411:     }
-412: 
-413:     // Press R to roast, as long as the user is not typing in a field.
-414:     document.addEventListener('keydown', (event) => {
-415:       if (event.defaultPrevented || event.metaKey || event.ctrlKey || event.altKey) return;
-416:       const target = event.target;
-417:       if (target instanceof HTMLElement) {
-418:         const tag = target.tagName;
-419:         if (tag === 'INPUT' || tag === 'TEXTAREA' || target.isContentEditable) return;
-420:       }
-421:       if (event.key === 'r' || event.key === 'R') {
-422:         event.preventDefault();
-423:         handleRoastClick();
-424:       }
-425:     });
-426:   } catch (error) {
-427:     console.warn('[roastRoom] could not open the roast room', error);
-428:     showError('We could not load this club. Please try again in a moment.');
-429:   }
-430: }
-431: 
-432: init();
 
 ================
 File: js/share/sharePanel.js
@@ -12753,6 +12059,1633 @@ File: js/share/sharePanel.js
 466: }
 
 ================
+File: index.html
+================
+  1: <!DOCTYPE html>
+  2: <html lang="en">
+  3:   <head>
+  4:     <meta charset="utf-8" />
+  5:     <meta name="viewport" content="width=device-width, initial-scale=1" />
+  6:     <title>The Roast Room | Football banter with receipts</title>
+  7:     <meta
+  8:       name="description"
+  9:       content="Friendly football banter with receipts. Pick a rival club and read sourced, dated facts that actually happened."
+ 10:     />
+ 11:     <meta name="color-scheme" content="dark" />
+ 12:     <meta name="theme-color" content="#0A0A0A" />
+ 13: 
+ 14:     <meta property="og:title" content="The Roast Room" />
+ 15:     <meta
+ 16:       property="og:description"
+ 17:       content="Football banter with receipts. Pick a rival club and read sourced, dated facts, or vote on which club gets roasted next."
+ 18:     />
+ 19:     <meta property="og:type" content="website" />
+ 20:     <link rel="canonical" href="__SITE_URL__/" />
+ 21:     <meta property="og:url" content="__SITE_URL__/" />
+ 22:     <meta property="og:site_name" content="The Roast Room" />
+ 23:     <meta property="og:image" content="__SITE_URL__/og.png" />
+ 24:     <meta property="og:image:width" content="1200" />
+ 25:     <meta property="og:image:height" content="630" />
+ 26:     <meta
+ 27:       property="og:image:alt"
+ 28:       content="The Roast Room wordmark on a dark background with the line Every rivalry needs receipts."
+ 29:     />
+ 30:     <meta name="twitter:card" content="summary_large_image" />
+ 31:     <meta name="twitter:title" content="The Roast Room | Football banter with receipts" />
+ 32:     <meta
+ 33:       name="twitter:description"
+ 34:       content="Football banter with receipts. Pick a rival club and read sourced, dated facts, or vote on which club gets roasted next."
+ 35:     />
+ 36:     <meta name="twitter:image" content="__SITE_URL__/og.png" />
+ 37:     <link rel="apple-touch-icon" href="/apple_touch_icon.png" />
+ 38: 
+ 39:     <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
+ 40:     <link rel="preload" as="image" href="/images/backgrounds/home/home-hero.webp" />
+ 41: 
+ 42:     <link rel="preconnect" href="https://fonts.googleapis.com" />
+ 43:     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+ 44:     <link
+ 45:       rel="stylesheet"
+ 46:       href="https://fonts.googleapis.com/css2?family=Anton&amp;family=Inter:wght@400;500;600;700&amp;display=swap"
+ 47:     />
+ 48:     <link rel="stylesheet" href="./dist/styles.css" />
+ 49: 
+ 50:     <script type="module" src="./js/pages/landing.js" defer></script>
+ 51:   </head>
+ 52: 
+ 53:   <body class="min-h-screen bg-background text-text">
+ 54:     <div id="clubBackground" class="clubBackground" aria-hidden="true"></div>
+ 55:     <a class="skipLink" href="#main">Skip to content</a>
+ 56: 
+ 57:     <header class="border-b border-line bg-surface">
+ 58:       <div class="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-3 px-4 py-4">
+ 59:         <a href="./index.html" class="font-display text-xl uppercase tracking-wide text-text no-underline">
+ 60:           The Roast Room
+ 61:         </a>
+ 62:         <span class="tokenLabel">A Fritt experiment</span>
+ 63:       </div>
+ 64:     </header>
+ 65: 
+ 66:     <main id="main">
+ 67:       <section class="relative overflow-hidden border-b border-line" data-bg="hero">
+ 68:         <svg
+ 69:           class="pointer-events-none absolute inset-0 h-full w-full text-text"
+ 70:           style="opacity: 0.06"
+ 71:           viewBox="0 0 800 400"
+ 72:           preserveAspectRatio="none"
+ 73:           aria-hidden="true"
+ 74:         >
+ 75:           <rect x="10" y="10" width="780" height="380" fill="none" stroke="currentColor" stroke-width="2" />
+ 76:           <line x1="400" y1="10" x2="400" y2="390" stroke="currentColor" stroke-width="2" />
+ 77:           <circle cx="400" cy="200" r="70" fill="none" stroke="currentColor" stroke-width="2" />
+ 78:           <circle cx="400" cy="200" r="4" fill="currentColor" />
+ 79:           <rect x="10" y="100" width="100" height="200" fill="none" stroke="currentColor" stroke-width="2" />
+ 80:           <rect x="690" y="100" width="100" height="200" fill="none" stroke="currentColor" stroke-width="2" />
+ 81:         </svg>
+ 82: 
+ 83:         <div class="relative mx-auto max-w-5xl px-4 py-16 md:py-24">
+ 84:           <div class="heroCopy max-w-xl">
+ 85:             <p class="tokenLabel text-accent">Football banter, sourced and dated</p>
+ 86:             <h1 class="mt-3 text-displayMd text-text">Every rivalry needs receipts.</h1>
+ 87:             <p class="mt-4 text-lg text-textMuted">
+ 88:               Pick a rival. Hit the button. Check the receipts.
+ 89:             </p>
+ 90:             <div class="mt-8 flex flex-wrap gap-4">
+ 91:               <a
+ 92:                 href="./room.html?club=manutd"
+ 93:                 data-cta-club
+ 94:                 class="inline-block rounded-sharp bg-primary px-6 py-4 font-display text-xl uppercase tracking-wide text-primaryContrast no-underline transition-colors duration-fast ease-standard hover:bg-accent hover:text-background"
+ 95:               >
+ 96:                 Enter the Roast Room
+ 97:               </a>
+ 98:             </div>
+ 99:           </div>
+100:         </div>
+101:       </section>
+102: 
+103:       <section
+104:         id="tickerSection"
+105:         data-bg="experience"
+106:         class="hidden overflow-hidden border-b border-line bg-surface"
+107:         aria-label="Recent roast headlines"
+108:       >
+109:         <div class="mx-auto max-w-5xl px-4 py-3">
+110:           <div class="mb-2 flex items-center justify-between gap-3">
+111:             <p class="tokenLabel">Recent roasts</p>
+112:             <button id="tickerToggle" type="button" class="rounded-sharp border border-line px-3 py-2 text-xs text-textMuted">Pause ticker</button>
+113:           </div>
+114:           <div id="tickerTrack" class="tickerTrack"></div>
+115:         </div>
+116:       </section>
+117: 
+118:       <section data-bg="experience" aria-label="How it works" class="mx-auto max-w-5xl px-4 py-12">
+119:         <ol class="grid gap-4 sm:grid-cols-3">
+120:           <li class="rounded-sharp border border-line bg-surface p-5">
+121:             <span class="font-display text-2xl text-primary">01</span>
+122:             <h3 class="mt-1 text-lg text-text">Pick a club</h3>
+123:           </li>
+124:           <li class="rounded-sharp border border-line bg-surface p-5">
+125:             <span class="font-display text-2xl text-primary">02</span>
+126:             <h3 class="mt-1 text-lg text-text">Hit the button</h3>
+127:           </li>
+128:           <li class="rounded-sharp border border-line bg-surface p-5">
+129:             <span class="font-display text-2xl text-primary">03</span>
+130:             <h3 class="mt-1 text-lg text-text">Check the receipts</h3>
+131:           </li>
+132:         </ol>
+133:       </section>
+134: 
+135:       <section data-bg="picker" aria-labelledby="pickerHeading" class="mx-auto max-w-5xl border-t border-line px-4 py-16">
+136:         <h2 id="pickerHeading" class="text-displaySm text-text">Pick a club</h2>
+137: 
+138:         <div id="liveClubs" class="mt-8 grid gap-4 md:grid-cols-2"></div>
+139: 
+140:         <p class="mt-10 tokenLabel">Coming soon</p>
+141:         <div id="comingSoonClubs" class="mt-4 grid gap-3 sm:grid-cols-2 md:grid-cols-3"></div>
+142:       </section>
+143: 
+144:       <section
+145:         id="suggestSection"
+146:         data-bg="closing"
+147:         class="hidden mx-auto max-w-5xl border-t border-line px-4 py-16"
+148:         aria-labelledby="suggestHeading"
+149:       >
+150:         <h2 id="suggestHeading" class="text-displaySm text-text">Who should we roast next?</h2>
+151:         <p class="mt-3 max-w-xl text-textMuted">
+152:           Suggest a club. The most voted is built next.
+153:         </p>
+154: 
+155:         <form id="suggestForm" class="mt-6 max-w-xl" novalidate>
+156:           <label for="suggestName" class="tokenLabel block">Club name</label>
+157:           <input
+158:             id="suggestName"
+159:             name="name"
+160:             type="text"
+161:             required
+162:             minlength="2"
+163:             maxlength="40"
+164:             autocomplete="off"
+165:             class="mt-2 w-full rounded-sharp border border-line bg-surface px-3 py-2 text-text focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
+166:           />
+167:           <div
+168:             style="position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden"
+169:             aria-hidden="true"
+170:           >
+171:             <label for="suggestWebsite">Website</label>
+172:             <input id="suggestWebsite" name="website" type="text" tabindex="-1" autocomplete="off" />
+173:           </div>
+174:           <button
+175:             id="suggestSubmit"
+176:             type="submit"
+177:             class="mt-3 rounded-sharp border-2 border-primary bg-primary px-5 py-3 font-display text-lg uppercase tracking-wide text-primaryContrast transition-colors duration-fast ease-standard hover:bg-accent hover:text-background disabled:opacity-60"
+178:           >
+179:             Suggest this club
+180:           </button>
+181:           <p class="mt-2 text-xs text-textMuted">
+182:             We store a salted hash of your network address for two days, only to rate limit
+183:             submissions. We never store the address itself.
+184:           </p>
+185:           <p id="suggestStatus" class="mt-3 text-sm text-accent" role="status" aria-live="polite"></p>
+186:         </form>
+187: 
+188:         <h3 class="mt-10 text-2xl text-text">Leaderboard</h3>
+189:         <p id="suggestLoading" class="mt-2 text-sm text-textMuted">Loading suggestions.</p>
+190:         <p id="suggestEmpty" class="hidden mt-2 text-sm text-textMuted">Be the first to suggest a club.</p>
+191:         <p id="suggestError" class="hidden mt-2 text-sm text-accent" role="alert">
+192:           Suggestions are unavailable right now.
+193:         </p>
+194:         <ul id="suggestBoard" class="mt-3 space-y-3"></ul>
+195:       </section>
+196: 
+197:       <section
+198:         data-bg="closing"
+199:         aria-labelledby="frittHeading"
+200:         class="mx-auto max-w-5xl border-t border-line px-4 py-16"
+201:       >
+202:         <div class="rounded-sharp border border-line bg-surface p-8 md:p-10">
+203:           <h2 id="frittHeading" class="text-displaySm text-text">Want a site like this?</h2>
+204:           <p class="mt-3 max-w-xl text-textMuted">
+205:             The Roast Room is a Fritt experiment. Fritt designs and builds fast, interactive
+206:             websites for businesses and individuals.
+207:           </p>
+208:           <div class="mt-6 flex flex-wrap gap-3">
+209:             <a
+210:               href="https://fritt.org"
+211:               data-fritt-target="contact"
+212:               data-fritt-placement="landingCta"
+213:               rel="noopener"
+214:               class="inline-block rounded-sharp bg-primary px-5 py-3 font-display text-lg uppercase tracking-wide text-primaryContrast no-underline transition-colors duration-fast ease-standard hover:bg-accent hover:text-background"
+215:             >
+216:               Talk to Fritt
+217:             </a>
+218:             <a
+219:               href="https://fritt.org"
+220:               data-fritt-target="portfolio"
+221:               data-fritt-placement="landingCta"
+222:               rel="noopener"
+223:               class="inline-block rounded-sharp border border-line px-5 py-3 font-display text-lg uppercase tracking-wide text-text no-underline transition-colors duration-fast ease-standard hover:border-accent hover:text-accent"
+224:             >
+225:               See Fritt's work
+226:             </a>
+227:           </div>
+228:         </div>
+229:       </section>
+230: 
+231:     </main>
+232: 
+233:     <footer class="border-t border-line bg-surface">
+234:       <div class="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-4 px-4 py-8">
+235:         <p class="text-sm text-textMuted">
+236:           Built by <a href="https://fritt.org" rel="noopener">Fritt</a>.
+237:           <a href="./about.html" class="text-textMuted underline">About and privacy</a>.
+238:         </p>
+239:         <p class="text-sm text-textMuted">
+240:           <a
+241:             href="https://fritt.org"
+242:             data-fritt-target="contact"
+243:             data-fritt-placement="landingFooter"
+244:             rel="noopener"
+245:             class="text-textMuted underline"
+246:           >
+247:             Talk to Fritt
+248:           </a>
+249:           ·
+250:           <a
+251:             href="https://fritt.org"
+252:             data-fritt-target="portfolio"
+253:             data-fritt-placement="landingFooter"
+254:             rel="noopener"
+255:             class="text-textMuted underline"
+256:           >
+257:             See Fritt's work
+258:           </a>
+259:         </p>
+260:       </div>
+261:     </footer>
+262:   </body>
+263: </html>
+
+================
+File: css/components.css
+================
+  1: /*
+  2:   Shared component styles for The Roast Room.
+  3:   Imported by src/input.css after tokens.css and base.css so every rule here
+  4:   reads the design tokens and the base reset.
+  5: */
+  6: 
+  7: @layer components {
+  8:   /* Visually hidden but available to screen readers */
+  9:   .srOnly {
+ 10:     position: absolute;
+ 11:     width: 1px;
+ 12:     height: 1px;
+ 13:     padding: 0;
+ 14:     margin: -1px;
+ 15:     overflow: hidden;
+ 16:     clip: rect(0, 0, 0, 0);
+ 17:     white-space: nowrap;
+ 18:     border: 0;
+ 19:   }
+ 20: 
+ 21:   /* Roast card, styled as a matchday ticket stub with notches on both sides */
+ 22:   .roastCard {
+ 23:     position: relative;
+ 24:     background-color: var(--colorSurface);
+ 25:     border: var(--borderWidth1) solid var(--colorLine);
+ 26:     border-radius: var(--radiusSharp);
+ 27:     padding: var(--space6);
+ 28:     margin: 0 var(--space4);
+ 29:   }
+ 30: 
+ 31:   .ticketStub::before,
+ 32:   .ticketStub::after {
+ 33:     content: '';
+ 34:     position: absolute;
+ 35:     top: 50%;
+ 36:     width: var(--space6);
+ 37:     height: var(--space6);
+ 38:     background-color: var(--colorBackground);
+ 39:     border-radius: 50%;
+ 40:     transform: translateY(-50%);
+ 41:     pointer-events: none;
+ 42:   }
+ 43: 
+ 44:   .ticketStub::before {
+ 45:     left: calc(var(--space6) / -2);
+ 46:   }
+ 47: 
+ 48:   .ticketStub::after {
+ 49:     right: calc(var(--space6) / -2);
+ 50:   }
+ 51: 
+ 52:   .heroCopy h1,
+ 53:   .heroCopy p,
+ 54:   main [data-bg] h2 {
+ 55:     text-shadow:
+ 56:       0 2px 24px rgba(0, 0, 0, 0.7),
+ 57:       0 1px 2px rgba(0, 0, 0, 0.85);
+ 58:   }
+ 59: 
+ 60:   /* Reveal animation target for the facts and receipts */
+ 61:   .revealTarget {
+ 62:     opacity: 0;
+ 63:     transition: opacity var(--durationSlow) var(--easeOut);
+ 64:   }
+ 65: 
+ 66:   .revealTarget.isVisible {
+ 67:     opacity: 1;
+ 68:   }
+ 69: 
+ 70:   /* Category filter chips */
+ 71:   .categoryChip {
+ 72:     display: inline-flex;
+ 73:     align-items: center;
+ 74:     gap: var(--space2);
+ 75:     border-radius: var(--radiusPill);
+ 76:     border: var(--borderWidth1) solid var(--colorLine);
+ 77:     background-color: var(--colorSurface);
+ 78:     color: var(--colorText);
+ 79:     padding: var(--space2) var(--space4);
+ 80:     font-size: var(--textSm);
+ 81:     transition:
+ 82:       background-color var(--durationFast) var(--easeStandard),
+ 83:       color var(--durationFast) var(--easeStandard),
+ 84:       border-color var(--durationFast) var(--easeStandard);
+ 85:   }
+ 86: 
+ 87:   .categoryChip:hover {
+ 88:     border-color: var(--colorPrimary);
+ 89:   }
+ 90: 
+ 91:   .categoryChip[aria-pressed='true'] {
+ 92:     background-color: var(--colorPrimary);
+ 93:     border-color: var(--colorPrimary);
+ 94:     color: var(--colorPrimaryContrast);
+ 95:   }
+ 96: 
+ 97:   .categoryChipCount {
+ 98:     color: var(--colorTextMuted);
+ 99:   }
+100: 
+101:   .categoryChip[aria-pressed='true'] .categoryChipCount {
+102:     color: var(--colorPrimaryContrast);
+103:   }
+104: 
+105:   /* Headline placeholder so the card does not collapse before the reel */
+106:   .roastHeadline {
+107:     min-height: 1.2em;
+108:   }
+109: 
+110:     .tickerTrack {
+111:     display: flex;
+112:     gap: var(--space8);
+113:     width: max-content;
+114:     animation: tickerScroll 40s linear infinite;
+115:     will-change: transform;
+116:   }
+117: 
+118:   @media (max-width: 767px) {
+119:     .tickerTrack {
+120:       animation-duration: 26s;
+121:     }
+122:   }
+123: 
+124:   @media (prefers-reduced-motion: reduce) {
+125:     .tickerTrack {
+126:       animation-play-state: paused;
+127:     }
+128:   }
+129: 
+130:   /* Share panel */
+131:   .sharePanel {
+132:     margin-top: var(--space8);
+133:     border: var(--borderWidth1) solid var(--colorLine);
+134:     border-radius: var(--radiusSharp);
+135:     background-color: var(--colorSurface);
+136:     padding: var(--space5);
+137:   }
+138: 
+139:   .sharePanelHeading {
+140:     margin: 0;
+141:     font-family: var(--fontDisplay);
+142:     font-size: var(--text2xl);
+143:     line-height: var(--leadingTight);
+144:     letter-spacing: var(--trackingTight);
+145:     text-transform: uppercase;
+146:     color: var(--colorText);
+147:   }
+148: 
+149:   .shareFormatToggle {
+150:     display: flex;
+151:     flex-wrap: wrap;
+152:     gap: var(--space2);
+153:     margin-top: var(--space4);
+154:   }
+155: 
+156:   .shareFormatButton {
+157:     border: var(--borderWidth1) solid var(--colorLine);
+158:     border-radius: var(--radiusPill);
+159:     background-color: var(--colorSurfaceRaised);
+160:     color: var(--colorText);
+161:     padding: var(--space2) var(--space4);
+162:     font-size: var(--textSm);
+163:     transition:
+164:       background-color var(--durationFast) var(--easeStandard),
+165:       color var(--durationFast) var(--easeStandard),
+166:       border-color var(--durationFast) var(--easeStandard);
+167:   }
+168: 
+169:   .shareFormatButton:hover {
+170:     border-color: var(--colorPrimary);
+171:   }
+172: 
+173:   .shareFormatButton[aria-pressed='true'] {
+174:     background-color: var(--colorPrimary);
+175:     border-color: var(--colorPrimary);
+176:     color: var(--colorPrimaryContrast);
+177:   }
+178: 
+179:   .sharePreviewWrap {
+180:     display: flex;
+181:     justify-content: center;
+182:     margin-top: var(--space4);
+183:     border: var(--borderWidth1) solid var(--colorLine);
+184:     background-color: var(--colorSurfaceRaised);
+185:     padding: var(--space3);
+186:   }
+187: 
+188:   .sharePreviewCanvas {
+189:     display: block;
+190:     width: 100%;
+191:     height: auto;
+192:     max-height: 40vh;
+193:     object-fit: contain;
+194:     background-color: var(--colorBackground);
+195:   }
+196: 
+197:   .shareActions {
+198:     display: flex;
+199:     flex-wrap: wrap;
+200:     gap: var(--space3);
+201:     margin-top: var(--space4);
+202:   }
+203: 
+204:   .shareActionPrimary,
+205:   .shareActionSecondary {
+206:     border-radius: var(--radiusSharp);
+207:     border: var(--borderWidth1) solid var(--colorLine);
+208:     padding: var(--space3) var(--space5);
+209:     font-weight: 600;
+210:     transition:
+211:       background-color var(--durationFast) var(--easeStandard),
+212:       color var(--durationFast) var(--easeStandard),
+213:       border-color var(--durationFast) var(--easeStandard);
+214:   }
+215: 
+216:   .shareActionPrimary {
+217:     background-color: var(--colorPrimary);
+218:     border-color: var(--colorPrimary);
+219:     color: var(--colorPrimaryContrast);
+220:   }
+221: 
+222:   .shareActionPrimary:hover {
+223:     background-color: var(--colorAccent);
+224:     border-color: var(--colorAccent);
+225:     color: var(--colorBackground);
+226:   }
+227: 
+228:   .shareActionSecondary {
+229:     background-color: var(--colorSurfaceRaised);
+230:     color: var(--colorText);
+231:   }
+232: 
+233:   .shareActionSecondary:hover {
+234:     border-color: var(--colorPrimary);
+235:   }
+236: 
+237:   .shareActionPrimary:disabled,
+238:   .shareActionSecondary:disabled {
+239:     opacity: 0.6;
+240:     cursor: not-allowed;
+241:   }
+242: 
+243:   .shareStatus {
+244:     min-height: 1.5em;
+245:     margin-top: var(--space3);
+246:     font-size: var(--textSm);
+247:     color: var(--colorTextMuted);
+248:   }
+249: 
+250:   .shareFallback {
+251:     margin-top: var(--space3);
+252:   }
+253: 
+254:   .shareFallbackInput {
+255:     width: 100%;
+256:     margin-top: var(--space2);
+257:     border: var(--borderWidth1) solid var(--colorLine);
+258:     border-radius: var(--radiusSharp);
+259:     background-color: var(--colorBackground);
+260:     color: var(--colorText);
+261:     padding: var(--space3);
+262:     font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+263:     font-size: var(--textSm);
+264:   }
+265: 
+266:   .shareFallbackInput:focus-visible {
+267:     outline: var(--borderWidth2) solid var(--colorAccent);
+268:     outline-offset: 2px;
+269:   }
+270: }
+271: 
+272: @keyframes tickerScroll {
+273:   from {
+274:     transform: translateX(0);
+275:   }
+276:   to {
+277:     transform: translateX(-50%);
+278:   }
+279: }
+280: 
+281: /* ------------------------------------------------------------------
+282:    Club background (fixed, photo layer + SVG fallback)
+283:    ------------------------------------------------------------------ */
+284: 
+285: .clubBackground {
+286:   position: fixed;
+287:   inset: 0;
+288:   z-index: -1;
+289:   overflow: hidden;
+290:   pointer-events: none;
+291:   contain: layout paint;
+292: 
+293:   --bgScrimTop: 0.55;
+294:   --bgScrimBottom: 0.55;
+295:   --bgVignetteInner: 0;
+296:   --bgVignetteOuter: 0.55;
+297: }
+298: 
+299: .clubBackground.hasPhoto {
+300:   --bgScrimTop: 0.45;
+301:   --bgScrimBottom: 0.7;
+302:   --bgVignetteInner: 0.15;
+303:   --bgVignetteOuter: 0.6;
+304: }
+305: 
+306: .clubBackground__images {
+307:   position: absolute;
+308:   inset: 0;
+309:   z-index: 0;
+310:   overflow: hidden;
+311: }
+312: 
+313: .clubBackground__photo {
+314:   position: absolute;
+315:   inset: 0;
+316:   width: 100%;
+317:   height: 100%;
+318:   object-fit: cover;
+319:   object-position: var(--bgFocalDesktop, 50% 50%);
+320:   opacity: 0;
+321:   transition: opacity 700ms var(--easeOut);
+322:   will-change: opacity, transform;
+323:   pointer-events: none;
+324:   user-select: none;
+325: }
+326: 
+327: .clubBackground__photo.isActive {
+328:   animation: bgSlowZoom 24s var(--easeStandard) both;
+329: }
+330: 
+331: @media (max-width: 640px) {
+332:   .clubBackground__photo {
+333:     object-position: var(--bgFocalMobile, 50% 50%);
+334:   }
+335: }
+336: 
+337: @keyframes bgSlowZoom {
+338:   from {
+339:     transform: scale(1);
+340:   }
+341:   to {
+342:     transform: scale(1.05);
+343:   }
+344: }
+345: 
+346: .clubBackground__svg {
+347:   position: absolute;
+348:   inset: 0;
+349:   z-index: 1;
+350:   pointer-events: none;
+351: }
+352: 
+353: .clubBackground__layer {
+354:   position: absolute;
+355:   left: 0;
+356:   right: 0;
+357:   top: -50vh;
+358:   bottom: -50vh;
+359:   will-change: transform;
+360:   transform: translate3d(0, 0, 0);
+361: }
+362: 
+363: .clubBackground__layer > svg {
+364:   display: block;
+365:   width: 100%;
+366:   height: 100%;
+367: }
+368: 
+369: .clubBackground.hasPhoto .clubBackground__layer {
+370:   display: none;
+371: }
+372: 
+373: .clubBackground__scrim {
+374:   position: absolute;
+375:   inset: 0;
+376:   background:
+377:     linear-gradient(
+378:       to bottom,
+379:       rgba(10, 10, 10, var(--bgScrimTop)),
+380:       rgba(10, 10, 10, var(--bgScrimBottom))
+381:     ),
+382:     radial-gradient(
+383:       ellipse at center,
+384:       rgba(10, 10, 10, var(--bgVignetteInner)) 0%,
+385:       rgba(10, 10, 10, var(--bgVignetteOuter)) 100%
+386:     );
+387: }
+388: 
+389: .clubBackground__tint {
+390:   position: absolute;
+391:   inset: 0;
+392:   z-index: 2;
+393:   pointer-events: none;
+394:   opacity: 0;
+395:   background: radial-gradient(
+396:     circle at 50% 55%,
+397:     rgba(218, 41, 28, 0.55),
+398:     rgba(218, 41, 28, 0) 65%
+399:   );
+400: }
+401: 
+402: .clubBackground__tint.isPulsing {
+403:   animation: backgroundPulse 600ms var(--easeOut) both;
+404: }
+405: 
+406: @keyframes backgroundPulse {
+407:   0% {
+408:     opacity: 0;
+409:   }
+410:   25% {
+411:     opacity: 0.18;
+412:   }
+413:   100% {
+414:     opacity: 0;
+415:   }
+416: }
+417: 
+418: @media (prefers-reduced-motion: reduce) {
+419:   .clubBackground__layer {
+420:     will-change: auto;
+421:     transform: none !important;
+422:   }
+423: 
+424:   .clubBackground__photo {
+425:     transition-duration: 150ms !important;
+426:     animation: none !important;
+427:   }
+428: 
+429:   .clubBackground__tint.isPulsing {
+430:     animation: none !important;
+431:     opacity: 0 !important;
+432:   }
+433: }
+434: 
+435: @media (max-width: 480px) {
+436:   .clubBackground__layer--fast {
+437:     display: none;
+438:   }
+439: }
+440: 
+441: /* ------------------------------------------------------------------
+442:    Micro-interactions
+443:    ------------------------------------------------------------------ */
+444: 
+445: /* Roast card entrance */
+446: .roastCard {
+447:   animation: roastCardIn var(--durationSlow) var(--easeOut) both;
+448: }
+449: 
+450: .roastCard__fx {
+451:   position: absolute;
+452:   inset: -24px;
+453:   z-index: 0;
+454:   pointer-events: none;
+455:   border-radius: inherit;
+456:   overflow: hidden;
+457: }
+458: 
+459: .roastCard > *:not(.roastCard__fx) {
+460:   position: relative;
+461:   z-index: 1;
+462: }
+463: 
+464: .roastCard__fx::before {
+465:   content: '';
+466:   position: absolute;
+467:   inset: 0;
+468:   opacity: 0;
+469:   background: radial-gradient(
+470:     ellipse at center,
+471:     rgba(218, 41, 28, 0.5),
+472:     rgba(218, 41, 28, 0) 70%
+473:   );
+474:   transition: opacity var(--durationSlow) var(--easeOut);
+475: }
+476: 
+477: .roastCard.isCharging .roastCard__fx::before {
+478:   opacity: 0.55;
+479: }
+480: 
+481: .roastCard.isRevealed .roastCard__fx::before {
+482:   animation: roastGlowPeak 450ms var(--easeOut) both;
+483: }
+484: 
+485: .roastCard.isRevealed .roastCard__fx::after {
+486:   content: '';
+487:   position: absolute;
+488:   top: -60%;
+489:   left: -70%;
+490:   width: 45%;
+491:   height: 220%;
+492:   opacity: 0;
+493:   background: linear-gradient(
+494:     90deg,
+495:     transparent,
+496:     rgba(255, 255, 255, 0.16),
+497:     transparent
+498:   );
+499:   transform: translateX(-120%) rotate(18deg);
+500:   animation: roastSweep 450ms var(--easeOut) both;
+501: }
+502: 
+503: .roastCard.isRevealed {
+504:   animation: roastSettle 450ms var(--easeOut) both;
+505: }
+506: 
+507: @keyframes roastGlowPeak {
+508:   0% {
+509:     opacity: 0.55;
+510:   }
+511:   30% {
+512:     opacity: 0.85;
+513:   }
+514:   100% {
+515:     opacity: 0;
+516:   }
+517: }
+518: 
+519: @keyframes roastSweep {
+520:   0% {
+521:     opacity: 0;
+522:     transform: translateX(-120%) rotate(18deg);
+523:   }
+524:   20% {
+525:     opacity: 1;
+526:   }
+527:   100% {
+528:     opacity: 0;
+529:     transform: translateX(320%) rotate(18deg);
+530:   }
+531: }
+532: 
+533: @keyframes roastSettle {
+534:   from {
+535:     transform: scale(1.03);
+536:   }
+537:   to {
+538:     transform: scale(1);
+539:   }
+540: }
+541: 
+542: @media (prefers-reduced-motion: reduce) {
+543:   .roastCard.isRevealed,
+544:   .roastCard.isRevealed .roastCard__fx::before,
+545:   .roastCard.isRevealed .roastCard__fx::after {
+546:     animation: none !important;
+547:   }
+548: 
+549:   .roastCard__fx::before {
+550:     transition: none !important;
+551:   }
+552: }
+553: 
+554: @keyframes roastCardIn {
+555:   from {
+556:     opacity: 0;
+557:     transform: translateY(12px) scale(0.98);
+558:   }
+559:   to {
+560:     opacity: 1;
+561:     transform: translateY(0) scale(1);
+562:   }
+563: }
+564: 
+565: /* Filter chip press */
+566: .categoryChip:active {
+567:   transform: scale(0.96);
+568: }
+569: 
+570: @media (prefers-reduced-motion: reduce) {
+571:   .roastCard {
+572:     animation: none;
+573:   }
+574:   .categoryChip:active {
+575:     transform: none;
+576:   }
+577: }
+
+================
+File: js/pages/landing.js
+================
+  1: /**
+  2:  * Landing page logic.
+  3:  * Renders the club picker from the registry, the recent roast ticker, the
+  4:  * hero call to action and the crossfading section backgrounds.
+  5:  */
+  6: 
+  7: import { initSuggestSection } from '../suggest/suggestSection.js';
+  8: import { applyFrittLinks } from '../brand/applyFrittLinks.js';
+  9: import { DEFAULT_CLUB_ID } from '../config.js';
+ 10: import { getComingSoonClubs, getLiveClubs, loadClub, loadRegistry } from '../registry.js';
+ 11: import { clear, createElement, prefersReducedMotion } from '../utils/dom.js';
+ 12: import { initScrollBackground } from '../background/scrollBackground.js';
+ 13: import { backgroundLayersFor } from '../background/layers.js';
+ 14: import { createImageBackground } from '../background/imageBackground.js';
+ 15: import {
+ 16:   collectHomeBackgrounds,
+ 17:   homeBackgroundFor,
+ 18: } from '../background/backgroundConfig.js';
+ 19: 
+ 20: const liveContainer = document.getElementById('liveClubs');
+ 21: const comingSoonContainer = document.getElementById('comingSoonClubs');
+ 22: const tickerSection = document.getElementById('tickerSection');
+ 23: const tickerTrack = document.getElementById('tickerTrack');
+ 24: 
+ 25: /**
+ 26:  * Point every CTA at the default club from config.
+ 27:  * @returns {void}
+ 28:  */
+ 29: function setCallToActions() {
+ 30:   const links = document.querySelectorAll('[data-cta-club]');
+ 31:   for (const link of links) {
+ 32:     if (link instanceof HTMLAnchorElement) {
+ 33:       link.href = `./room.html?club=${encodeURIComponent(DEFAULT_CLUB_ID)}`;
+ 34:     }
+ 35:   }
+ 36: }
+ 37: 
+ 38: /**
+ 39:  * Build one live club card linking to its roast room.
+ 40:  * @param {{ id: string, name: string }} entry Registry entry.
+ 41:  * @param {number} roastCount Number of publishable roasts in the club.
+ 42:  * @returns {HTMLAnchorElement}
+ 43:  */
+ 44: function renderLiveClub(entry, roastCount) {
+ 45:   const link = createElement('a', {
+ 46:     className:
+ 47:       'block rounded-sharp border border-line bg-surface p-6 no-underline transition-colors duration-fast ease-standard hover:border-primary',
+ 48:     attrs: { href: `./room.html?club=${encodeURIComponent(entry.id)}` },
+ 49:   });
+ 50: 
+ 51:   link.append(
+ 52:     createElement('p', {
+ 53:       className: 'font-display text-2xl uppercase text-text',
+ 54:       text: entry.name,
+ 55:     })
+ 56:   );
+ 57: 
+ 58:   link.append(
+ 59:     createElement('p', {
+ 60:       className: 'mt-2 text-sm text-textMuted',
+ 61:       text: roastCount === 1 ? '1 roast ready' : `${roastCount} roasts ready`,
+ 62:     })
+ 63:   );
+ 64: 
+ 65:   return link;
+ 66: }
+ 67: 
+ 68: /**
+ 69:  * Build one coming soon card. Not a link and marked disabled for assistive tech.
+ 70:  * @param {{ name: string }} entry Registry entry.
+ 71:  * @returns {HTMLElement}
+ 72:  */
+ 73: function renderComingSoonClub(entry) {
+ 74:   const wrap = createElement('div', {
+ 75:     className: 'rounded-sharp border border-line bg-surface p-4',
+ 76:     attrs: { 'aria-disabled': 'true' },
+ 77:     children: [
+ 78:       createElement('p', {
+ 79:         className: 'font-display text-lg uppercase text-textMuted',
+ 80:         text: entry.name,
+ 81:       }),
+ 82:       createElement('p', {
+ 83:         className: 'mt-1 tokenLabel',
+ 84:         text: 'Coming soon',
+ 85:       }),
+ 86:     ],
+ 87:   });
+ 88:   return wrap;
+ 89: }
+ 90: 
+ 91: function setupTickerToggle() {
+ 92:   const toggle = document.getElementById('tickerToggle');
+ 93:   if (!toggle || !tickerTrack || toggle.dataset.ready === 'true') return;
+ 94:   toggle.dataset.ready = 'true';
+ 95: 
+ 96:   let running = true;
+ 97: 
+ 98:   const apply = () => {
+ 99:     const duration = window.matchMedia('(max-width: 767px)').matches ? '26s' : '40s';
+100:     // Inline `!important` is required: css/base.css sets
+101:     // `* { animation-duration: 1ms !important; animation-iteration-count: 1 !important; }`
+102:     // under prefers-reduced-motion, which would otherwise kill the ticker even
+103:     // after the user clicks Play.
+104:     tickerTrack.style.setProperty(
+105:       'animation',
+106:       `tickerScroll ${duration} linear infinite`,
+107:       'important'
+108:     );
+109:     tickerTrack.style.setProperty(
+110:       'animation-play-state',
+111:       running ? 'running' : 'paused',
+112:       'important'
+113:     );
+114:     toggle.textContent = running ? 'Pause ticker' : 'Play ticker';
+115:     toggle.setAttribute('aria-pressed', running ? 'false' : 'true');
+116:   };
+117: 
+118:   toggle.addEventListener('click', () => {
+119:     running = !running;
+120:     apply();
+121:   });
+122: 
+123:   apply();
+124: }
+125: 
+126: /**
+127:  * Render the ticker with the first six headlines.
+128:  * @param {Array<{ headline: string, clubShortName: string }>} roasts
+129:  * @returns {void}
+130:  */
+131: function renderTicker(roasts) {
+132:   if (!tickerTrack || !tickerSection) return;
+133: 
+134:   clear(tickerTrack);
+135: 
+136:   if (!Array.isArray(roasts) || roasts.length === 0) {
+137:     tickerSection.classList.add('hidden');
+138:     return;
+139:   }
+140: 
+141:   const items = roasts.slice(0, 6);
+142: 
+143:   for (const roast of items) {
+144:     tickerTrack.append(
+145:       createElement('span', {
+146:         className: 'whitespace-nowrap text-sm text-textMuted',
+147:         text: `${roast.clubShortName}: ${roast.headline}`,
+148:       })
+149:     );
+150:   }
+151: 
+152:   for (const roast of items) {
+153:     tickerTrack.append(
+154:       createElement('span', {
+155:         className: 'whitespace-nowrap text-sm text-textMuted',
+156:         text: `${roast.clubShortName}: ${roast.headline}`,
+157:         attrs: { 'aria-hidden': 'true' },
+158:       })
+159:     );
+160:   }
+161: 
+162:   tickerSection.classList.remove('hidden');
+163:   setupTickerToggle();
+164: }
+165: 
+166: /**
+167:  * Show a friendly error inside the picker when the registry cannot load.
+168:  * @param {string} message
+169:  * @returns {void}
+170:  */
+171: function showPickerError(message) {
+172:   if (!liveContainer) return;
+173:   clear(liveContainer);
+174:   liveContainer.append(
+175:     createElement('p', {
+176:       className: 'text-textMuted',
+177:       text: message,
+178:     })
+179:   );
+180: }
+181: 
+182: /**
+183:  * Observe the sections with data-bg and crossfade the background.
+184:  * @param {ReturnType<typeof createImageBackground>} controller
+185:  * @returns {void}
+186:  */
+187: function setupSectionBackgrounds(controller) {
+188:   const sections = Array.from(document.querySelectorAll('[data-bg]'));
+189:   if (sections.length === 0) return;
+190:   if (typeof IntersectionObserver !== 'function') return;
+191: 
+192:   let pending = 0;
+193: 
+194:   const observer = new IntersectionObserver(
+195:     (entries) => {
+196:       for (const entry of entries) {
+197:         if (!entry.isIntersecting) continue;
+198:         const key = entry.target.getAttribute('data-bg');
+199:         const image = homeBackgroundFor(key);
+200:         if (!image) continue;
+201:         window.clearTimeout(pending);
+202:         pending = window.setTimeout(() => controller.show(image), 120);
+203:       }
+204:     },
+205:     { rootMargin: '-45% 0px -45% 0px', threshold: 0 }
+206:   );
+207: 
+208:   for (const section of sections) observer.observe(section);
+209: }
+210: 
+211: /**
+212:  * Load the registry and render every section of the page.
+213:  * @returns {Promise<void>}
+214:  */
+215: async function init() {
+216:   setCallToActions();
+217:   applyFrittLinks();
+218: 
+219:   const bgEl = document.getElementById('clubBackground');
+220:   let imageBackground = null;
+221: 
+222:   if (bgEl) {
+223:     imageBackground = createImageBackground(bgEl);
+224:     initScrollBackground(bgEl, backgroundLayersFor('manutd'));
+225:     imageBackground.show(homeBackgroundFor('hero'));
+226:     setupSectionBackgrounds(imageBackground);
+227: 
+228:     const startPreload = () => {
+229:       if (imageBackground) imageBackground.preload(collectHomeBackgrounds());
+230:     };
+231:     if (document.readyState === 'complete') {
+232:       startPreload();
+233:     } else {
+234:       window.addEventListener('load', startPreload, { once: true });
+235:     }
+236:   }
+237: 
+238:   try {
+239:     const registry = await loadRegistry();
+240:     const live = getLiveClubs(registry);
+241:     const comingSoon = getComingSoonClubs(registry);
+242: 
+243:     /** @type {Array<{ headline: string, clubShortName: string }>} */
+244:     const roastPool = [];
+245: 
+246:     for (const entry of live) {
+247:       try {
+248:         const club = await loadClub(entry.id);
+249:         if (liveContainer) {
+250:           liveContainer.append(
+251:             renderLiveClub(entry, Array.isArray(club.roasts) ? club.roasts.length : 0)
+252:           );
+253:         }
+254:         if (Array.isArray(club.roasts)) {
+255:           for (const roast of club.roasts) {
+256:             roastPool.push({
+257:               headline: roast.headline,
+258:               clubShortName: String(entry.shortName),
+259:             });
+260:           }
+261:         }
+262:       } catch (error) {
+263:         console.warn('[roastRoom] could not load live club', entry.id, error);
+264:       }
+265:     }
+266: 
+267:     if (comingSoonContainer) {
+268:       for (const entry of comingSoon) {
+269:         comingSoonContainer.append(renderComingSoonClub(entry));
+270:       }
+271:     }
+272: 
+273:     renderTicker(roastPool);
+274:   } catch (error) {
+275:     console.warn('[roastRoom] could not load the registry', error);
+276:     showPickerError('Could not load the club list. Serve the site over http and reload.');
+277:   }
+278: 
+279:   initSuggestSection();
+280: }
+281: 
+282: init();
+
+================
+File: js/pages/room.js
+================
+  1: /**
+  2:  * Roast room logic.
+  3:  * Reads the club id from the query string, loads the club, wires the category
+  4:  * filter and the shuffle bag, and shows roasts on demand with a short reel.
+  5:  */
+  6: 
+  7: import { CLUB_STATUS, DEFAULT_CLUB_ID } from '../config.js';
+  8: import { loadClub, loadRegistry } from '../registry.js';
+  9: import { applyTheme } from '../theme.js';
+ 10: import { buildCategoryFilter } from '../ui/categoryFilter.js';
+ 11: import { createRoastCard } from '../ui/roastCard.js';
+ 12: import { createShuffleBag } from '../ui/shuffleBag.js';
+ 13: import { revealRoast } from '../ui/reveal.js';
+ 14: import { clear, prefersReducedMotion } from '../utils/dom.js';
+ 15: import { parseRoastHash } from '../utils/links.js';
+ 16: import { createSharePanel } from '../share/sharePanel.js';
+ 17: import { applyFrittLinks } from '../brand/applyFrittLinks.js';
+ 18: import { burstConfetti } from '../ui/confetti.js';
+ 19: import { initScrollBackground } from '../background/scrollBackground.js';
+ 20: import { backgroundLayersFor } from '../background/layers.js';
+ 21: import { createImageBackground } from '../background/imageBackground.js';
+ 22: import {
+ 23:   clubBackgroundFor,
+ 24:   collectClubBackgrounds,
+ 25: } from '../background/backgroundConfig.js';
+ 26: import { createRoastForm } from '../roasts/roastForm.js';
+ 27: import { loadFanRoasts } from '../roasts/fanRoasts.js';
+ 28: 
+ 29: const params = new URLSearchParams(window.location.search);
+ 30: const clubIdParam = params.get('club') || DEFAULT_CLUB_ID;
+ 31: 
+ 32: const loadingEl = document.getElementById('loadingState');
+ 33: const errorEl = document.getElementById('errorState');
+ 34: const errorMessageEl = document.getElementById('errorMessage');
+ 35: const roomEl = document.getElementById('roomState');
+ 36: const filterContainer = document.getElementById('categoryFilter');
+ 37: const roastButton = document.getElementById('roastButton');
+ 38: const progressEl = document.getElementById('progress');
+ 39: const roastContainer = document.getElementById('roastContainer');
+ 40: const clubBadge = document.getElementById('clubBadge');
+ 41: const emptyEl = document.getElementById('emptyState');
+ 42: const liveRegion = document.getElementById('roastLiveRegion');
+ 43: const pageHeading = document.getElementById('pageHeading');
+ 44: const sharePanelEl = document.getElementById('sharePanel');
+ 45: const sessionCounterEl = document.getElementById('sessionCounter');
+ 46: const reelToggleEl = document.getElementById('reelToggle');
+ 47: 
+ 48: /** @type {Record<string, unknown> | null} */
+ 49: let club = null;
+ 50: let selectedCategory = 'all';
+ 51: /** @type {ReturnType<typeof createShuffleBag> | null} */
+ 52: let bag = null;
+ 53: /** @type {Record<string, unknown> | null} */
+ 54: let currentRoast = null;
+ 55: let busy = false;
+ 56: /** @type {ReturnType<typeof createSharePanel> | null} */
+ 57: let sharePanel = null;
+ 58: /** @type {(() => void) | null} */
+ 59: let teardownBackground = null;
+ 60: /** @type {ReturnType<typeof createImageBackground> | null} */
+ 61: let imageBackground = null;
+ 62: 
+ 63: const SESSION_KEY = 'roastroom_session_count';
+ 64: 
+ 65: /**
+ 66:  * Read the roast count for this browser session.
+ 67:  * @returns {number}
+ 68:  */
+ 69: function readSessionCount() {
+ 70:   try {
+ 71:     return parseInt(window.sessionStorage.getItem(SESSION_KEY) || '0', 10) || 0;
+ 72:   } catch {
+ 73:     return 0;
+ 74:   }
+ 75: }
+ 76: 
+ 77: /**
+ 78:  * Persist the roast count. Best effort only.
+ 79:  * @param {number} count
+ 80:  * @returns {void}
+ 81:  */
+ 82: function writeSessionCount(count) {
+ 83:   try {
+ 84:     window.sessionStorage.setItem(SESSION_KEY, String(count));
+ 85:   } catch {
+ 86:     // sessionStorage is best effort only.
+ 87:   }
+ 88: }
+ 89: 
+ 90: let sessionCount = readSessionCount();
+ 91: 
+ 92: /**
+ 93:  * Update the "N roasts served this session" line.
+ 94:  * @returns {void}
+ 95:  */
+ 96: function renderSessionCount() {
+ 97:   if (!sessionCounterEl) return;
+ 98:   if (sessionCount === 0) {
+ 99:     sessionCounterEl.textContent = '';
+100:   } else if (sessionCount === 1) {
+101:     sessionCounterEl.textContent = '1 roast served this session.';
+102:   } else {
+103:     sessionCounterEl.textContent = `${sessionCount} roasts served this session.`;
+104:   }
+105: }
+106: 
+107: renderSessionCount();
+108: 
+109: function showLoading() {
+110:   if (loadingEl) loadingEl.classList.remove('hidden');
+111:   if (errorEl) errorEl.classList.add('hidden');
+112:   if (roomEl) roomEl.classList.add('hidden');
+113: }
+114: 
+115: /**
+116:  * Show the error state with a friendly message.
+117:  * @param {string} message
+118:  * @returns {void}
+119:  */
+120: function showError(message) {
+121:   if (loadingEl) loadingEl.classList.add('hidden');
+122:   if (roomEl) roomEl.classList.add('hidden');
+123:   if (errorEl) errorEl.classList.remove('hidden');
+124:   if (errorMessageEl) errorMessageEl.textContent = message;
+125:   if (clubBadge) clubBadge.textContent = 'Club unavailable';
+126: }
+127: 
+128: function showRoom() {
+129:   if (loadingEl) loadingEl.classList.add('hidden');
+130:   if (errorEl) errorEl.classList.add('hidden');
+131:   if (roomEl) roomEl.classList.remove('hidden');
+132: }
+133: 
+134: /**
+135:  * Roasts in the current filter.
+136:  * @returns {Array<Record<string, unknown>>}
+137:  */
+138: function getFilteredRoasts() {
+139:   if (!club) return [];
+140:   const roasts = Array.isArray(club.roasts) ? club.roasts : [];
+141:   if (selectedCategory === 'all') return roasts;
+142:   return roasts.filter((roast) => roast.category === selectedCategory);
+143: }
+144: 
+145: /**
+146:  * Update the "Roast N of M" line.
+147:  * @returns {void}
+148:  */
+149: function updateProgress() {
+150:   if (!progressEl) return;
+151:   if (!bag || !currentRoast || bag.size() === 0) {
+152:     progressEl.textContent = '';
+153:     return;
+154:   }
+155:   const size = bag.size();
+156:   const remaining = bag.remaining();
+157:   const n = size - remaining;
+158:   if (n <= 0) {
+159:     progressEl.textContent = '';
+160:     return;
+161:   }
+162:   progressEl.textContent = `Roast ${n} of ${size}`;
+163: }
+164: 
+165: /**
+166:  * Look up the category metadata for a roast.
+167:  * @param {string} id
+168:  * @returns {Record<string, unknown> | null}
+169:  */
+170: function findCategory(id) {
+171:   if (!club || !Array.isArray(club.categories)) return null;
+172:   return club.categories.find((category) => category && category.id === id) || null;
+173: }
+174: 
+175: /**
+176:  * Show a roast in the card area, reveal it, announce it and update the URL hash.
+177:  * @param {Record<string, unknown>} roast
+178:  * @param {{ animate?: boolean }} [options]
+179:  * @returns {Promise<void>}
+180:  */
+181: async function showRoast(roast, options = {}) {
+182:   if (!roast || !roastContainer) return;
+183: 
+184:   const shouldAnimate = options.animate !== false;
+185:   currentRoast = roast;
+186: 
+187:   const category = findCategory(String(roast.category));
+188:   const built = createRoastCard(roast, category);
+189: 
+190:   clear(roastContainer);
+191:   roastContainer.append(built.element);
+192: 
+193:   const base = window.location.pathname + window.location.search;
+194:   try {
+195:     window.history.replaceState(null, '', `${base}#${encodeURIComponent(String(roast.id))}`);
+196:   } catch {
+197:     // Ignore history errors, the page still works.
+198:   }
+199: 
+200:   const reelOn = reelToggleEl ? reelToggleEl.checked : !prefersReducedMotion();
+201: 
+202:   if (shouldAnimate && reelOn) {
+203:     const pool = (Array.isArray(club?.roasts) ? club.roasts : [])
+204:       .map((entry) => String(entry.headline))
+205:       .filter((headline) => headline.length > 0);
+206:     await revealRoast({
+207:       headlineElement: built.headlineElement,
+208:       finalHeadline: String(roast.headline),
+209:       reelPool: pool,
+210:       hiddenElements: built.hiddenElements,
+211:       forceAnimate: true,
+212:       cardElement: built.element,
+213:       onReveal: () => {
+214:         burstConfetti({ originX: 0.5, originY: 0.55, count: 24 });
+215:         if (imageBackground) imageBackground.pulse();
+216:       },
+217:     });
+218:   } else {
+219:     built.headlineElement.textContent = String(roast.headline);
+220:     for (const el of built.hiddenElements) {
+221:       el.classList.add('isVisible');
+222:     }
+223:   }
+224: 
+225:   if (liveRegion) {
+226:     liveRegion.textContent = String(roast.headline);
+227:   }
+228: 
+229:   if (sharePanel) {
+230:     try {
+231:       sharePanel.update(roast, category, club);
+232:     } catch (error) {
+233:       console.warn('[roastRoom] could not update the share panel', error);
+234:     }
+235:   }
+236: 
+237:   updateProgress();
+238: }
+239: 
+240: /**
+241:  * Rebuild the bag and the filter chips for the current selection.
+242:  * @returns {void}
+243:  */
+244: function rebuildBagAndFilter() {
+245:   if (!club) return;
+246: 
+247:   const filtered = getFilteredRoasts();
+248: 
+249:   if (bag) {
+250:     bag.reset(filtered);
+251:   } else {
+252:     bag = createShuffleBag(filtered);
+253:   }
+254: 
+255:   if (filterContainer) {
+256:     buildCategoryFilter({
+257:       container: filterContainer,
+258:       categories: Array.isArray(club.categories) ? club.categories : [],
+259:       roasts: Array.isArray(club.roasts) ? club.roasts : [],
+260:       selectedId: selectedCategory,
+261:       onChange: handleFilterChange,
+262:     });
+263:   }
+264: 
+265:   const isEmpty = filtered.length === 0;
+266:   if (roastButton) roastButton.disabled = isEmpty;
+267:   if (emptyEl) emptyEl.classList.toggle('hidden', !isEmpty);
+268: 
+269:   if (isEmpty) {
+270:     clear(roastContainer);
+271:     currentRoast = null;
+272:     if (progressEl) progressEl.textContent = '';
+273:     if (sharePanel) sharePanel.hide();
+274:   }
+275: }
+276: 
+277: /**
+278:  * Wire hover, focus and touch preloading for category chips once.
+279:  * @returns {void}
+280:  */
+281: function wireChipPreload() {
+282:   if (!filterContainer || filterContainer.dataset.bgWired === 'true') return;
+283:   filterContainer.dataset.bgWired = 'true';
+284: 
+285:   const preloadFromEvent = (event) => {
+286:     if (!imageBackground) return;
+287:     const target = event.target;
+288:     if (!(target instanceof Element)) return;
+289:     const button = target.closest('button[data-category-id]');
+290:     if (!button) return;
+291:     const id = button.getAttribute('data-category-id');
+292:     const image = clubBackgroundFor(clubIdParam, id);
+293:     if (image) imageBackground.preload([image]);
+294:   };
+295: 
+296:   filterContainer.addEventListener('pointerenter', preloadFromEvent, true);
+297:   filterContainer.addEventListener('focusin', preloadFromEvent);
+298:   filterContainer.addEventListener('touchstart', preloadFromEvent, { passive: true });
+299: }
+300: 
+301: /**
+302:  * Handle a filter chip click. Resets the current roast, the bag and the
+303:  * category background.
+304:  * @param {string} newId
+305:  * @returns {void}
+306:  */
+307: function handleFilterChange(newId) {
+308:   if (busy) return;
+309:   selectedCategory = newId;
+310:   currentRoast = null;
+311:   if (roastContainer) clear(roastContainer);
+312:   if (liveRegion) liveRegion.textContent = '';
+313:   if (sharePanel) sharePanel.hide();
+314:   rebuildBagAndFilter();
+315:   wireChipPreload();
+316: 
+317:   if (imageBackground) {
+318:     imageBackground.cancelPulse();
+319:     imageBackground.show(clubBackgroundFor(clubIdParam, newId));
+320:   }
+321: }
+322: 
+323: async function handleRoastClick() {
+324:   if (busy || !bag) return;
+325:   const items = getFilteredRoasts();
+326:   if (items.length === 0) return;
+327: 
+328:   busy = true;
+329:   if (roastButton) {
+330:     roastButton.disabled = true;
+331:     roastButton.textContent = 'Roasting…';
+332:   }
+333: 
+334:   try {
+335:     const roast = bag.next();
+336:     if (roast) {
+337:       sessionCount += 1;
+338:       writeSessionCount(sessionCount);
+339:       renderSessionCount();
+340:       await showRoast(roast, { animate: true });
+341:     }
+342:   } finally {
+343:     busy = false;
+344:     if (roastButton) {
+345:       roastButton.textContent = 'Roast them';
+346:       roastButton.disabled = getFilteredRoasts().length === 0;
+347:     }
+348:   }
+349: }
+350: 
+351: /**
+352:  * Boot the page. Reads the club id, loads the club, wires everything up.
+353:  * @returns {Promise<void>}
+354:  */
+355: async function init() {
+356:   showLoading();
+357:   applyFrittLinks();
+358: 
+359:   try {
+360:     const registry = await loadRegistry();
+361:     const clubs = Array.isArray(registry.clubs) ? registry.clubs : [];
+362:     const entry = clubs.find((candidate) => candidate && candidate.id === clubIdParam);
+363: 
+364:     if (!entry) {
+365:       showError(`That club isn't in the registry. Pick one from the picker instead.`);
+366:       return;
+367:     }
+368: 
+369:     if (entry.status !== CLUB_STATUS.LIVE) {
+370:       showError(`${entry.name} is coming soon. There isn't a roast room for it yet.`);
+371:       return;
+372:     }
+373: 
+374:     club = await loadClub(clubIdParam);
+375: 
+376:     // Merge approved fan roasts without mutating the cached club object.
+377:     const cachedClub = club;
+378:     const existingIds = (Array.isArray(cachedClub.roasts) ? cachedClub.roasts : [])
+379:       .map((roast) => (roast && typeof roast.id === 'string' ? roast.id : ''))
+380:       .filter((id) => id.length > 0);
+381:     const fanRoasts = await loadFanRoasts(clubIdParam, cachedClub.categories, existingIds);
+382:     if (fanRoasts.length > 0) {
+383:       club = {
+384:         ...cachedClub,
+385:         roasts: [
+386:           ...(Array.isArray(cachedClub.roasts) ? cachedClub.roasts : []),
+387:           ...fanRoasts,
+388:         ],
+389:       };
+390:     }
+391:     applyTheme(club.theme || {});
+392: 
+393:     // Mount the photo background and the SVG fallback.
+394:     if (teardownBackground) teardownBackground();
+395:     const bgEl = document.getElementById('clubBackground');
+396:     if (bgEl) {
+397:       const scrollTeardown = initScrollBackground(bgEl, backgroundLayersFor(clubIdParam));
+398:       imageBackground = createImageBackground(bgEl);
+399:       imageBackground.show(clubBackgroundFor(clubIdParam, 'all'));
+400: 
+401:       const startPreload = () => {
+402:         if (imageBackground) imageBackground.preload(collectClubBackgrounds(clubIdParam));
+403:       };
+404:       if (document.readyState === 'complete') {
+405:         startPreload();
+406:       } else {
+407:         window.addEventListener('load', startPreload, { once: true });
+408:       }
+409: 
+410:       teardownBackground = () => {
+411:         scrollTeardown();
+412:         if (imageBackground) {
+413:           imageBackground.destroy();
+414:           imageBackground = null;
+415:         }
+416:       };
+417:     }
+418: 
+419:     if (clubBadge) clubBadge.textContent = String(club.name || 'Roast Room');
+420:     if (pageHeading) pageHeading.textContent = `${club.name || 'Roast Room'} Roast Room`;
+421:     document.title = `${club.shortName || club.name || 'Roast Room'} Roast Room | The Roast Room`;
+422: 
+423:     const hash = parseRoastHash(window.location.hash);
+424:     const deepRoast =
+425:       hash && Array.isArray(club.roasts)
+426:         ? club.roasts.find((roast) => roast && roast.id === hash) || null
+427:         : null;
+428: 
+429:     selectedCategory = 'all';
+430:     rebuildBagAndFilter();
+431:     wireChipPreload();
+432:     showRoom();
+433: 
+434:     if (reelToggleEl) {
+435:       reelToggleEl.checked = !prefersReducedMotion();
+436:     }
+437: 
+438:     // Fan roast submission form.
+439:     const submitSection = document.getElementById('roastSubmitSection');
+440:     const submitForm = document.getElementById('roastSubmitForm');
+441:     if (submitSection && submitForm) {
+442:       try {
+443:         createRoastForm({
+444:           section: submitSection,
+445:           container: submitForm,
+446:           clubId: clubIdParam,
+447:           categories: Array.isArray(club.categories) ? club.categories : [],
+448:         });
+449:       } catch (error) {
+450:         console.warn('[roastRoom] could not build the roast form', error);
+451:       }
+452:     }
+453: 
+454:     if (sharePanelEl && !sharePanel) {
+455:       try {
+456:         sharePanel = createSharePanel({ container: sharePanelEl });
+457:       } catch (error) {
+458:         console.warn('[roastRoom] could not create the share panel', error);
+459:       }
+460:     }
+461: 
+462:     if (deepRoast) {
+463:       await showRoast(deepRoast, { animate: false });
+464:     }
+465: 
+466:     if (roastButton) {
+467:       roastButton.addEventListener('click', handleRoastClick);
+468:     }
+469: 
+470:     // Press R to roast, as long as the user is not typing in a field.
+471:     document.addEventListener('keydown', (event) => {
+472:       if (event.defaultPrevented || event.metaKey || event.ctrlKey || event.altKey) return;
+473:       const target = event.target;
+474:       if (target instanceof HTMLElement) {
+475:         const tag = target.tagName;
+476:         if (tag === 'INPUT' || tag === 'TEXTAREA' || target.isContentEditable) return;
+477:       }
+478:       if (event.key === 'r' || event.key === 'R') {
+479:         event.preventDefault();
+480:         handleRoastClick();
+481:       }
+482:     });
+483:   } catch (error) {
+484:     console.warn('[roastRoom] could not open the roast room', error);
+485:     showError('We could not load this club. Please try again in a moment.');
+486:   }
+487: }
+488: 
+489: init();
+
+================
 File: package.json
 ================
  1: {
@@ -12815,154 +13748,157 @@ File: room.html
  38: 
  39:     <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
  40: 
- 41:     <link rel="preconnect" href="https://fonts.googleapis.com" />
- 42:     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
- 43:     <link
- 44:       rel="stylesheet"
- 45:       href="https://fonts.googleapis.com/css2?family=Anton&amp;family=Inter:wght@400;500;600;700&amp;display=swap"
- 46:     />
- 47:     <link rel="stylesheet" href="./dist/styles.css" />
- 48: 
- 49:     <script type="module" src="./js/pages/room.js" defer></script>
- 50:   </head>
+ 41:     <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
+ 42:     <link rel="preload" as="image" href="/images/backgrounds/manutd/mu-room-default.webp" />
+ 43: 
+ 44:     <link rel="preconnect" href="https://fonts.googleapis.com" />
+ 45:     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+ 46:     <link
+ 47:       rel="stylesheet"
+ 48:       href="https://fonts.googleapis.com/css2?family=Anton&amp;family=Inter:wght@400;500;600;700&amp;display=swap"
+ 49:     />
+ 50:     <link rel="stylesheet" href="./dist/styles.css" />
  51: 
- 52:   <body class="min-h-screen bg-background text-text">
- 53:     <div id="clubBackground" class="clubBackground" aria-hidden="true"></div>
- 54:     <a class="skipLink" href="#main">Skip to content</a>
- 55: 
- 56:     <header class="border-b border-line bg-surface">
- 57:       <div class="mx-auto flex max-w-4xl flex-wrap items-center justify-between gap-3 px-4 py-4">
- 58:         <a href="./index.html" class="font-display text-xl uppercase tracking-wide text-text no-underline">
- 59:           The Roast Room
- 60:         </a>
- 61:         <div class="flex flex-wrap items-center gap-3">
- 62:           <span
- 63:             id="clubBadge"
- 64:             class="rounded-pill border border-line bg-surfaceRaised px-3 py-1 text-xs text-textMuted"
- 65:           >
- 66:             Loading club
- 67:           </span>
- 68:           <a href="./index.html#pickerHeading" class="text-sm text-textMuted underline">
- 69:             Pick a different club
- 70:           </a>
- 71:         </div>
- 72:       </div>
- 73:     </header>
- 74: 
- 75:     <main id="main" class="mx-auto max-w-4xl px-4 py-8">
- 76:       <h1 id="pageHeading" class="srOnly">The Roast Room</h1>
+ 52:     <script type="module" src="./js/pages/room.js" defer></script>
+ 53:   </head>
+ 54: 
+ 55:   <body class="min-h-screen bg-background text-text">
+ 56:     <div id="clubBackground" class="clubBackground" aria-hidden="true"></div>
+ 57:     <a class="skipLink" href="#main">Skip to content</a>
+ 58: 
+ 59:     <header class="border-b border-line bg-surface">
+ 60:       <div class="mx-auto flex max-w-4xl flex-wrap items-center justify-between gap-3 px-4 py-4">
+ 61:         <a href="./index.html" class="font-display text-xl uppercase tracking-wide text-text no-underline">
+ 62:           The Roast Room
+ 63:         </a>
+ 64:         <div class="flex flex-wrap items-center gap-3">
+ 65:           <span
+ 66:             id="clubBadge"
+ 67:             class="rounded-pill border border-line bg-surfaceRaised px-3 py-1 text-xs text-textMuted"
+ 68:           >
+ 69:             Loading club
+ 70:           </span>
+ 71:           <a href="./index.html#pickerHeading" class="text-sm text-textMuted underline">
+ 72:             Pick a different club
+ 73:           </a>
+ 74:         </div>
+ 75:       </div>
+ 76:     </header>
  77: 
- 78:       <section
- 79:         id="loadingState"
- 80:         class="rounded-sharp border border-line bg-surface p-8"
- 81:         aria-label="Loading"
- 82:       >
- 83:         <p class="text-textMuted">Loading the club and its roasts.</p>
- 84:       </section>
- 85: 
- 86:       <section
- 87:         id="errorState"
- 88:         class="hidden rounded-sharp border border-line bg-surface p-8"
- 89:         role="alert"
- 90:       >
- 91:         <h2 class="text-2xl text-text">Roast room unavailable</h2>
- 92:         <p id="errorMessage" class="mt-2 text-textMuted">We could not open this club.</p>
- 93:         <p class="mt-4">
- 94:           <a href="./index.html" class="text-accent underline">Back to the club picker</a>
- 95:         </p>
- 96:       </section>
- 97: 
- 98:       <section id="roomState" class="hidden">
- 99:         <div class="mb-6">
-100:           <p class="tokenLabel">Filter by category</p>
-101:           <div id="categoryFilter" class="mt-3"></div>
-102:         </div>
-103: 
-104:         <div class="mb-6 flex flex-wrap items-center gap-4">
-105:           <button
-106:             id="roastButton"
-107:             type="button"
-108:             class="rounded-sharp bg-primary px-8 py-5 font-display text-2xl uppercase tracking-wide text-primaryContrast transition-all duration-fast ease-standard hover:bg-accent hover:text-background active:scale-95 disabled:opacity-50"
-109:           >
-110:             Roast them
-111:           </button>
-112:           <p id="progress" class="text-sm text-textMuted"></p>
-113:         </div>
-114:         <label class="mt-3 inline-flex items-center gap-2 text-sm text-textMuted">
-115:           <input id="reelToggle" type="checkbox" class="accent-primary" />
-116:           Animate the shuffle
-117:         </label>
-118: 
-119:         <p id="sessionCounter" class="mb-6 text-xs text-textMuted" aria-live="polite"></p>
-120: 
-121:         <div id="roastContainer"></div>
-122:         <section id="sharePanel" class="sharePanel hidden" aria-label="Share this roast"></section>
+ 78:     <main id="main" class="mx-auto max-w-4xl px-4 py-8">
+ 79:       <h1 id="pageHeading" class="srOnly">The Roast Room</h1>
+ 80: 
+ 81:       <section
+ 82:         id="loadingState"
+ 83:         class="rounded-sharp border border-line bg-surface p-8"
+ 84:         aria-label="Loading"
+ 85:       >
+ 86:         <p class="text-textMuted">Loading the club and its roasts.</p>
+ 87:       </section>
+ 88: 
+ 89:       <section
+ 90:         id="errorState"
+ 91:         class="hidden rounded-sharp border border-line bg-surface p-8"
+ 92:         role="alert"
+ 93:       >
+ 94:         <h2 class="text-2xl text-text">Roast room unavailable</h2>
+ 95:         <p id="errorMessage" class="mt-2 text-textMuted">We could not open this club.</p>
+ 96:         <p class="mt-4">
+ 97:           <a href="./index.html" class="text-accent underline">Back to the club picker</a>
+ 98:         </p>
+ 99:       </section>
+100: 
+101:       <section id="roomState" class="hidden">
+102:         <div class="mb-6">
+103:           <p class="tokenLabel">Filter by category</p>
+104:           <div id="categoryFilter" class="mt-3"></div>
+105:         </div>
+106: 
+107:         <div class="mb-6 flex flex-wrap items-center gap-4">
+108:           <button
+109:             id="roastButton"
+110:             type="button"
+111:             class="rounded-sharp bg-primary px-8 py-5 font-display text-2xl uppercase tracking-wide text-primaryContrast transition-all duration-fast ease-standard hover:bg-accent hover:text-background active:scale-95 disabled:opacity-50"
+112:           >
+113:             Roast them
+114:           </button>
+115:           <p id="progress" class="text-sm text-textMuted"></p>
+116:         </div>
+117:         <label class="mt-3 inline-flex items-center gap-2 text-sm text-textMuted">
+118:           <input id="reelToggle" type="checkbox" class="accent-primary" />
+119:           Animate the shuffle
+120:         </label>
+121: 
+122:         <p id="sessionCounter" class="mb-6 text-xs text-textMuted" aria-live="polite"></p>
 123: 
-124:         <section
-125:           id="roastSubmitSection"
-126:           class="hidden mt-12 rounded-sharp border border-line bg-surface p-6"
-127:           aria-labelledby="roastSubmitHeading"
-128:         >
-129:           <h2 id="roastSubmitHeading" class="text-2xl text-text">
-130:             Got a roast we missed?
-131:           </h2>
-132:           <p class="mt-2 max-w-2xl text-sm text-textMuted">
-133:             Submissions are reviewed before they appear. Only submit facts you can source,
-134:             and keep it about the club and its results.
-135:           </p>
-136:           <div id="roastSubmitForm" class="mt-4"></div>
-137:         </section>
-138: 
-139:         <p
-140:           id="emptyState"
-141:           class="hidden mt-8 rounded-sharp border border-line bg-surface p-6 text-textMuted"
-142:         >
-143:           No roasts in this category yet. Try another category, or hit Roast them on All.
-144:         </p>
-145: 
-146:         <p id="roastLiveRegion" class="srOnly" aria-live="polite"></p>
-147:       </section>
-148:     </main>
-149: 
-150:     <footer class="mt-12 border-t border-line bg-surface">
-151:       <div class="mx-auto max-w-4xl px-4 py-8">
-152:         <p class="text-sm text-textMuted">
-153:           Built by <a href="https://fritt.org" rel="noopener">Fritt</a>.
-154:           <a href="./about.html" class="text-textMuted underline">About and privacy</a>.
-155:         </p>
-156:         <p class="mt-2 text-sm">
-157:           <a href="./index.html#pickerHeading" class="text-textMuted underline">
-158:             Back to the club picker
-159:           </a>
-160:         </p>
-161:         <p class="mt-2 text-sm">
-162:           <a href="./index.html#suggestHeading" class="text-textMuted underline">Suggest a club</a>
+124:         <div id="roastContainer"></div>
+125:         <section id="sharePanel" class="sharePanel hidden" aria-label="Share this roast"></section>
+126: 
+127:         <section
+128:           id="roastSubmitSection"
+129:           class="hidden mt-12 rounded-sharp border border-line bg-surface p-6"
+130:           aria-labelledby="roastSubmitHeading"
+131:         >
+132:           <h2 id="roastSubmitHeading" class="text-2xl text-text">
+133:             Got a roast we missed?
+134:           </h2>
+135:           <p class="mt-2 max-w-2xl text-sm text-textMuted">
+136:             Submissions are reviewed before they appear. Only submit facts you can source,
+137:             and keep it about the club and its results.
+138:           </p>
+139:           <div id="roastSubmitForm" class="mt-4"></div>
+140:         </section>
+141: 
+142:         <p
+143:           id="emptyState"
+144:           class="hidden mt-8 rounded-sharp border border-line bg-surface p-6 text-textMuted"
+145:         >
+146:           No roasts in this category yet. Try another category, or hit Roast them on All.
+147:         </p>
+148: 
+149:         <p id="roastLiveRegion" class="srOnly" aria-live="polite"></p>
+150:       </section>
+151:     </main>
+152: 
+153:     <footer class="mt-12 border-t border-line bg-surface">
+154:       <div class="mx-auto max-w-4xl px-4 py-8">
+155:         <p class="text-sm text-textMuted">
+156:           Built by <a href="https://fritt.org" rel="noopener">Fritt</a>.
+157:           <a href="./about.html" class="text-textMuted underline">About and privacy</a>.
+158:         </p>
+159:         <p class="mt-2 text-sm">
+160:           <a href="./index.html#pickerHeading" class="text-textMuted underline">
+161:             Back to the club picker
+162:           </a>
 163:         </p>
-164:         <p class="mt-2 text-sm text-textMuted">
-165:           <a
-166:             href="https://fritt.org"
-167:             data-fritt-target="contact"
-168:             data-fritt-placement="roomFooter"
-169:             rel="noopener"
-170:             class="text-textMuted underline"
-171:           >
-172:             Talk to Fritt
-173:           </a>
-174:           ·
-175:           <a
-176:             href="https://fritt.org"
-177:             data-fritt-target="portfolio"
-178:             data-fritt-placement="roomFooter"
-179:             rel="noopener"
-180:             class="text-textMuted underline"
-181:           >
-182:             See Fritt's work
-183:           </a>
-184:         </p>
-185:       </div>
-186:     </footer>
-187:   </body>
-188: </html>
+164:         <p class="mt-2 text-sm">
+165:           <a href="./index.html#suggestHeading" class="text-textMuted underline">Suggest a club</a>
+166:         </p>
+167:         <p class="mt-2 text-sm text-textMuted">
+168:           <a
+169:             href="https://fritt.org"
+170:             data-fritt-target="contact"
+171:             data-fritt-placement="roomFooter"
+172:             rel="noopener"
+173:             class="text-textMuted underline"
+174:           >
+175:             Talk to Fritt
+176:           </a>
+177:           ·
+178:           <a
+179:             href="https://fritt.org"
+180:             data-fritt-target="portfolio"
+181:             data-fritt-placement="roomFooter"
+182:             rel="noopener"
+183:             class="text-textMuted underline"
+184:           >
+185:             See Fritt's work
+186:           </a>
+187:         </p>
+188:       </div>
+189:     </footer>
+190:   </body>
+191: </html>
 
 
 

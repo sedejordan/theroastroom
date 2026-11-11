@@ -37,8 +37,6 @@
     <link rel="apple-touch-icon" href="/apple_touch_icon.png" />
 
     <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
-
-    <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
     <link rel="preload" as="image" href="/images/backgrounds/manutd/mu-room-default.webp" />
 
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -56,7 +54,7 @@
     <div id="clubBackground" class="clubBackground" aria-hidden="true"></div>
     <a class="skipLink" href="#main">Skip to content</a>
 
-    <header class="border-b border-line bg-surface">
+    <header class="siteHeader">
       <div class="mx-auto flex max-w-4xl flex-wrap items-center justify-between gap-3 px-4 py-4">
         <a href="./index.html" class="font-display text-xl uppercase tracking-wide text-text no-underline">
           The Roast Room
@@ -69,7 +67,7 @@
             Loading club
           </span>
           <a href="./index.html#pickerHeading" class="text-sm text-textMuted underline">
-            Pick a different club
+            Change club
           </a>
         </div>
       </div>
@@ -100,7 +98,7 @@
 
       <section id="roomState" class="hidden">
         <div class="mb-6">
-          <p class="tokenLabel">Filter by category</p>
+          <p class="srOnly">Filter by category</p>
           <div id="categoryFilter" class="mt-3"></div>
         </div>
 
@@ -112,31 +110,33 @@
           >
             Roast them
           </button>
-          <p id="progress" class="text-sm text-textMuted"></p>
+          <p id="progress" class="text-xs text-textMuted"></p>
+          <label class="inline-flex items-center gap-2 text-xs text-textMuted">
+            <input id="reelToggle" type="checkbox" class="accent-primary" />
+            Animate shuffle
+          </label>
         </div>
-        <label class="mt-3 inline-flex items-center gap-2 text-sm text-textMuted">
-          <input id="reelToggle" type="checkbox" class="accent-primary" />
-          Animate the shuffle
-        </label>
 
-        <p id="sessionCounter" class="mb-6 text-xs text-textMuted" aria-live="polite"></p>
+        <p id="sessionCounter" class="srOnly" aria-live="polite"></p>
 
         <div id="roastContainer"></div>
         <section id="sharePanel" class="sharePanel hidden" aria-label="Share this roast"></section>
 
         <section
           id="roastSubmitSection"
-          class="hidden mt-12 rounded-sharp border border-line bg-surface p-6"
-          aria-labelledby="roastSubmitHeading"
+          class="hidden mt-12"
+          aria-label="Submit a roast"
         >
-          <h2 id="roastSubmitHeading" class="text-2xl text-text">
-            Got a roast we missed?
-          </h2>
-          <p class="mt-2 max-w-2xl text-sm text-textMuted">
-            Submissions are reviewed before they appear. Only submit facts you can source,
-            and keep it about the club and its results.
-          </p>
-          <div id="roastSubmitForm" class="mt-4"></div>
+          <details class="rounded-sharp border border-line bg-surface p-6">
+            <summary class="cursor-pointer font-display text-2xl uppercase text-text">
+              Got a roast we missed?
+            </summary>
+            <p class="mt-3 max-w-2xl text-sm text-textMuted">
+              Submissions are reviewed before they appear. Only submit facts you can source,
+              and keep it about the club and its results.
+            </p>
+            <div id="roastSubmitForm" class="mt-4"></div>
+          </details>
         </section>
 
         <p
@@ -150,40 +150,11 @@
       </section>
     </main>
 
-    <footer class="mt-12 border-t border-line bg-surface">
+    <footer class="siteFooter">
       <div class="mx-auto max-w-4xl px-4 py-8">
         <p class="text-sm text-textMuted">
           Built by <a href="https://fritt.org" rel="noopener">Fritt</a>.
           <a href="./about.html" class="text-textMuted underline">About and privacy</a>.
-        </p>
-        <p class="mt-2 text-sm">
-          <a href="./index.html#pickerHeading" class="text-textMuted underline">
-            Back to the club picker
-          </a>
-        </p>
-        <p class="mt-2 text-sm">
-          <a href="./index.html#suggestHeading" class="text-textMuted underline">Suggest a club</a>
-        </p>
-        <p class="mt-2 text-sm text-textMuted">
-          <a
-            href="https://fritt.org"
-            data-fritt-target="contact"
-            data-fritt-placement="roomFooter"
-            rel="noopener"
-            class="text-textMuted underline"
-          >
-            Talk to Fritt
-          </a>
-          ·
-          <a
-            href="https://fritt.org"
-            data-fritt-target="portfolio"
-            data-fritt-placement="roomFooter"
-            rel="noopener"
-            class="text-textMuted underline"
-          >
-            See Fritt's work
-          </a>
         </p>
       </div>
     </footer>
