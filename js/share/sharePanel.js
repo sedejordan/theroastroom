@@ -198,8 +198,6 @@ export function createSharePanel(options) {
    * @returns {Promise<void>}
    */
   async function drawPreview() {
-    if (key === lastKey && cachedBlob) return;
-
     const roast = currentRoast;
     const category = currentCategory;
     const club = currentClub;
@@ -207,11 +205,7 @@ export function createSharePanel(options) {
     const host = hostLabel(window.location.host, SHARE_HOST_OVERRIDE);
     const key = `${club.id}|${roast.id}|${format.id}|${host}`;
 
-    if (
-      key === lastKey &&
-      previewCanvas.width === format.width &&
-      previewCanvas.height === format.height
-    ) {
+    if (key === lastKey && cachedBlob) {
       return;
     }
 
@@ -302,11 +296,7 @@ export function createSharePanel(options) {
 
       let blob = cachedBlob;
       if (!blob) {
-        if (previewCanvas.width < 1000) {
-          setStatus('The image is still being prepared. Try again in a second.');
-          return;
-        }
-        const blobResult = await canvasToBlob(previewCanvas);
+        const blobResult = await canvasToBlob(workCanvas);
         if (!blobResult.ok || !blobResult.blob) {
           setStatus('Could not prepare the image. Try Download image instead.');
           return;
@@ -340,16 +330,19 @@ export function createSharePanel(options) {
    */
   async function handleDownload() {
     try {
-      if (!currentRoast || !currentClub) return;
-
-      const blobResult = await canvasToBlob(previewCanvas);
-      if (!blobResult.ok) {
-        setStatus('Could not save the image. Use Share on your phone instead.');
-        return;
+      let blob = cachedBlob;
+      if (!blob) {
+        const blobResult = await canvasToBlob(workCanvas);
+        if (!blobResult.ok || !blobResult.blob) {
+          setStatus('Could not save the image. Use Share on your phone instead.');
+          return;
+        }
+        blob = blobResult.blob;
+        cachedBlob = blob;
       }
 
       const fileName = buildFileName(currentClub.id, currentRoast.id, currentFormat().id);
-      const result = downloadBlob(blobResult.blob, fileName);
+      const result = downloadBlob(blob, fileName);
 
       if (result.ok) {
         setStatus('Image saved');
