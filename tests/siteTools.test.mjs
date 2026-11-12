@@ -102,6 +102,11 @@ test('buildHeaders uses hashed asset patterns with immutable caching', () => {
   assert.match(headers, /Cache-Control: public, max-age=31536000, immutable/);
 });
 
+test('buildHeaders allows blob images for share card previews', () => {
+  const headers = buildHeaders({ workerOrigin: '' });
+  assert.match(headers, /img-src 'self' data: blob:/);
+});
+
 test('buildHeaders revalidates HTML on every request', () => {
   const headers = buildHeaders({ workerOrigin: '' });
   const firstBlock = headers.split('\n\n')[0];

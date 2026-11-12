@@ -13282,6 +13282,172 @@ File: css/components.css
 709: }
 
 ================
+File: room.html
+================
+  1: <!DOCTYPE html>
+  2: <html lang="en">
+  3:   <head>
+  4:     <meta charset="utf-8" />
+  5:     <meta name="viewport" content="width=device-width, initial-scale=1" />
+  6:     <title>Roast Room | The Roast Room</title>
+  7:     <meta
+  8:       name="description"
+  9:       content="Pick a category and hit Roast them. Every roast is sourced and dated."
+ 10:     />
+ 11:     <meta name="color-scheme" content="dark" />
+ 12:     <meta name="theme-color" content="#0A0A0A" />
+ 13: 
+ 14:     <link rel="canonical" href="__SITE_URL__/room.html?club=manutd" />
+ 15:     <meta property="og:title" content="Roast Room | The Roast Room" />
+ 16:     <meta
+ 17:       property="og:description"
+ 18:       content="Pick a category and hit Roast them. Every roast is sourced, dated and backed by the receipts."
+ 19:     />
+ 20:     <meta property="og:type" content="website" />
+ 21:     <meta property="og:url" content="__SITE_URL__/room.html?club=manutd" />
+ 22:     <meta property="og:site_name" content="The Roast Room" />
+ 23:     <meta property="og:image" content="__SITE_URL__/og.png" />
+ 24:     <meta property="og:image:width" content="1200" />
+ 25:     <meta property="og:image:height" content="630" />
+ 26:     <meta
+ 27:       property="og:image:alt"
+ 28:       content="The Roast Room wordmark on a dark background with the line Every rivalry needs receipts."
+ 29:     />
+ 30:     <meta name="twitter:card" content="summary_large_image" />
+ 31:     <meta name="twitter:title" content="Roast Room | The Roast Room" />
+ 32:     <meta
+ 33:       name="twitter:description"
+ 34:       content="Pick a category and hit Roast them. Every roast is sourced, dated and backed by the receipts."
+ 35:     />
+ 36:     <meta name="twitter:image" content="__SITE_URL__/og.png" />
+ 37:     <link rel="apple-touch-icon" href="/apple_touch_icon.png" />
+ 38: 
+ 39:     <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
+ 40:     <link rel="preload" as="image" href="/images/backgrounds/manutd/mu-room-default.webp" />
+ 41: 
+ 42:     <link rel="preconnect" href="https://fonts.googleapis.com" />
+ 43:     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+ 44:     <link
+ 45:       rel="stylesheet"
+ 46:       href="https://fonts.googleapis.com/css2?family=Anton&amp;family=Inter:wght@400;500;600;700&amp;display=swap"
+ 47:     />
+ 48:     <link rel="stylesheet" href="./dist/styles.css" />
+ 49: 
+ 50:     <script type="module" src="./js/pages/room.js" defer></script>
+ 51:   </head>
+ 52: 
+ 53:   <body class="min-h-screen bg-background text-text">
+ 54:     <div id="clubBackground" class="clubBackground" aria-hidden="true"></div>
+ 55:     <a class="skipLink" href="#main">Skip to content</a>
+ 56: 
+ 57:     <header class="siteHeader">
+ 58:       <div class="mx-auto flex max-w-4xl flex-wrap items-center justify-between gap-3 px-4 py-4">
+ 59:         <a href="./index.html" class="font-display text-xl uppercase tracking-wide text-text no-underline">
+ 60:           The Roast Room
+ 61:         </a>
+ 62:         <div class="flex flex-wrap items-center gap-3">
+ 63:           <span
+ 64:             id="clubBadge"
+ 65:             class="rounded-pill border border-line bg-surfaceRaised px-3 py-1 text-xs text-textMuted"
+ 66:           >
+ 67:             Loading club
+ 68:           </span>
+ 69:           <a href="./index.html#pickerHeading" class="text-sm text-textMuted underline">
+ 70:             Change club
+ 71:           </a>
+ 72:         </div>
+ 73:       </div>
+ 74:     </header>
+ 75: 
+ 76:     <main id="main" class="mx-auto max-w-4xl px-4 py-8">
+ 77:       <h1 id="pageHeading" class="srOnly">The Roast Room</h1>
+ 78: 
+ 79:       <section
+ 80:         id="loadingState"
+ 81:         class="rounded-sharp border border-line bg-surface p-8"
+ 82:         aria-label="Loading"
+ 83:       >
+ 84:         <p class="text-textMuted">Loading the club and its roasts.</p>
+ 85:       </section>
+ 86: 
+ 87:       <section
+ 88:         id="errorState"
+ 89:         class="hidden rounded-sharp border border-line bg-surface p-8"
+ 90:         role="alert"
+ 91:       >
+ 92:         <h2 class="text-2xl text-text">Roast room unavailable</h2>
+ 93:         <p id="errorMessage" class="mt-2 text-textMuted">We could not open this club.</p>
+ 94:         <p class="mt-4">
+ 95:           <a href="./index.html" class="text-accent underline">Back to the club picker</a>
+ 96:         </p>
+ 97:       </section>
+ 98: 
+ 99:       <section id="roomState" class="hidden">
+100:         <div class="mb-6">
+101:           <p class="srOnly">Filter by category</p>
+102:           <div id="categoryFilter" class="mt-3"></div>
+103:         </div>
+104: 
+105:         <div class="mb-6 flex flex-wrap items-center gap-4">
+106:           <button
+107:             id="roastButton"
+108:             type="button"
+109:             class="rounded-sharp bg-primary px-8 py-5 font-display text-2xl uppercase tracking-wide text-primaryContrast transition-all duration-fast ease-standard hover:bg-accent hover:text-background active:scale-95 disabled:opacity-50"
+110:           >
+111:             Roast them
+112:           </button>
+113:           <p id="progress" class="text-xs text-textMuted"></p>
+114:           <label class="inline-flex items-center gap-2 text-xs text-textMuted">
+115:             <input id="reelToggle" type="checkbox" class="accent-primary" />
+116:             Animate shuffle
+117:           </label>
+118:         </div>
+119: 
+120:         <p id="sessionCounter" class="srOnly" aria-live="polite"></p>
+121: 
+122:         <div id="roastContainer"></div>
+123:         <section id="sharePanel" class="sharePanel hidden" aria-label="Share this roast"></section>
+124: 
+125:         <section
+126:           id="roastSubmitSection"
+127:           class="hidden mt-12"
+128:           aria-label="Submit a roast"
+129:         >
+130:           <details class="rounded-sharp border border-line bg-surface p-6">
+131:             <summary class="cursor-pointer font-display text-2xl uppercase text-text">
+132:               Got a roast we missed?
+133:             </summary>
+134:             <p class="mt-3 max-w-2xl text-sm text-textMuted">
+135:               Submissions are reviewed before they appear. Only submit facts you can source,
+136:               and keep it about the club and its results.
+137:             </p>
+138:             <div id="roastSubmitForm" class="mt-4"></div>
+139:           </details>
+140:         </section>
+141: 
+142:         <p
+143:           id="emptyState"
+144:           class="hidden mt-8 rounded-sharp border border-line bg-surface p-6 text-textMuted"
+145:         >
+146:           No roasts in this category yet. Try another category, or hit Roast them on All.
+147:         </p>
+148: 
+149:         <p id="roastLiveRegion" class="srOnly" aria-live="polite"></p>
+150:       </section>
+151:     </main>
+152: 
+153:     <footer class="siteFooter">
+154:       <div class="mx-auto max-w-4xl px-4 py-8">
+155:         <p class="text-sm text-textMuted">
+156:           Built by <a href="https://fritt.org" rel="noopener">Fritt</a>.
+157:           <a href="./about.html" class="text-textMuted underline">About and privacy</a>.
+158:         </p>
+159:       </div>
+160:     </footer>
+161:   </body>
+162: </html>
+
+================
 File: js/share/sharePanel.js
 ================
   1: /**
@@ -13484,425 +13650,252 @@ File: js/share/sharePanel.js
 198:    * @returns {Promise<void>}
 199:    */
 200:   async function drawPreview() {
-201:     if (key === lastKey && cachedBlob) return;
-202: 
-203:     const roast = currentRoast;
-204:     const category = currentCategory;
-205:     const club = currentClub;
-206:     const format = currentFormat();
-207:     const host = hostLabel(window.location.host, SHARE_HOST_OVERRIDE);
-208:     const key = `${club.id}|${roast.id}|${format.id}|${host}`;
-209: 
-210:     if (
-211:       key === lastKey &&
-212:       previewCanvas.width === format.width &&
-213:       previewCanvas.height === format.height
-214:     ) {
-215:       return;
-216:     }
-217: 
-218:     lastKey = key;
-219:     cachedBlob = null;
-220:     setStatus('Preparing image');
-221: 
-222:     const result = await renderRoastCard({
-223:       canvas: workCanvas,
-224:       roast,
-225:       category,
-226:       club,
-227:       format,
-228:       host,
-229:     });
-230: 
-231:     if (!visible || lastKey !== key) return;
-232: 
-233:     const blobResult = await canvasToBlob(workCanvas);
-234:     if (!visible || lastKey !== key) return;
-235: 
-236:     if (blobResult.ok && blobResult.blob) {
-237:       cachedBlob = blobResult.blob;
-238:       const nextUrl = URL.createObjectURL(blobResult.blob);
-239:       previewImage.src = nextUrl;
-240:       if (previewUrl) URL.revokeObjectURL(previewUrl);
-241:       previewUrl = nextUrl;
-242:       previewImage.alt = `Roast card preview for ${String(roast.headline || '')} in ${format.label} format`;
-243:       previewImage.classList.remove('hidden');
-244:       previewCanvas.classList.add('hidden');
-245:     } else {
-246:       // Fall back to showing the canvas if the PNG could not be made.
-247:       previewCanvas.width = workCanvas.width;
-248:       previewCanvas.height = workCanvas.height;
-249:       const ctx = previewCanvas.getContext('2d');
-250:       if (ctx) ctx.drawImage(workCanvas, 0, 0);
-251:       previewCanvas.classList.remove('hidden');
-252:       previewImage.classList.add('hidden');
-253:     }
-254: 
-255:     setStatus(result.truncated ? 'Preview ready (some text was shortened)' : 'Preview ready');
-256:   }
-257: 
-258:   /**
-259:    * Render the preview when the panel is visible.
-260:    * @returns {Promise<void>}
-261:    */
-262:   async function renderPreview() {
-263:     if (!visible || !currentRoast || !currentClub) return;
-264: 
-265:     if (renderBusy) {
-266:       renderPending = true;
-267:       return;
-268:     }
-269: 
-270:     renderBusy = true;
-271: 
-272:     try {
-273:       do {
-274:         renderPending = false;
-275:         await drawPreview();
-276:       } while (renderPending && visible);
-277:     } catch {
-278:       setStatus('Could not prepare the image. Try again.');
-279:     } finally {
-280:       renderBusy = false;
-281:     }
-282:   }
-283: 
-284:   /**
-285:    * Schedule a preview render.
-286:    * @returns {void}
-287:    */
-288:   function schedulePreview() {
-289:     if (!visible) return;
-290:     renderPreview().catch(() => {
-291:       setStatus('Could not prepare the image. Try again.');
-292:     });
-293:   }
-294: 
-295:   /**
-296:    * Handle the Share button.
-297:    * @returns {Promise<void>}
-298:    */
-299:   async function handleShare() {
-300:     try {
-301:       if (!currentRoast || !currentClub) return;
-302: 
-303:       let blob = cachedBlob;
-304:       if (!blob) {
-305:         if (previewCanvas.width < 1000) {
-306:           setStatus('The image is still being prepared. Try again in a second.');
-307:           return;
-308:         }
-309:         const blobResult = await canvasToBlob(previewCanvas);
-310:         if (!blobResult.ok || !blobResult.blob) {
-311:           setStatus('Could not prepare the image. Try Download image instead.');
-312:           return;
-313:         }
-314:         blob = blobResult.blob;
-315:         cachedBlob = blob;
-316:       }
-317: 
-318:       const fileName = buildFileName(currentClub.id, currentRoast.id, currentFormat().id);
-319:       const url = currentUrl();
-320:       const text = buildShareText(currentRoast, url);
-321:       const result = await shareImage({ blob, fileName, title: 'The Roast Room', text, url });
-322: 
-323:       if (result.ok) {
-324:         setStatus('Shared');
-325:       } else if (result.reason === 'cancelled') {
-326:         setStatus('Share cancelled');
-327:       } else if (result.reason === 'unsupported') {
-328:         setStatus('Sharing is not available here. Use Download image instead.');
-329:       } else {
-330:         setStatus('Could not share. Try Download image instead.');
-331:       }
-332:     } catch {
-333:       setStatus('Could not share. Try Download image instead.');
-334:     }
-335:   }
-336: 
-337:   /**
-338:    * Handle the Download image button.
-339:    * @returns {Promise<void>}
-340:    */
-341:   async function handleDownload() {
-342:     try {
-343:       if (!currentRoast || !currentClub) return;
-344: 
-345:       const blobResult = await canvasToBlob(previewCanvas);
-346:       if (!blobResult.ok) {
-347:         setStatus('Could not save the image. Use Share on your phone instead.');
-348:         return;
-349:       }
-350: 
-351:       const fileName = buildFileName(currentClub.id, currentRoast.id, currentFormat().id);
-352:       const result = downloadBlob(blobResult.blob, fileName);
-353: 
-354:       if (result.ok) {
-355:         setStatus('Image saved');
-356:       } else {
-357:         setStatus('Could not save the image. Use Share on your phone instead.');
-358:       }
-359:     } catch {
-360:       setStatus('Could not save the image. Use Share on your phone instead.');
-361:     }
-362:   }
-363: 
-364:   /**
-365:    * Handle the Copy link button.
-366:    * @returns {Promise<void>}
-367:    */
-368:   async function handleCopy() {
-369:     try {
-370:       const url = currentUrl();
-371:       if (!url) return;
-372: 
-373:       const result = await copyText(url);
-374: 
-375:       if (result.ok) {
-376:         setStatus('Link copied');
-377:         hideFallback();
-378:         return;
-379:       }
-380: 
+201:     const roast = currentRoast;
+202:     const category = currentCategory;
+203:     const club = currentClub;
+204:     const format = currentFormat();
+205:     const host = hostLabel(window.location.host, SHARE_HOST_OVERRIDE);
+206:     const key = `${club.id}|${roast.id}|${format.id}|${host}`;
+207: 
+208:     if (key === lastKey && cachedBlob) {
+209:       return;
+210:     }
+211: 
+212:     lastKey = key;
+213:     cachedBlob = null;
+214:     setStatus('Preparing image');
+215: 
+216:     const result = await renderRoastCard({
+217:       canvas: workCanvas,
+218:       roast,
+219:       category,
+220:       club,
+221:       format,
+222:       host,
+223:     });
+224: 
+225:     if (!visible || lastKey !== key) return;
+226: 
+227:     const blobResult = await canvasToBlob(workCanvas);
+228:     if (!visible || lastKey !== key) return;
+229: 
+230:     if (blobResult.ok && blobResult.blob) {
+231:       cachedBlob = blobResult.blob;
+232:       const nextUrl = URL.createObjectURL(blobResult.blob);
+233:       previewImage.src = nextUrl;
+234:       if (previewUrl) URL.revokeObjectURL(previewUrl);
+235:       previewUrl = nextUrl;
+236:       previewImage.alt = `Roast card preview for ${String(roast.headline || '')} in ${format.label} format`;
+237:       previewImage.classList.remove('hidden');
+238:       previewCanvas.classList.add('hidden');
+239:     } else {
+240:       // Fall back to showing the canvas if the PNG could not be made.
+241:       previewCanvas.width = workCanvas.width;
+242:       previewCanvas.height = workCanvas.height;
+243:       const ctx = previewCanvas.getContext('2d');
+244:       if (ctx) ctx.drawImage(workCanvas, 0, 0);
+245:       previewCanvas.classList.remove('hidden');
+246:       previewImage.classList.add('hidden');
+247:     }
+248: 
+249:     setStatus(result.truncated ? 'Preview ready (some text was shortened)' : 'Preview ready');
+250:   }
+251: 
+252:   /**
+253:    * Render the preview when the panel is visible.
+254:    * @returns {Promise<void>}
+255:    */
+256:   async function renderPreview() {
+257:     if (!visible || !currentRoast || !currentClub) return;
+258: 
+259:     if (renderBusy) {
+260:       renderPending = true;
+261:       return;
+262:     }
+263: 
+264:     renderBusy = true;
+265: 
+266:     try {
+267:       do {
+268:         renderPending = false;
+269:         await drawPreview();
+270:       } while (renderPending && visible);
+271:     } catch {
+272:       setStatus('Could not prepare the image. Try again.');
+273:     } finally {
+274:       renderBusy = false;
+275:     }
+276:   }
+277: 
+278:   /**
+279:    * Schedule a preview render.
+280:    * @returns {void}
+281:    */
+282:   function schedulePreview() {
+283:     if (!visible) return;
+284:     renderPreview().catch(() => {
+285:       setStatus('Could not prepare the image. Try again.');
+286:     });
+287:   }
+288: 
+289:   /**
+290:    * Handle the Share button.
+291:    * @returns {Promise<void>}
+292:    */
+293:   async function handleShare() {
+294:     try {
+295:       if (!currentRoast || !currentClub) return;
+296: 
+297:       let blob = cachedBlob;
+298:       if (!blob) {
+299:         const blobResult = await canvasToBlob(workCanvas);
+300:         if (!blobResult.ok || !blobResult.blob) {
+301:           setStatus('Could not prepare the image. Try Download image instead.');
+302:           return;
+303:         }
+304:         blob = blobResult.blob;
+305:         cachedBlob = blob;
+306:       }
+307: 
+308:       const fileName = buildFileName(currentClub.id, currentRoast.id, currentFormat().id);
+309:       const url = currentUrl();
+310:       const text = buildShareText(currentRoast, url);
+311:       const result = await shareImage({ blob, fileName, title: 'The Roast Room', text, url });
+312: 
+313:       if (result.ok) {
+314:         setStatus('Shared');
+315:       } else if (result.reason === 'cancelled') {
+316:         setStatus('Share cancelled');
+317:       } else if (result.reason === 'unsupported') {
+318:         setStatus('Sharing is not available here. Use Download image instead.');
+319:       } else {
+320:         setStatus('Could not share. Try Download image instead.');
+321:       }
+322:     } catch {
+323:       setStatus('Could not share. Try Download image instead.');
+324:     }
+325:   }
+326: 
+327:   /**
+328:    * Handle the Download image button.
+329:    * @returns {Promise<void>}
+330:    */
+331:   async function handleDownload() {
+332:     try {
+333:       let blob = cachedBlob;
+334:       if (!blob) {
+335:         const blobResult = await canvasToBlob(workCanvas);
+336:         if (!blobResult.ok || !blobResult.blob) {
+337:           setStatus('Could not save the image. Use Share on your phone instead.');
+338:           return;
+339:         }
+340:         blob = blobResult.blob;
+341:         cachedBlob = blob;
+342:       }
+343: 
+344:       const fileName = buildFileName(currentClub.id, currentRoast.id, currentFormat().id);
+345:       const result = downloadBlob(blob, fileName);
+346: 
+347:       if (result.ok) {
+348:         setStatus('Image saved');
+349:       } else {
+350:         setStatus('Could not save the image. Use Share on your phone instead.');
+351:       }
+352:     } catch {
+353:       setStatus('Could not save the image. Use Share on your phone instead.');
+354:     }
+355:   }
+356: 
+357:   /**
+358:    * Handle the Copy link button.
+359:    * @returns {Promise<void>}
+360:    */
+361:   async function handleCopy() {
+362:     try {
+363:       const url = currentUrl();
+364:       if (!url) return;
+365: 
+366:       const result = await copyText(url);
+367: 
+368:       if (result.ok) {
+369:         setStatus('Link copied');
+370:         hideFallback();
+371:         return;
+372:       }
+373: 
+374:       setStatus('Could not copy, select the link below');
+375:       fallbackInput.value = url;
+376:       fallback.classList.remove('hidden');
+377:       fallbackInput.focus();
+378:       fallbackInput.select();
+379:       fallbackInput.setSelectionRange(0, fallbackInput.value.length);
+380:     } catch {
 381:       setStatus('Could not copy, select the link below');
-382:       fallbackInput.value = url;
-383:       fallback.classList.remove('hidden');
-384:       fallbackInput.focus();
-385:       fallbackInput.select();
-386:       fallbackInput.setSelectionRange(0, fallbackInput.value.length);
-387:     } catch {
-388:       setStatus('Could not copy, select the link below');
-389:       const url = currentUrl();
-390:       fallbackInput.value = url;
-391:       fallback.classList.remove('hidden');
-392:       fallbackInput.focus();
-393:       fallbackInput.select();
-394:     }
-395:   }
-396: 
-397:   shareButton.addEventListener('click', handleShare);
-398:   downloadButton.addEventListener('click', handleDownload);
-399:   copyButton.addEventListener('click', handleCopy);
-400: 
-401:   /**
-402:    * Show the panel.
-403:    * @returns {void}
-404:    */
-405:   function show() {
-406:     visible = true;
-407:     container.classList.remove('hidden');
-408:     container.removeAttribute('aria-hidden');
-409:     requestAnimationFrame(() => {
-410:       requestAnimationFrame(() => {
-411:         schedulePreview();
-412:       });
-413:     });
-414:   }
-415: 
-416:   /**
-417:    * Hide the panel.
-418:    * @returns {void}
-419:    */
-420:   function hide() {
-421:     visible = false;
-422:     container.classList.add('hidden');
-423:     container.setAttribute('aria-hidden', 'true');
-424:     hideFallback();
-425:     setStatus('');
-426:   }
-427: 
-428:   /**
-429:    * Update the panel for a roast.
-430:    * @param {Record<string, unknown>} roast Roast data.
-431:    * @param {Record<string, unknown> | null} category Category metadata.
-432:    * @param {Record<string, unknown>} club Club data.
-433:    * @returns {void}
-434:    */
-435:   function update(roast, category, club) {
-436:     if (!roast || !club) {
-437:       hide();
-438:       return;
-439:     }
-440: 
-441:     currentRoast = roast;
-442:     currentCategory = category;
-443:     currentClub = club;
-444:     hideFallback();
-445:     setStatus('');
-446:     updatePressed();
-447:     show();
-448:   }
-449: 
-450:   updatePressed();
-451: 
-452:   return { update, hide, show };
-453: }
-
-================
-File: room.html
-================
-  1: <!DOCTYPE html>
-  2: <html lang="en">
-  3:   <head>
-  4:     <meta charset="utf-8" />
-  5:     <meta name="viewport" content="width=device-width, initial-scale=1" />
-  6:     <title>Roast Room | The Roast Room</title>
-  7:     <meta
-  8:       name="description"
-  9:       content="Pick a category and hit Roast them. Every roast is sourced and dated."
- 10:     />
- 11:     <meta name="color-scheme" content="dark" />
- 12:     <meta name="theme-color" content="#0A0A0A" />
- 13: 
- 14:     <link rel="canonical" href="__SITE_URL__/room.html?club=manutd" />
- 15:     <meta property="og:title" content="Roast Room | The Roast Room" />
- 16:     <meta
- 17:       property="og:description"
- 18:       content="Pick a category and hit Roast them. Every roast is sourced, dated and backed by the receipts."
- 19:     />
- 20:     <meta property="og:type" content="website" />
- 21:     <meta property="og:url" content="__SITE_URL__/room.html?club=manutd" />
- 22:     <meta property="og:site_name" content="The Roast Room" />
- 23:     <meta property="og:image" content="__SITE_URL__/og.png" />
- 24:     <meta property="og:image:width" content="1200" />
- 25:     <meta property="og:image:height" content="630" />
- 26:     <meta
- 27:       property="og:image:alt"
- 28:       content="The Roast Room wordmark on a dark background with the line Every rivalry needs receipts."
- 29:     />
- 30:     <meta name="twitter:card" content="summary_large_image" />
- 31:     <meta name="twitter:title" content="Roast Room | The Roast Room" />
- 32:     <meta
- 33:       name="twitter:description"
- 34:       content="Pick a category and hit Roast them. Every roast is sourced, dated and backed by the receipts."
- 35:     />
- 36:     <meta name="twitter:image" content="__SITE_URL__/og.png" />
- 37:     <link rel="apple-touch-icon" href="/apple_touch_icon.png" />
- 38: 
- 39:     <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
- 40:     <link rel="preload" as="image" href="/images/backgrounds/manutd/mu-room-default.webp" />
- 41: 
- 42:     <link rel="preconnect" href="https://fonts.googleapis.com" />
- 43:     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
- 44:     <link
- 45:       rel="stylesheet"
- 46:       href="https://fonts.googleapis.com/css2?family=Anton&amp;family=Inter:wght@400;500;600;700&amp;display=swap"
- 47:     />
- 48:     <link rel="stylesheet" href="./dist/styles.css" />
- 49: 
- 50:     <script type="module" src="./js/pages/room.js" defer></script>
- 51:   </head>
- 52: 
- 53:   <body class="min-h-screen bg-background text-text">
- 54:     <div id="clubBackground" class="clubBackground" aria-hidden="true"></div>
- 55:     <a class="skipLink" href="#main">Skip to content</a>
- 56: 
- 57:     <header class="siteHeader">
- 58:       <div class="mx-auto flex max-w-4xl flex-wrap items-center justify-between gap-3 px-4 py-4">
- 59:         <a href="./index.html" class="font-display text-xl uppercase tracking-wide text-text no-underline">
- 60:           The Roast Room
- 61:         </a>
- 62:         <div class="flex flex-wrap items-center gap-3">
- 63:           <span
- 64:             id="clubBadge"
- 65:             class="rounded-pill border border-line bg-surfaceRaised px-3 py-1 text-xs text-textMuted"
- 66:           >
- 67:             Loading club
- 68:           </span>
- 69:           <a href="./index.html#pickerHeading" class="text-sm text-textMuted underline">
- 70:             Change club
- 71:           </a>
- 72:         </div>
- 73:       </div>
- 74:     </header>
- 75: 
- 76:     <main id="main" class="mx-auto max-w-4xl px-4 py-8">
- 77:       <h1 id="pageHeading" class="srOnly">The Roast Room</h1>
- 78: 
- 79:       <section
- 80:         id="loadingState"
- 81:         class="rounded-sharp border border-line bg-surface p-8"
- 82:         aria-label="Loading"
- 83:       >
- 84:         <p class="text-textMuted">Loading the club and its roasts.</p>
- 85:       </section>
- 86: 
- 87:       <section
- 88:         id="errorState"
- 89:         class="hidden rounded-sharp border border-line bg-surface p-8"
- 90:         role="alert"
- 91:       >
- 92:         <h2 class="text-2xl text-text">Roast room unavailable</h2>
- 93:         <p id="errorMessage" class="mt-2 text-textMuted">We could not open this club.</p>
- 94:         <p class="mt-4">
- 95:           <a href="./index.html" class="text-accent underline">Back to the club picker</a>
- 96:         </p>
- 97:       </section>
- 98: 
- 99:       <section id="roomState" class="hidden">
-100:         <div class="mb-6">
-101:           <p class="srOnly">Filter by category</p>
-102:           <div id="categoryFilter" class="mt-3"></div>
-103:         </div>
-104: 
-105:         <div class="mb-6 flex flex-wrap items-center gap-4">
-106:           <button
-107:             id="roastButton"
-108:             type="button"
-109:             class="rounded-sharp bg-primary px-8 py-5 font-display text-2xl uppercase tracking-wide text-primaryContrast transition-all duration-fast ease-standard hover:bg-accent hover:text-background active:scale-95 disabled:opacity-50"
-110:           >
-111:             Roast them
-112:           </button>
-113:           <p id="progress" class="text-xs text-textMuted"></p>
-114:           <label class="inline-flex items-center gap-2 text-xs text-textMuted">
-115:             <input id="reelToggle" type="checkbox" class="accent-primary" />
-116:             Animate shuffle
-117:           </label>
-118:         </div>
-119: 
-120:         <p id="sessionCounter" class="srOnly" aria-live="polite"></p>
-121: 
-122:         <div id="roastContainer"></div>
-123:         <section id="sharePanel" class="sharePanel hidden" aria-label="Share this roast"></section>
-124: 
-125:         <section
-126:           id="roastSubmitSection"
-127:           class="hidden mt-12"
-128:           aria-label="Submit a roast"
-129:         >
-130:           <details class="rounded-sharp border border-line bg-surface p-6">
-131:             <summary class="cursor-pointer font-display text-2xl uppercase text-text">
-132:               Got a roast we missed?
-133:             </summary>
-134:             <p class="mt-3 max-w-2xl text-sm text-textMuted">
-135:               Submissions are reviewed before they appear. Only submit facts you can source,
-136:               and keep it about the club and its results.
-137:             </p>
-138:             <div id="roastSubmitForm" class="mt-4"></div>
-139:           </details>
-140:         </section>
-141: 
-142:         <p
-143:           id="emptyState"
-144:           class="hidden mt-8 rounded-sharp border border-line bg-surface p-6 text-textMuted"
-145:         >
-146:           No roasts in this category yet. Try another category, or hit Roast them on All.
-147:         </p>
-148: 
-149:         <p id="roastLiveRegion" class="srOnly" aria-live="polite"></p>
-150:       </section>
-151:     </main>
-152: 
-153:     <footer class="siteFooter">
-154:       <div class="mx-auto max-w-4xl px-4 py-8">
-155:         <p class="text-sm text-textMuted">
-156:           Built by <a href="https://fritt.org" rel="noopener">Fritt</a>.
-157:           <a href="./about.html" class="text-textMuted underline">About and privacy</a>.
-158:         </p>
-159:       </div>
-160:     </footer>
-161:   </body>
-162: </html>
+382:       const url = currentUrl();
+383:       fallbackInput.value = url;
+384:       fallback.classList.remove('hidden');
+385:       fallbackInput.focus();
+386:       fallbackInput.select();
+387:     }
+388:   }
+389: 
+390:   shareButton.addEventListener('click', handleShare);
+391:   downloadButton.addEventListener('click', handleDownload);
+392:   copyButton.addEventListener('click', handleCopy);
+393: 
+394:   /**
+395:    * Show the panel.
+396:    * @returns {void}
+397:    */
+398:   function show() {
+399:     visible = true;
+400:     container.classList.remove('hidden');
+401:     container.removeAttribute('aria-hidden');
+402:     requestAnimationFrame(() => {
+403:       requestAnimationFrame(() => {
+404:         schedulePreview();
+405:       });
+406:     });
+407:   }
+408: 
+409:   /**
+410:    * Hide the panel.
+411:    * @returns {void}
+412:    */
+413:   function hide() {
+414:     visible = false;
+415:     container.classList.add('hidden');
+416:     container.setAttribute('aria-hidden', 'true');
+417:     hideFallback();
+418:     setStatus('');
+419:   }
+420: 
+421:   /**
+422:    * Update the panel for a roast.
+423:    * @param {Record<string, unknown>} roast Roast data.
+424:    * @param {Record<string, unknown> | null} category Category metadata.
+425:    * @param {Record<string, unknown>} club Club data.
+426:    * @returns {void}
+427:    */
+428:   function update(roast, category, club) {
+429:     if (!roast || !club) {
+430:       hide();
+431:       return;
+432:     }
+433: 
+434:     currentRoast = roast;
+435:     currentCategory = category;
+436:     currentClub = club;
+437:     hideFallback();
+438:     setStatus('');
+439:     updatePressed();
+440:     show();
+441:   }
+442: 
+443:   updatePressed();
+444: 
+445:   return { update, hide, show };
+446: }
 
 
 

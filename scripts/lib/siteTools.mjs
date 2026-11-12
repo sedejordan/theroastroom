@@ -182,7 +182,7 @@ export function buildHeaders(options) {
     `script-src 'self'; ` +
     `style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; ` +
     `font-src https://fonts.gstatic.com; ` +
-    `img-src 'self' data:; ` +
+    `img-src 'self' data: blob:; ` +
     `${connectSrc}; ` +
     `frame-ancestors 'none'; ` +
     `base-uri 'self'; ` +

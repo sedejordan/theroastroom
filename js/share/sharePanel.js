@@ -83,6 +83,17 @@ export function createSharePanel(options) {
   previewWrap.append(previewCanvas, previewImage);
   let previewUrl = '';
 
+  previewImage.addEventListener('error', () => {
+    if (workCanvas.width > 0) {
+      previewCanvas.width = workCanvas.width;
+      previewCanvas.height = workCanvas.height;
+      const ctx = previewCanvas.getContext('2d');
+      if (ctx) ctx.drawImage(workCanvas, 0, 0);
+      previewCanvas.classList.remove('hidden');
+      previewImage.classList.add('hidden');
+    }
+  });
+
   const actions = createElement('div', { className: 'shareActions' });
 
   const shareButton = createElement('button', {
