@@ -2312,148 +2312,6 @@ File: js/roasts/roastForm.js
 501: }
 
 ================
-File: js/share/actions.js
-================
-  1: /**
-  2:  * Browser share, download and clipboard actions.
-  3:  * Every exported function returns an object and never throws.
-  4:  */
-  5: 
-  6: /**
-  7:  * Convert a canvas to a PNG blob.
-  8:  * @param {HTMLCanvasElement} canvas Canvas to convert.
-  9:  * @returns {Promise<{ ok: boolean, reason: string, blob?: Blob }>} Result with blob when ok.
- 10:  */
- 11: export function canvasToBlob(canvas) {
- 12:   return new Promise((resolve) => {
- 13:     try {
- 14:       if (!canvas || typeof canvas.toBlob !== 'function') {
- 15:         resolve({ ok: false, reason: 'unsupported' });
- 16:         return;
- 17:       }
- 18: 
- 19:       canvas.toBlob((blob) => {
- 20:         if (blob) {
- 21:           resolve({ ok: true, reason: 'blob', blob });
- 22:         } else {
- 23:           resolve({ ok: false, reason: 'empty' });
- 24:         }
- 25:       }, 'image/png');
- 26:     } catch {
- 27:       resolve({ ok: false, reason: 'failed' });
- 28:     }
- 29:   });
- 30: }
- 31: 
- 32: /**
- 33:  * Download a blob with a file name.
- 34:  * @param {Blob} blob File contents.
- 35:  * @param {string} fileName Download file name.
- 36:  * @returns {{ ok: boolean, reason: string }} Result.
- 37:  */
- 38: export function downloadBlob(blob, fileName) {
- 39:   try {
- 40:     if (!blob || typeof document === 'undefined' || typeof URL === 'undefined') {
- 41:       return { ok: false, reason: 'unsupported' };
- 42:     }
- 43: 
- 44:     const url = URL.createObjectURL(blob);
- 45:     const link = document.createElement('a');
- 46:     link.href = url;
- 47:     link.download = String(fileName || 'roastroom.png');
- 48:     link.rel = 'noopener';
- 49:     link.style.display = 'none';
- 50: 
- 51:     document.body.append(link);
- 52:     link.click();
- 53:     link.remove();
- 54: 
- 55:     window.setTimeout(() => {
- 56:       URL.revokeObjectURL(url);
- 57:     }, 1500);
- 58: 
- 59:     return { ok: true, reason: 'downloaded' };
- 60:   } catch {
- 61:     return { ok: false, reason: 'failed' };
- 62:   }
- 63: }
- 64: 
- 65: /**
- 66:  * Share an image through the system share sheet when available.
- 67:  * Falls back to sharing text and URL only.
- 68:  * @param {{
- 69:  *   blob?: Blob,
- 70:  *   fileName?: string,
- 71:  *   title?: string,
- 72:  *   text?: string,
- 73:  *   url?: string
- 74:  * }} options Share options.
- 75:  * @returns {Promise<{ ok: boolean, reason: string }>} Result.
- 76:  */
- 77: export async function shareImage(options) {
- 78:   try {
- 79:     if (typeof navigator === 'undefined' || typeof navigator.share !== 'function') {
- 80:       return { ok: false, reason: 'unsupported' };
- 81:     }
- 82: 
- 83:     const { blob, fileName, title, text, url } = options || {};
- 84:     const payload = {
- 85:       title: title === undefined ? '' : String(title),
- 86:       text: text === undefined ? '' : String(text),
- 87:       url: url === undefined ? '' : String(url),
- 88:     };
- 89: 
- 90:     if (blob && typeof File === 'function') {
- 91:       const file = new File([blob], String(fileName || 'roastroom.png'), {
- 92:         type: blob.type || 'image/png',
- 93:       });
- 94:       const files = [file];
- 95: 
- 96:       if (typeof navigator.canShare === 'function' && navigator.canShare({ files })) {
- 97:         try {
- 98:           await navigator.share({ ...payload, files });
- 99:           return { ok: true, reason: 'shared' };
-100:         } catch (error) {
-101:           if (error && error.name === 'AbortError') {
-102:             return { ok: false, reason: 'cancelled' };
-103:           }
-104:         }
-105:       }
-106:     }
-107: 
-108:     await navigator.share(payload);
-109:     return { ok: true, reason: 'shared' };
-110:   } catch (error) {
-111:     if (error && error.name === 'AbortError') {
-112:       return { ok: false, reason: 'cancelled' };
-113:     }
-114:     return { ok: false, reason: 'failed' };
-115:   }
-116: }
-117: 
-118: /**
-119:  * Copy text with the Clipboard API.
-120:  * @param {string} text Text to copy.
-121:  * @returns {Promise<{ ok: boolean, reason: string }>} Result.
-122:  */
-123: export async function copyText(text) {
-124:   try {
-125:     if (
-126:       typeof navigator === 'undefined' ||
-127:       !navigator.clipboard ||
-128:       typeof navigator.clipboard.writeText !== 'function'
-129:     ) {
-130:       return { ok: false, reason: 'unsupported' };
-131:     }
-132: 
-133:     await navigator.clipboard.writeText(String(text === undefined || text === null ? '' : text));
-134:     return { ok: true, reason: 'copied' };
-135:   } catch {
-136:     return { ok: false, reason: 'failed' };
-137:   }
-138: }
-
-================
 File: js/share/cardFormats.js
 ================
  1: /**
@@ -7839,6 +7697,150 @@ File: js/dev/adminLab.js
 461: }
 
 ================
+File: js/share/actions.js
+================
+  1: /**
+  2:  * Browser share, download and clipboard actions.
+  3:  * Every exported function returns an object and never throws.
+  4:  */
+  5: 
+  6: /**
+  7:  * Convert a canvas to a PNG blob.
+  8:  * @param {HTMLCanvasElement} canvas Canvas to convert.
+  9:  * @returns {Promise<{ ok: boolean, reason: string, blob?: Blob }>} Result with blob when ok.
+ 10:  */
+ 11: export function canvasToBlob(canvas) {
+ 12:   return new Promise((resolve) => {
+ 13:     try {
+ 14:       if (!canvas || typeof canvas.toBlob !== 'function') {
+ 15:         resolve({ ok: false, reason: 'unsupported' });
+ 16:         return;
+ 17:       }
+ 18: 
+ 19:       canvas.toBlob((blob) => {
+ 20:         if (blob) {
+ 21:           resolve({ ok: true, reason: 'blob', blob });
+ 22:         } else {
+ 23:           resolve({ ok: false, reason: 'empty' });
+ 24:         }
+ 25:       }, 'image/png');
+ 26:     } catch {
+ 27:       resolve({ ok: false, reason: 'failed' });
+ 28:     }
+ 29:   });
+ 30: }
+ 31: 
+ 32: /**
+ 33:  * Download a blob with a file name.
+ 34:  * @param {Blob} blob File contents.
+ 35:  * @param {string} fileName Download file name.
+ 36:  * @returns {{ ok: boolean, reason: string }} Result.
+ 37:  */
+ 38: export function downloadBlob(blob, fileName) {
+ 39:   try {
+ 40:     if (!blob || typeof document === 'undefined' || typeof URL === 'undefined') {
+ 41:       return { ok: false, reason: 'unsupported' };
+ 42:     }
+ 43: 
+ 44:     const url = URL.createObjectURL(blob);
+ 45:     const link = document.createElement('a');
+ 46:     link.href = url;
+ 47:     link.download = String(fileName || 'roastroom.png');
+ 48:     link.rel = 'noopener';
+ 49:     link.style.display = 'none';
+ 50: 
+ 51:     document.body.append(link);
+ 52:     link.click();
+ 53:     link.remove();
+ 54: 
+ 55:     window.setTimeout(() => {
+ 56:       URL.revokeObjectURL(url);
+ 57:     }, 1500);
+ 58: 
+ 59:     return { ok: true, reason: 'downloaded' };
+ 60:   } catch {
+ 61:     return { ok: false, reason: 'failed' };
+ 62:   }
+ 63: }
+ 64: 
+ 65: /**
+ 66:  * Share an image through the system share sheet when available.
+ 67:  * Falls back to sharing text and URL only.
+ 68:  * @param {{
+ 69:  *   blob?: Blob,
+ 70:  *   fileName?: string,
+ 71:  *   title?: string,
+ 72:  *   text?: string,
+ 73:  *   url?: string
+ 74:  * }} options Share options.
+ 75:  * @returns {Promise<{ ok: boolean, reason: string }>} Result.
+ 76:  */
+ 77: export async function shareImage(options) {
+ 78:   try {
+ 79:     if (typeof navigator === 'undefined' || typeof navigator.share !== 'function') {
+ 80:       return { ok: false, reason: 'unsupported' };
+ 81:     }
+ 82: 
+ 83:     const { blob, fileName, title, text, url } = options || {};
+ 84:     const payload = {
+ 85:       title: title === undefined ? '' : String(title),
+ 86:       text: text === undefined ? '' : String(text),
+ 87:       url: url === undefined ? '' : String(url),
+ 88:     };
+ 89: 
+ 90:     if (blob && typeof File === 'function') {
+ 91:       // Pin the MIME type. Some iOS Safari builds produce a blob with an
+ 92:       // empty type, and the share sheet then drops the file silently.
+ 93:       const file = new File([blob], String(fileName || 'roastroom.png'), {
+ 94:         type: 'image/png',
+ 95:       });
+ 96:       const files = [file];
+ 97: 
+ 98:       if (typeof navigator.canShare === 'function' && navigator.canShare({ files })) {
+ 99:         try {
+100:           await navigator.share({ ...payload, files });
+101:           return { ok: true, reason: 'shared' };
+102:         } catch (error) {
+103:           if (error && error.name === 'AbortError') {
+104:             return { ok: false, reason: 'cancelled' };
+105:           }
+106:         }
+107:       }
+108:     }
+109: 
+110:     await navigator.share(payload);
+111:     return { ok: true, reason: 'shared' };
+112:   } catch (error) {
+113:     if (error && error.name === 'AbortError') {
+114:       return { ok: false, reason: 'cancelled' };
+115:     }
+116:     return { ok: false, reason: 'failed' };
+117:   }
+118: }
+119: 
+120: /**
+121:  * Copy text with the Clipboard API.
+122:  * @param {string} text Text to copy.
+123:  * @returns {Promise<{ ok: boolean, reason: string }>} Result.
+124:  */
+125: export async function copyText(text) {
+126:   try {
+127:     if (
+128:       typeof navigator === 'undefined' ||
+129:       !navigator.clipboard ||
+130:       typeof navigator.clipboard.writeText !== 'function'
+131:     ) {
+132:       return { ok: false, reason: 'unsupported' };
+133:     }
+134: 
+135:     await navigator.clipboard.writeText(String(text === undefined || text === null ? '' : text));
+136:     return { ok: true, reason: 'copied' };
+137:   } catch {
+138:     return { ok: false, reason: 'failed' };
+139:   }
+140: }
+
+================
 File: js/share/shareConfig.js
 ================
 1: /**
@@ -11567,476 +11569,6 @@ File: worker/wrangler.toml
 20: LIVE_CLUB_IDS = "manutd"
 
 ================
-File: js/share/sharePanel.js
-================
-  1: /**
-  2:  * Builds and controls the share panel for one roast.
-  3:  */
-  4: 
-  5: import { CARD_FORMATS } from './cardFormats.js';
-  6: import { SHARE_HOST_OVERRIDE } from './shareConfig.js';
-  7: import { renderRoastCard } from './renderCard.js';
-  8: import { absoluteRoastUrl, buildFileName, buildShareText, hostLabel } from './shareText.js';
-  9: import { canvasToBlob, copyText, downloadBlob, shareImage } from './actions.js';
- 10: import { clear, createElement } from '../utils/dom.js';
- 11: 
- 12: function canvasToBlobNow(canvas) {
- 13:   try {
- 14:     const dataUrl = canvas.toDataURL('image/png');
- 15:     const binary = atob(dataUrl.split(',')[1]);
- 16:     const bytes = new Uint8Array(binary.length);
- 17:     for (let i = 0; i < binary.length; i += 1) {
- 18:       bytes[i] = binary.charCodeAt(i);
- 19:     }
- 20:     return new Blob([bytes], { type: 'image/png' });
- 21:   } catch {
- 22:     return null;
- 23:   }
- 24: }
- 25: 
- 26: /**
- 27:  * Create the share panel inside a container.
- 28:  * @param {{ container: HTMLElement }} options Panel options.
- 29:  * @returns {{
- 30:  *   update: (roast: Record<string, unknown>, category: Record<string, unknown> | null, club: Record<string, unknown>) => void,
- 31:  *   hide: () => void,
- 32:  *   show: () => void
- 33:  * }} Panel controller.
- 34:  */
- 35: export function createSharePanel(options) {
- 36:   const container = options && options.container ? options.container : null;
- 37: 
- 38:   if (!container || typeof document === 'undefined') {
- 39:     return {
- 40:       update() {},
- 41:       hide() {},
- 42:       show() {},
- 43:     };
- 44:   }
- 45: 
- 46:   clear(container);
- 47: 
- 48:   const heading = createElement('h2', {
- 49:     className: 'sharePanelHeading',
- 50:     text: 'Share this roast',
- 51:     attrs: { id: 'sharePanelHeading' },
- 52:   });
- 53: 
- 54:   const formatToggle = createElement('div', {
- 55:     className: 'shareFormatToggle',
- 56:     attrs: {
- 57:       role: 'group',
- 58:       'aria-label': 'Card format',
- 59:     },
- 60:   });
- 61: 
- 62:   /** @type {Map<string, HTMLButtonElement>} */
- 63:   const formatButtons = new Map();
- 64: 
- 65:   for (const format of Object.values(CARD_FORMATS)) {
- 66:     const button = createElement('button', {
- 67:       className: 'shareFormatButton',
- 68:       text: format.label,
- 69:       attrs: {
- 70:         type: 'button',
- 71:         'aria-pressed': format.id === 'post' ? 'true' : 'false',
- 72:       },
- 73:     });
- 74:     button.addEventListener('click', () => {
- 75:       currentFormatId = format.id;
- 76:       updatePressed();
- 77:       hideFallback();
- 78:       setStatus('');
- 79:       schedulePreview();
- 80:     });
- 81:     formatButtons.set(format.id, button);
- 82:     formatToggle.append(button);
- 83:   }
- 84: 
- 85:   const previewWrap = createElement('div', { className: 'sharePreviewWrap' });
- 86:   const previewCanvas = createElement('canvas', {
- 87:     className: 'sharePreviewCanvas',
- 88:     attrs: {
- 89:       role: 'img',
- 90:       'aria-label': 'Roast card preview',
- 91:     },
- 92:   });
- 93:   previewWrap.append(previewCanvas);
- 94: 
- 95:   const actions = createElement('div', { className: 'shareActions' });
- 96: 
- 97:   const shareButton = createElement('button', {
- 98:     className: 'shareActionPrimary',
- 99:     text: 'Share',
-100:     attrs: { type: 'button' },
-101:   });
-102: 
-103:   const downloadButton = createElement('button', {
-104:     className: 'shareActionSecondary',
-105:     text: 'Download image',
-106:     attrs: { type: 'button' },
-107:   });
-108: 
-109:   const copyButton = createElement('button', {
-110:     className: 'shareActionSecondary',
-111:     text: 'Copy link',
-112:     attrs: { type: 'button' },
-113:   });
-114: 
-115:   actions.append(shareButton, downloadButton, copyButton);
-116: 
-117:   const status = createElement('p', {
-118:     className: 'shareStatus',
-119:     attrs: {
-120:       role: 'status',
-121:       'aria-live': 'polite',
-122:     },
-123:   });
-124: 
-125:   const fallback = createElement('div', { className: 'shareFallback hidden' });
-126:   const fallbackLabel = createElement('label', {
-127:     className: 'tokenLabel',
-128:     text: 'Copy this link',
-129:     attrs: { for: 'shareFallbackInput' },
-130:   });
-131:   const fallbackInput = createElement('input', {
-132:     className: 'shareFallbackInput',
-133:     attrs: {
-134:       id: 'shareFallbackInput',
-135:       type: 'text',
-136:       readonly: 'readonly',
-137:       'aria-label': 'Roast link',
-138:     },
-139:   });
-140:   fallback.append(fallbackLabel, fallbackInput);
-141: 
-142:   container.append(heading, formatToggle, actions, previewWrap, status, fallback);
-143:   container.setAttribute('aria-labelledby', 'sharePanelHeading');
-144: 
-145:   if (typeof navigator === 'undefined' || typeof navigator.share !== 'function') {
-146:     shareButton.hidden = true;
-147:   }
-148: 
-149:   const workCanvas = document.createElement('canvas');
-150: 
-151:   let currentRoast = null;
-152:   let currentCategory = null;
-153:   let currentClub = null;
-154:   let currentFormatId = 'post';
-155:   let visible = false;
-156:   let lastKey = '';
-157:   let cachedBlob = null;
-158:   let renderBusy = false;
-159:   let renderPending = false;
-160: 
-161:   /**
-162:    * Set the live status message.
-163:    * @param {string} message Status text.
-164:    * @returns {void}
-165:    */
-166:   function setStatus(message) {
-167:     status.textContent = message || '';
-168:   }
-169: 
-170:   /**
-171:    * Hide the copy fallback input.
-172:    * @returns {void}
-173:    */
-174:   function hideFallback() {
-175:     fallback.classList.add('hidden');
-176:   }
-177: 
-178:   /**
-179:    * Update the format button pressed state.
-180:    * @returns {void}
-181:    */
-182:   function updatePressed() {
-183:     for (const [id, button] of formatButtons) {
-184:       button.setAttribute('aria-pressed', id === currentFormatId ? 'true' : 'false');
-185:     }
-186:   }
-187: 
-188:   /**
-189:    * Return the selected format.
-190:    * @returns {{ id: string, label: string, width: number, height: number, safeTop: number, safeBottom: number }} Format.
-191:    */
-192:   function currentFormat() {
-193:     return CARD_FORMATS[currentFormatId] || CARD_FORMATS.post;
-194:   }
-195: 
-196:   /**
-197:    * Build the absolute roast URL.
-198:    * @returns {string} Absolute URL.
-199:    */
-200:   function currentUrl() {
-201:     if (!currentRoast || !currentClub) return '';
-202:     return absoluteRoastUrl(window.location.href, currentClub.id, currentRoast.id);
-203:   }
-204: 
-205:   /**
-206:    * Draw the preview once.
-207:    * @returns {Promise<void>}
-208:    */
-209:   async function drawPreview() {
-210:     if (!visible || !currentRoast || !currentClub) return;
-211: 
-212:     const roast = currentRoast;
-213:     const category = currentCategory;
-214:     const club = currentClub;
-215:     const format = currentFormat();
-216:     const host = hostLabel(window.location.host, SHARE_HOST_OVERRIDE);
-217:     const key = `${club.id}|${roast.id}|${format.id}|${host}`;
-218: 
-219:     if (
-220:       key === lastKey &&
-221:       previewCanvas.width === format.width &&
-222:       previewCanvas.height === format.height
-223:     ) {
-224:       return;
-225:     }
-226: 
-227:     lastKey = key;
-228:     cachedBlob = null;
-229:     setStatus('Preparing image');
-230: 
-231:     const result = await renderRoastCard({
-232:       canvas: workCanvas,
-233:       roast,
-234:       category,
-235:       club,
-236:       format,
-237:       host,
-238:     });
-239: 
-240:     if (!visible) return;
-241: 
-242:     previewCanvas.width = workCanvas.width;
-243:     previewCanvas.height = workCanvas.height;
-244: 
-245:     // iOS Safari sometimes needs a layout flush between resize and draw.
-246:     void previewCanvas.offsetWidth;
-247: 
-248:     const ctx = previewCanvas.getContext('2d');
-249:     if (ctx) {
-250:       ctx.clearRect(0, 0, previewCanvas.width, previewCanvas.height);
-251:       ctx.drawImage(workCanvas, 0, 0);
-252:     }
-253: 
-254:     previewCanvas.setAttribute('role', 'img');
-255:     previewCanvas.setAttribute(
-256:       'aria-label',
-257:       `Roast card preview for ${String(roast.headline || '')} in ${format.label} format`
-258:     );
-259: 
-260:     if (result.truncated) {
-261:       setStatus('Preview ready (some text was shortened)');
-262:       const renderedKey = key;
-263:       canvasToBlob(previewCanvas).then((blobResult) => {
-264:         if (blobResult.ok && lastKey === renderedKey) {
-265:           cachedBlob = blobResult.blob;
-266:         }
-267:       });
-268:     } else {
-269:         setStatus('Preview ready');
-270:     }
-271: }
-272: 
-273:   /**
-274:    * Render the preview when the panel is visible.
-275:    * @returns {Promise<void>}
-276:    */
-277:   async function renderPreview() {
-278:     if (!visible || !currentRoast || !currentClub) return;
-279: 
-280:     if (renderBusy) {
-281:       renderPending = true;
-282:       return;
-283:     }
-284: 
-285:     renderBusy = true;
-286: 
-287:     try {
-288:       do {
-289:         renderPending = false;
-290:         await drawPreview();
-291:       } while (renderPending && visible);
-292:     } catch {
-293:       setStatus('Could not prepare the image. Try again.');
-294:     } finally {
-295:       renderBusy = false;
-296:     }
-297:   }
-298: 
-299:   /**
-300:    * Schedule a preview render.
-301:    * @returns {void}
-302:    */
-303:   function schedulePreview() {
-304:     if (!visible) return;
-305:     renderPreview().catch(() => {
-306:       setStatus('Could not prepare the image. Try again.');
-307:     });
-308:   }
-309: 
-310:   /**
-311:    * Handle the Share button.
-312:    * @returns {Promise<void>}
-313:    */
-314:   async function handleShare() {
-315:     try {
-316:       if (!currentRoast || !currentClub) return;
-317: 
-318:       let blob = cachedBlob;
-319:       if (!blob) {
-320:         if (previewCanvas.width < 1000) {
-321:           setStatus('The image is still being prepared. Try again in a second.');
-322:           return;
-323:         }
-324:         blob = canvasToBlobNow(previewCanvas);
-325:       }
-326:       if (!blob) {
-327:         setStatus('Could not prepare the image. Try Download image instead.');
-328:         return;
-329:       }
-330: 
-331:       const fileName = buildFileName(currentClub.id, currentRoast.id, currentFormat().id);
-332:       const url = currentUrl();
-333:       const text = buildShareText(currentRoast, url);
-334:       const result = await shareImage({ blob, fileName, title: 'The Roast Room', text, url });
-335: 
-336:       if (result.ok) {
-337:         setStatus('Shared');
-338:       } else if (result.reason === 'cancelled') {
-339:         setStatus('Share cancelled');
-340:       } else if (result.reason === 'unsupported') {
-341:         setStatus('Sharing is not available here. Use Download image instead.');
-342:       } else {
-343:         setStatus('Could not share. Try Download image instead.');
-344:       }
-345:     } catch {
-346:       setStatus('Could not share. Try Download image instead.');
-347:     }
-348:   }
-349: 
-350:   /**
-351:    * Handle the Download image button.
-352:    * @returns {Promise<void>}
-353:    */
-354:   async function handleDownload() {
-355:     try {
-356:       if (!currentRoast || !currentClub) return;
-357: 
-358:       const blobResult = await canvasToBlob(previewCanvas);
-359:       if (!blobResult.ok) {
-360:         setStatus('Could not save the image. Use Share on your phone instead.');
-361:         return;
-362:       }
-363: 
-364:       const fileName = buildFileName(currentClub.id, currentRoast.id, currentFormat().id);
-365:       const result = downloadBlob(blobResult.blob, fileName);
-366: 
-367:       if (result.ok) {
-368:         setStatus('Image saved');
-369:       } else {
-370:         setStatus('Could not save the image. Use Share on your phone instead.');
-371:       }
-372:     } catch {
-373:       setStatus('Could not save the image. Use Share on your phone instead.');
-374:     }
-375:   }
-376: 
-377:   /**
-378:    * Handle the Copy link button.
-379:    * @returns {Promise<void>}
-380:    */
-381:   async function handleCopy() {
-382:     try {
-383:       const url = currentUrl();
-384:       if (!url) return;
-385: 
-386:       const result = await copyText(url);
-387: 
-388:       if (result.ok) {
-389:         setStatus('Link copied');
-390:         hideFallback();
-391:         return;
-392:       }
-393: 
-394:       setStatus('Could not copy, select the link below');
-395:       fallbackInput.value = url;
-396:       fallback.classList.remove('hidden');
-397:       fallbackInput.focus();
-398:       fallbackInput.select();
-399:       fallbackInput.setSelectionRange(0, fallbackInput.value.length);
-400:     } catch {
-401:       setStatus('Could not copy, select the link below');
-402:       const url = currentUrl();
-403:       fallbackInput.value = url;
-404:       fallback.classList.remove('hidden');
-405:       fallbackInput.focus();
-406:       fallbackInput.select();
-407:     }
-408:   }
-409: 
-410:   shareButton.addEventListener('click', handleShare);
-411:   downloadButton.addEventListener('click', handleDownload);
-412:   copyButton.addEventListener('click', handleCopy);
-413: 
-414:   /**
-415:    * Show the panel.
-416:    * @returns {void}
-417:    */
-418:   function show() {
-419:     visible = true;
-420:     container.classList.remove('hidden');
-421:     container.removeAttribute('aria-hidden');
-422:     requestAnimationFrame(() => {
-423:       requestAnimationFrame(() => {
-424:         schedulePreview();
-425:       });
-426:     });
-427:   }
-428: 
-429:   /**
-430:    * Hide the panel.
-431:    * @returns {void}
-432:    */
-433:   function hide() {
-434:     visible = false;
-435:     container.classList.add('hidden');
-436:     container.setAttribute('aria-hidden', 'true');
-437:     hideFallback();
-438:     setStatus('');
-439:   }
-440: 
-441:   /**
-442:    * Update the panel for a roast.
-443:    * @param {Record<string, unknown>} roast Roast data.
-444:    * @param {Record<string, unknown> | null} category Category metadata.
-445:    * @param {Record<string, unknown>} club Club data.
-446:    * @returns {void}
-447:    */
-448:   function update(roast, category, club) {
-449:     if (!roast || !club) {
-450:       hide();
-451:       return;
-452:     }
-453: 
-454:     currentRoast = roast;
-455:     currentCategory = category;
-456:     currentClub = club;
-457:     hideFallback();
-458:     setStatus('');
-459:     updatePressed();
-460:     show();
-461:   }
-462: 
-463:   updatePressed();
-464: 
-465:   return { update, hide, show };
-466: }
-
-================
 File: index.html
 ================
   1: <!DOCTYPE html>
@@ -13738,6 +13270,468 @@ File: package.json
 14:     "tailwindcss": "3.4.17"
 15:   }
 16: }
+
+================
+File: js/share/sharePanel.js
+================
+  1: /**
+  2:  * Builds and controls the share panel for one roast.
+  3:  */
+  4: 
+  5: import { CARD_FORMATS } from './cardFormats.js';
+  6: import { SHARE_HOST_OVERRIDE } from './shareConfig.js';
+  7: import { renderRoastCard } from './renderCard.js';
+  8: import { absoluteRoastUrl, buildFileName, buildShareText, hostLabel } from './shareText.js';
+  9: import { canvasToBlob, copyText, downloadBlob, shareImage } from './actions.js';
+ 10: import { clear, createElement } from '../utils/dom.js';
+ 11: 
+ 12: /**
+ 13:  * Create the share panel inside a container.
+ 14:  * @param {{ container: HTMLElement }} options Panel options.
+ 15:  * @returns {{
+ 16:  *   update: (roast: Record<string, unknown>, category: Record<string, unknown> | null, club: Record<string, unknown>) => void,
+ 17:  *   hide: () => void,
+ 18:  *   show: () => void
+ 19:  * }} Panel controller.
+ 20:  */
+ 21: export function createSharePanel(options) {
+ 22:   const container = options && options.container ? options.container : null;
+ 23: 
+ 24:   if (!container || typeof document === 'undefined') {
+ 25:     return {
+ 26:       update() {},
+ 27:       hide() {},
+ 28:       show() {},
+ 29:     };
+ 30:   }
+ 31: 
+ 32:   clear(container);
+ 33: 
+ 34:   const heading = createElement('h2', {
+ 35:     className: 'sharePanelHeading',
+ 36:     text: 'Share this roast',
+ 37:     attrs: { id: 'sharePanelHeading' },
+ 38:   });
+ 39: 
+ 40:   const formatToggle = createElement('div', {
+ 41:     className: 'shareFormatToggle',
+ 42:     attrs: {
+ 43:       role: 'group',
+ 44:       'aria-label': 'Card format',
+ 45:     },
+ 46:   });
+ 47: 
+ 48:   /** @type {Map<string, HTMLButtonElement>} */
+ 49:   const formatButtons = new Map();
+ 50: 
+ 51:   for (const format of Object.values(CARD_FORMATS)) {
+ 52:     const button = createElement('button', {
+ 53:       className: 'shareFormatButton',
+ 54:       text: format.label,
+ 55:       attrs: {
+ 56:         type: 'button',
+ 57:         'aria-pressed': format.id === 'post' ? 'true' : 'false',
+ 58:       },
+ 59:     });
+ 60:     button.addEventListener('click', () => {
+ 61:       currentFormatId = format.id;
+ 62:       updatePressed();
+ 63:       hideFallback();
+ 64:       setStatus('');
+ 65:       schedulePreview();
+ 66:     });
+ 67:     formatButtons.set(format.id, button);
+ 68:     formatToggle.append(button);
+ 69:   }
+ 70: 
+ 71:   const previewWrap = createElement('div', { className: 'sharePreviewWrap' });
+ 72:   const previewCanvas = createElement('canvas', {
+ 73:     className: 'sharePreviewCanvas',
+ 74:     attrs: {
+ 75:       role: 'img',
+ 76:       'aria-label': 'Roast card preview',
+ 77:     },
+ 78:   });
+ 79:   previewWrap.append(previewCanvas);
+ 80: 
+ 81:   const actions = createElement('div', { className: 'shareActions' });
+ 82: 
+ 83:   const shareButton = createElement('button', {
+ 84:     className: 'shareActionPrimary',
+ 85:     text: 'Share',
+ 86:     attrs: { type: 'button' },
+ 87:   });
+ 88: 
+ 89:   const downloadButton = createElement('button', {
+ 90:     className: 'shareActionSecondary',
+ 91:     text: 'Download image',
+ 92:     attrs: { type: 'button' },
+ 93:   });
+ 94: 
+ 95:   const copyButton = createElement('button', {
+ 96:     className: 'shareActionSecondary',
+ 97:     text: 'Copy link',
+ 98:     attrs: { type: 'button' },
+ 99:   });
+100: 
+101:   actions.append(shareButton, downloadButton, copyButton);
+102: 
+103:   const status = createElement('p', {
+104:     className: 'shareStatus',
+105:     attrs: {
+106:       role: 'status',
+107:       'aria-live': 'polite',
+108:     },
+109:   });
+110: 
+111:   const fallback = createElement('div', { className: 'shareFallback hidden' });
+112:   const fallbackLabel = createElement('label', {
+113:     className: 'tokenLabel',
+114:     text: 'Copy this link',
+115:     attrs: { for: 'shareFallbackInput' },
+116:   });
+117:   const fallbackInput = createElement('input', {
+118:     className: 'shareFallbackInput',
+119:     attrs: {
+120:       id: 'shareFallbackInput',
+121:       type: 'text',
+122:       readonly: 'readonly',
+123:       'aria-label': 'Roast link',
+124:     },
+125:   });
+126:   fallback.append(fallbackLabel, fallbackInput);
+127: 
+128:   container.append(heading, formatToggle, actions, previewWrap, status, fallback);
+129:   container.setAttribute('aria-labelledby', 'sharePanelHeading');
+130: 
+131:   if (typeof navigator === 'undefined' || typeof navigator.share !== 'function') {
+132:     shareButton.hidden = true;
+133:   }
+134: 
+135:   const workCanvas = document.createElement('canvas');
+136: 
+137:   let currentRoast = null;
+138:   let currentCategory = null;
+139:   let currentClub = null;
+140:   let currentFormatId = 'post';
+141:   let visible = false;
+142:   let lastKey = '';
+143:   let cachedBlob = null;
+144:   let renderBusy = false;
+145:   let renderPending = false;
+146: 
+147:   /**
+148:    * Set the live status message.
+149:    * @param {string} message Status text.
+150:    * @returns {void}
+151:    */
+152:   function setStatus(message) {
+153:     status.textContent = message || '';
+154:   }
+155: 
+156:   /**
+157:    * Hide the copy fallback input.
+158:    * @returns {void}
+159:    */
+160:   function hideFallback() {
+161:     fallback.classList.add('hidden');
+162:   }
+163: 
+164:   /**
+165:    * Update the format button pressed state.
+166:    * @returns {void}
+167:    */
+168:   function updatePressed() {
+169:     for (const [id, button] of formatButtons) {
+170:       button.setAttribute('aria-pressed', id === currentFormatId ? 'true' : 'false');
+171:     }
+172:   }
+173: 
+174:   /**
+175:    * Return the selected format.
+176:    * @returns {{ id: string, label: string, width: number, height: number, safeTop: number, safeBottom: number }} Format.
+177:    */
+178:   function currentFormat() {
+179:     return CARD_FORMATS[currentFormatId] || CARD_FORMATS.post;
+180:   }
+181: 
+182:   /**
+183:    * Build the absolute roast URL.
+184:    * @returns {string} Absolute URL.
+185:    */
+186:   function currentUrl() {
+187:     if (!currentRoast || !currentClub) return '';
+188:     return absoluteRoastUrl(window.location.href, currentClub.id, currentRoast.id);
+189:   }
+190: 
+191:   /**
+192:    * Draw the preview once.
+193:    * @returns {Promise<void>}
+194:    */
+195:   async function drawPreview() {
+196:     if (!visible || !currentRoast || !currentClub) return;
+197: 
+198:     const roast = currentRoast;
+199:     const category = currentCategory;
+200:     const club = currentClub;
+201:     const format = currentFormat();
+202:     const host = hostLabel(window.location.host, SHARE_HOST_OVERRIDE);
+203:     const key = `${club.id}|${roast.id}|${format.id}|${host}`;
+204: 
+205:     if (
+206:       key === lastKey &&
+207:       previewCanvas.width === format.width &&
+208:       previewCanvas.height === format.height
+209:     ) {
+210:       return;
+211:     }
+212: 
+213:     lastKey = key;
+214:     cachedBlob = null;
+215:     setStatus('Preparing image');
+216: 
+217:     const result = await renderRoastCard({
+218:       canvas: workCanvas,
+219:       roast,
+220:       category,
+221:       club,
+222:       format,
+223:       host,
+224:     });
+225: 
+226:     if (!visible) return;
+227: 
+228:     previewCanvas.width = workCanvas.width;
+229:     previewCanvas.height = workCanvas.height;
+230: 
+231:     // iOS Safari sometimes needs a layout flush between resize and draw.
+232:     void previewCanvas.offsetWidth;
+233: 
+234:     const ctx = previewCanvas.getContext('2d');
+235:     if (ctx) {
+236:       ctx.clearRect(0, 0, previewCanvas.width, previewCanvas.height);
+237:       ctx.drawImage(workCanvas, 0, 0);
+238:     }
+239: 
+240:     previewCanvas.setAttribute('role', 'img');
+241:     previewCanvas.setAttribute(
+242:       'aria-label',
+243:       `Roast card preview for ${String(roast.headline || '')} in ${format.label} format`
+244:     );
+245: 
+246:     if (result.truncated) {
+247:       setStatus('Preview ready (some text was shortened)');
+248:     } else {
+249:       setStatus('Preview ready');
+250:     }
+251: 
+252:     // Cache the PNG for every preview, not only truncated ones. Share and
+253:     // Download then never have to read the canvas on tap, which is what
+254:     // breaks on iOS Safari. canvas.toBlob is used here, never toDataURL.
+255:     const renderedKey = key;
+256:     canvasToBlob(previewCanvas).then((blobResult) => {
+257:       if (blobResult.ok && lastKey === renderedKey) {
+258:         cachedBlob = blobResult.blob;
+259:       }
+260:     });
+261:   }
+262: 
+263:   /**
+264:    * Render the preview when the panel is visible.
+265:    * @returns {Promise<void>}
+266:    */
+267:   async function renderPreview() {
+268:     if (!visible || !currentRoast || !currentClub) return;
+269: 
+270:     if (renderBusy) {
+271:       renderPending = true;
+272:       return;
+273:     }
+274: 
+275:     renderBusy = true;
+276: 
+277:     try {
+278:       do {
+279:         renderPending = false;
+280:         await drawPreview();
+281:       } while (renderPending && visible);
+282:     } catch {
+283:       setStatus('Could not prepare the image. Try again.');
+284:     } finally {
+285:       renderBusy = false;
+286:     }
+287:   }
+288: 
+289:   /**
+290:    * Schedule a preview render.
+291:    * @returns {void}
+292:    */
+293:   function schedulePreview() {
+294:     if (!visible) return;
+295:     renderPreview().catch(() => {
+296:       setStatus('Could not prepare the image. Try again.');
+297:     });
+298:   }
+299: 
+300:   /**
+301:    * Handle the Share button.
+302:    * @returns {Promise<void>}
+303:    */
+304:   async function handleShare() {
+305:     try {
+306:       if (!currentRoast || !currentClub) return;
+307: 
+308:       let blob = cachedBlob;
+309:       if (!blob) {
+310:         if (previewCanvas.width < 1000) {
+311:           setStatus('The image is still being prepared. Try again in a second.');
+312:           return;
+313:         }
+314:         const blobResult = await canvasToBlob(previewCanvas);
+315:         if (!blobResult.ok || !blobResult.blob) {
+316:           setStatus('Could not prepare the image. Try Download image instead.');
+317:           return;
+318:         }
+319:         blob = blobResult.blob;
+320:         cachedBlob = blob;
+321:       }
+322: 
+323:       const fileName = buildFileName(currentClub.id, currentRoast.id, currentFormat().id);
+324:       const url = currentUrl();
+325:       const text = buildShareText(currentRoast, url);
+326:       const result = await shareImage({ blob, fileName, title: 'The Roast Room', text, url });
+327: 
+328:       if (result.ok) {
+329:         setStatus('Shared');
+330:       } else if (result.reason === 'cancelled') {
+331:         setStatus('Share cancelled');
+332:       } else if (result.reason === 'unsupported') {
+333:         setStatus('Sharing is not available here. Use Download image instead.');
+334:       } else {
+335:         setStatus('Could not share. Try Download image instead.');
+336:       }
+337:     } catch {
+338:       setStatus('Could not share. Try Download image instead.');
+339:     }
+340:   }
+341: 
+342:   /**
+343:    * Handle the Download image button.
+344:    * @returns {Promise<void>}
+345:    */
+346:   async function handleDownload() {
+347:     try {
+348:       if (!currentRoast || !currentClub) return;
+349: 
+350:       const blobResult = await canvasToBlob(previewCanvas);
+351:       if (!blobResult.ok) {
+352:         setStatus('Could not save the image. Use Share on your phone instead.');
+353:         return;
+354:       }
+355: 
+356:       const fileName = buildFileName(currentClub.id, currentRoast.id, currentFormat().id);
+357:       const result = downloadBlob(blobResult.blob, fileName);
+358: 
+359:       if (result.ok) {
+360:         setStatus('Image saved');
+361:       } else {
+362:         setStatus('Could not save the image. Use Share on your phone instead.');
+363:       }
+364:     } catch {
+365:       setStatus('Could not save the image. Use Share on your phone instead.');
+366:     }
+367:   }
+368: 
+369:   /**
+370:    * Handle the Copy link button.
+371:    * @returns {Promise<void>}
+372:    */
+373:   async function handleCopy() {
+374:     try {
+375:       const url = currentUrl();
+376:       if (!url) return;
+377: 
+378:       const result = await copyText(url);
+379: 
+380:       if (result.ok) {
+381:         setStatus('Link copied');
+382:         hideFallback();
+383:         return;
+384:       }
+385: 
+386:       setStatus('Could not copy, select the link below');
+387:       fallbackInput.value = url;
+388:       fallback.classList.remove('hidden');
+389:       fallbackInput.focus();
+390:       fallbackInput.select();
+391:       fallbackInput.setSelectionRange(0, fallbackInput.value.length);
+392:     } catch {
+393:       setStatus('Could not copy, select the link below');
+394:       const url = currentUrl();
+395:       fallbackInput.value = url;
+396:       fallback.classList.remove('hidden');
+397:       fallbackInput.focus();
+398:       fallbackInput.select();
+399:     }
+400:   }
+401: 
+402:   shareButton.addEventListener('click', handleShare);
+403:   downloadButton.addEventListener('click', handleDownload);
+404:   copyButton.addEventListener('click', handleCopy);
+405: 
+406:   /**
+407:    * Show the panel.
+408:    * @returns {void}
+409:    */
+410:   function show() {
+411:     visible = true;
+412:     container.classList.remove('hidden');
+413:     container.removeAttribute('aria-hidden');
+414:     requestAnimationFrame(() => {
+415:       requestAnimationFrame(() => {
+416:         schedulePreview();
+417:       });
+418:     });
+419:   }
+420: 
+421:   /**
+422:    * Hide the panel.
+423:    * @returns {void}
+424:    */
+425:   function hide() {
+426:     visible = false;
+427:     container.classList.add('hidden');
+428:     container.setAttribute('aria-hidden', 'true');
+429:     hideFallback();
+430:     setStatus('');
+431:   }
+432: 
+433:   /**
+434:    * Update the panel for a roast.
+435:    * @param {Record<string, unknown>} roast Roast data.
+436:    * @param {Record<string, unknown> | null} category Category metadata.
+437:    * @param {Record<string, unknown>} club Club data.
+438:    * @returns {void}
+439:    */
+440:   function update(roast, category, club) {
+441:     if (!roast || !club) {
+442:       hide();
+443:       return;
+444:     }
+445: 
+446:     currentRoast = roast;
+447:     currentCategory = category;
+448:     currentClub = club;
+449:     hideFallback();
+450:     setStatus('');
+451:     updatePressed();
+452:     show();
+453:   }
+454: 
+455:   updatePressed();
+456: 
+457:   return { update, hide, show };
+458: }
 
 ================
 File: room.html

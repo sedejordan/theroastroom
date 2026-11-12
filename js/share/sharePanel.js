@@ -227,6 +227,7 @@ export function createSharePanel(options) {
 
     previewCanvas.width = workCanvas.width;
     previewCanvas.height = workCanvas.height;
+    previewCanvas.style.aspectRatio = `${workCanvas.width} / ${workCanvas.height}`;
 
     // iOS Safari sometimes needs a layout flush between resize and draw.
     void previewCanvas.offsetWidth;
