@@ -88,8 +88,10 @@ export async function shareImage(options) {
     };
 
     if (blob && typeof File === 'function') {
+      // Pin the MIME type. Some iOS Safari builds produce a blob with an
+      // empty type, and the share sheet then drops the file silently.
       const file = new File([blob], String(fileName || 'roastroom.png'), {
-        type: blob.type || 'image/png',
+        type: 'image/png',
       });
       const files = [file];
 

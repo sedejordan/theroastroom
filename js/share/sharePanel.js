@@ -9,20 +9,6 @@ import { absoluteRoastUrl, buildFileName, buildShareText, hostLabel } from './sh
 import { canvasToBlob, copyText, downloadBlob, shareImage } from './actions.js';
 import { clear, createElement } from '../utils/dom.js';
 
-function canvasToBlobNow(canvas) {
-  try {
-    const dataUrl = canvas.toDataURL('image/png');
-    const binary = atob(dataUrl.split(',')[1]);
-    const bytes = new Uint8Array(binary.length);
-    for (let i = 0; i < binary.length; i += 1) {
-      bytes[i] = binary.charCodeAt(i);
-    }
-    return new Blob([bytes], { type: 'image/png' });
-  } catch {
-    return null;
-  }
-}
-
 /**
  * Create the share panel inside a container.
  * @param {{ container: HTMLElement }} options Panel options.
@@ -259,16 +245,20 @@ export function createSharePanel(options) {
 
     if (result.truncated) {
       setStatus('Preview ready (some text was shortened)');
-      const renderedKey = key;
-      canvasToBlob(previewCanvas).then((blobResult) => {
-        if (blobResult.ok && lastKey === renderedKey) {
-          cachedBlob = blobResult.blob;
-        }
-      });
     } else {
-        setStatus('Preview ready');
+      setStatus('Preview ready');
     }
-}
+
+    // Cache the PNG for every preview, not only truncated ones. Share and
+    // Download then never have to read the canvas on tap, which is what
+    // breaks on iOS Safari. canvas.toBlob is used here, never toDataURL.
+    const renderedKey = key;
+    canvasToBlob(previewCanvas).then((blobResult) => {
+      if (blobResult.ok && lastKey === renderedKey) {
+        cachedBlob = blobResult.blob;
+      }
+    });
+  }
 
   /**
    * Render the preview when the panel is visible.
@@ -321,11 +311,13 @@ export function createSharePanel(options) {
           setStatus('The image is still being prepared. Try again in a second.');
           return;
         }
-        blob = canvasToBlobNow(previewCanvas);
-      }
-      if (!blob) {
-        setStatus('Could not prepare the image. Try Download image instead.');
-        return;
+        const blobResult = await canvasToBlob(previewCanvas);
+        if (!blobResult.ok || !blobResult.blob) {
+          setStatus('Could not prepare the image. Try Download image instead.');
+          return;
+        }
+        blob = blobResult.blob;
+        cachedBlob = blob;
       }
 
       const fileName = buildFileName(currentClub.id, currentRoast.id, currentFormat().id);
