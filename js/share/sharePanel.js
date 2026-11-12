@@ -323,6 +323,11 @@ export function createSharePanel(options) {
       const fileName = buildFileName(currentClub.id, currentRoast.id, currentFormat().id);
       const url = currentUrl();
       const text = buildShareText(currentRoast, url);
+
+      console.log('blob bytes', blob.size, 'type', blob.type);
+      const probe = new File([blob], 'probe.png', { type: 'image/png' });
+      console.log('canShare files', navigator.canShare({ files: [probe] }));
+
       const result = await shareImage({ blob, fileName, title: 'The Roast Room', text, url });
 
       if (result.ok) {
