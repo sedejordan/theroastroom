@@ -76,7 +76,12 @@ export function createSharePanel(options) {
       'aria-label': 'Roast card preview',
     },
   });
-  previewWrap.append(previewCanvas);
+  const previewImage = createElement('img', {
+    className: 'sharePreviewImage hidden',
+    attrs: { alt: 'Roast card preview', decoding: 'async' },
+  });
+  previewWrap.append(previewCanvas, previewImage);
+  let previewUrl = '';
 
   const actions = createElement('div', { className: 'shareActions' });
 
@@ -193,7 +198,7 @@ export function createSharePanel(options) {
    * @returns {Promise<void>}
    */
   async function drawPreview() {
-    if (!visible || !currentRoast || !currentClub) return;
+    if (key === lastKey && cachedBlob) return;
 
     const roast = currentRoast;
     const category = currentCategory;
@@ -223,42 +228,31 @@ export function createSharePanel(options) {
       host,
     });
 
-    if (!visible) return;
+    if (!visible || lastKey !== key) return;
 
-    previewCanvas.width = workCanvas.width;
-    previewCanvas.height = workCanvas.height;
-    previewCanvas.style.aspectRatio = `${workCanvas.width} / ${workCanvas.height}`;
+    const blobResult = await canvasToBlob(workCanvas);
+    if (!visible || lastKey !== key) return;
 
-    // iOS Safari sometimes needs a layout flush between resize and draw.
-    void previewCanvas.offsetWidth;
-
-    const ctx = previewCanvas.getContext('2d');
-    if (ctx) {
-      ctx.clearRect(0, 0, previewCanvas.width, previewCanvas.height);
-      ctx.drawImage(workCanvas, 0, 0);
-    }
-
-    previewCanvas.setAttribute('role', 'img');
-    previewCanvas.setAttribute(
-      'aria-label',
-      `Roast card preview for ${String(roast.headline || '')} in ${format.label} format`
-    );
-
-    if (result.truncated) {
-      setStatus('Preview ready (some text was shortened)');
+    if (blobResult.ok && blobResult.blob) {
+      cachedBlob = blobResult.blob;
+      const nextUrl = URL.createObjectURL(blobResult.blob);
+      previewImage.src = nextUrl;
+      if (previewUrl) URL.revokeObjectURL(previewUrl);
+      previewUrl = nextUrl;
+      previewImage.alt = `Roast card preview for ${String(roast.headline || '')} in ${format.label} format`;
+      previewImage.classList.remove('hidden');
+      previewCanvas.classList.add('hidden');
     } else {
-      setStatus('Preview ready');
+      // Fall back to showing the canvas if the PNG could not be made.
+      previewCanvas.width = workCanvas.width;
+      previewCanvas.height = workCanvas.height;
+      const ctx = previewCanvas.getContext('2d');
+      if (ctx) ctx.drawImage(workCanvas, 0, 0);
+      previewCanvas.classList.remove('hidden');
+      previewImage.classList.add('hidden');
     }
 
-    // Cache the PNG for every preview, not only truncated ones. Share and
-    // Download then never have to read the canvas on tap, which is what
-    // breaks on iOS Safari. canvas.toBlob is used here, never toDataURL.
-    const renderedKey = key;
-    canvasToBlob(previewCanvas).then((blobResult) => {
-      if (blobResult.ok && lastKey === renderedKey) {
-        cachedBlob = blobResult.blob;
-      }
-    });
+    setStatus(result.truncated ? 'Preview ready (some text was shortened)' : 'Preview ready');
   }
 
   /**
